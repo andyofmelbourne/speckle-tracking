@@ -1,0 +1,8 @@
+*.swp
+*.pyc
+*.h5
+hdf5/*
+utils/Ptychography/*
+cxi_files/*
+scratch/*
+papers/*
