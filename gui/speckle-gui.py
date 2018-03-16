@@ -17,7 +17,7 @@ root = os.path.split(root)[0]
 sys.path.insert(0, os.path.join(root, 'utils'))
 import cmdline_parser
 
-from view_h5_data_widget import View_h5_data_widget
+from widgets import *
 
 class Tabs_widget(QTabWidget):
     def __init__(self, fnam):

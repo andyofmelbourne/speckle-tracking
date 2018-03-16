@@ -37,7 +37,15 @@ class Show_nd_data_widget(QWidget):
         f = h5py.File(filename, 'r')
         shape = f[name].shape
 
-        if len(shape) == 1 :
+        
+        if shape == () :
+            if refresh :
+                self.plotW.setData(f[name][()])
+            else :
+                self.plotW = self.text_label = QLabel(self)
+                self.plotW.setText('<b>'+name+'</b>: ' + str(f[name][()]))
+
+        elif len(shape) == 1 :
             if refresh :
                 self.plotW.setData(f[name][()])
             else :
@@ -132,3 +140,4 @@ class Show_nd_data_widget(QWidget):
     def update(self):
         # update the current plot
         self.show(self.filename, self.name, True)
+
