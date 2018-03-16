@@ -6,10 +6,9 @@ except :
     from PyQt4.QtGui import *
 
 import signal
+import glob
 
-
-
-# set root
+# set the root dir
 import sys, os
 root = os.path.split(os.path.abspath(__file__))[0]
 root = os.path.split(root)[0]
@@ -55,18 +54,27 @@ class Speckle_gui(QMainWindow):
         
         # view h5 widget
         load_view_h5_data_widget = QAction("view h5 data widget", self)
-        load_view_h5_data_widget.triggered.connect( lambda x : \
-                                                    tabs_widget.addTab(View_h5_data_widget(fnam), \
-                                                    'view_h5_data_widget') )
+        load_view_h5_data_action = lambda x : tabs_widget.addTab(View_h5_data_widget(fnam), 'view_h5_data_widget')
+        load_view_h5_data_widget.triggered.connect( load_view_h5_data_action ) 
         dis_menu.addAction(load_view_h5_data_widget)
-
-        pro_menu = menu.addMenu('Process')
-
-        # auto populate the process menu
         
+        pro_menu = menu.addMenu('Process')
+        
+        # auto populate the process menu
+        pro_fnams = glob.glob(root+'/process/*.py')
+        load_pro_widgets = []
+        load_pro_actions = []
+        for pfnam in pro_fnams:
+            script_name = os.path.split(pfnam)[1][:-3]
+            load_pro_widgets.append(QAction(script_name, self))
+            load_pro_actions.append(lambda x, s = script_name, f = fnam : tabs_widget.addTab(Auto_build_widget(s, f), s))
+            load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
+            pro_menu.addAction(load_pro_widgets[-1])
 
         self.show()
         
+    def autoTab(self, script_name, fnam):
+        print(script_name, fnam)
 
 if __name__ == '__main__':
     args, params = cmdline_parser.parse_cmdline_args('speckle-gui', 'speckle-tracking main gui')
