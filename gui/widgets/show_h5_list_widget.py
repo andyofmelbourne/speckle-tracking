@@ -35,14 +35,15 @@ class Show_h5_list_widget(QWidget):
     
     def initUI(self):
         # set the layout
-        layout = QVBoxLayout()
-        layout.addWidget(self.listWidget)
-        layout.addWidget(self.update_button)
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.listWidget)
+        self.layout.addWidget(self.update_button)
         
         # add the layout to the central widget
-        self.setLayout(layout)
+        self.setLayout(self.layout)
 
     def add_dataset_name(self, name, obj):
+        print(name)
         names = self.names
         if isinstance(obj, h5py.Dataset):
             if ((names is None) or (names is not None and name in names)) \
@@ -52,6 +53,15 @@ class Show_h5_list_widget(QWidget):
                 self.dataset_items[-1].setText(name)
     
     def update(self):
+        self.remove_all()
         f = h5py.File(self.filename, 'r')
         f.visititems(self.add_dataset_name)
         f.close()
+
+    def remove_all(self):
+        item = 1
+        while item is not None :
+            item = self.listWidget.takeItem(0)
+        item = None
+        self.dataset_names = []
+        self.dataset_items = []

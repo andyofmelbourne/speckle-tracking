@@ -243,4 +243,5 @@ if __name__ == '__main__':
                            {'O' : O.astype(np.complex128),
                             '/Pupil' : Pd, 
                             'good_frames' : np.arange(len(frames))})
+    print('display: '+params['h5_group']+'/O') ; sys.stdout.flush()
     
