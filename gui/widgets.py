@@ -5,3 +5,4 @@ sys.path.insert(0, os.path.join(directory, 'widgets'))
 
 from view_h5_data_widget import View_h5_data_widget
 from auto_build_widget import Auto_build_widget
+from manual_tracking_widget import Manual_tracking_widget

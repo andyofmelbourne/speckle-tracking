@@ -7,6 +7,24 @@ except :
 
 import config_reader
 
+def discover_config(script_name, h5_fnam, config_fnam='', config_dirs = ['/process/',]):
+    import sys, os
+    root = os.path.split(os.path.abspath(__file__))[0]
+    root = os.path.split(root)[0]
+    root = os.path.split(root)[0]
+    
+    # config output file is [h5_data directory]/[sript_name].ini
+    #
+    config_output = os.path.split(h5_fnam)[0] + '/' + script_name + '.ini'
+    
+    # config search order is config_fnam, h5_fnam dir, config_dirs..
+    # 
+    config_fnams = [config_fnam,]
+    config_fnams.append(config_output)
+    for cd in config_dirs :
+        config_fnams.append(root + cd + '/' + script_name + '.ini') 
+    return config_fnams, config_output
+
 class QForm_w(QWidget):
     """
     """

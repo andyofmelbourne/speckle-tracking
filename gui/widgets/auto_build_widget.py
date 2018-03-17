@@ -9,6 +9,7 @@ root = os.path.split(root)[0]
 root = os.path.split(root)[0]
 
 from config_editor_widget import Config_editor_Widget
+from config_editor_widget import discover_config
 from run_and_log_command  import Run_and_log_command
 from show_nd_data_widget  import Show_nd_data_widget
 
@@ -25,16 +26,9 @@ class Auto_build_widget(QWidget):
         self.h5_fnam     = h5_fnam
         self.script_name = script_name
         
-        # config output file is [h5_data directory]/[sript_name].ini
-        #
-        self.config_output = os.path.split(h5_fnam)[0] + '/' + script_name + '.ini'
-        
-        # config search order is config_fnam, h5_fnam dir, config_dirs..
-        # 
-        self.config_fnams = [config_fnam,]
-        self.config_fnams.append(self.config_output)
-        for cd in config_dirs :
-            self.config_fnams.append(root + cd + '/' + script_name + '.ini') 
+        self.config_fnams, self.config_output =  discover_config(script_name, \
+                                                 h5_fnam, config_dirs,        \
+                                                 config_fnam, config_dirs)
         
         self.initUI()
 

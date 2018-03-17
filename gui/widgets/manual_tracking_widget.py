@@ -3,233 +3,53 @@
 
 # then click (alternating) on the atlas and the gui
 
-import sys, os
 import numpy as np
 import h5py
 
 #import PyQt4.QtGui
 try :
-    from PyQt5 import QtGui, QtCore
+    from PyQt5.QtWidgets import *
 except :
-    from PyQt4 import QtGui, QtCore
-import signal
-import copy 
+    from PyQt4.QtGui import *
+
 import pyqtgraph as pg
-import utils
 
+import sys, os
+root = os.path.split(os.path.abspath(__file__))[0]
+root = os.path.split(root)[0]
+root = os.path.split(root)[0]
 
-try :
-    import configparser
-except ImportError :
-    import ConfigParser as configparser
+from config_editor_widget import Config_editor_Widget
+from config_editor_widget import discover_config
+from run_and_log_command  import Run_and_log_command
+import config_reader
 
-
-def load_config(filename, name):
-    # if config is None then read the default from the *.pty dir
-    config = os.path.join(os.path.split(filename)[0], name)
-    if not os.path.exists(config):
-        config = os.path.join(root, 'process')
-        config = os.path.join(config, name)
+class Manual_tracking_widget(QWidget):
+    script_name = 'manual_tracking'
     
-    # check that args.config exists
-    if not os.path.exists(config):
-        raise NameError('config file does not exist: ' + config)
-    
-    # process config file
-    conf = configparser.ConfigParser()
-    conf.read(config)
-    
-    params = utils.parse_parameters(conf)
-    return params
-
-class Write_config_file_widget(QtGui.QWidget):
-    def __init__(self, config_dict, output_filename):
-        super(Write_config_file_widget, self).__init__()
+    def __init__(self, h5_fnam, config_fnam = '', config_dirs = ['/process/',]):
+        super(Manual_tracking_widget, self).__init__()
         
-        self.output_filename = output_filename
-        self.initUI(config_dict)
-    
-    def initUI(self, config_dict):
-        # Make a grid layout
-        layout = QtGui.QGridLayout()
-        
-        # add the layout to the central widget
-        self.setLayout(layout)
-        
-        self.output_config = copy.deepcopy(config_dict)
-        
-        i = 0
-        # add the output config filename 
-        ################################    
-        fnam_label = QtGui.QLabel(self)
-        fnam_label.setText(self.output_filename)
-        
-        # add the label to the layout
-        layout.addWidget(fnam_label, i, 0, 1, 2)
-        i += 1
-        
-        # we have 
-        self.labels_lineedits = {}
-        group_labels = []
-        for group in config_dict.keys():
-            # add a label for the group
-            group_labels.append( QtGui.QLabel(self) )
-            group_labels[-1].setText(group)
-            # add the label to the layout
-            layout.addWidget(group_labels[-1], i, 0, 1, 2)
-            i += 1
-            
-            self.labels_lineedits[group] = {}
-            # add the labels and line edits
-            for key in config_dict[group].keys():
-                self.labels_lineedits[group][key] = {}
-                self.labels_lineedits[group][key]['label'] = QtGui.QLabel(self)
-                self.labels_lineedits[group][key]['label'].setText(key)
-                layout.addWidget(self.labels_lineedits[group][key]['label'], i, 0, 1, 1)
-                
-                self.labels_lineedits[group][key]['lineedit'] = QtGui.QLineEdit(self)
-                # special case when config_dict[group][key] is a list
-                if type(config_dict[group][key]) is list or type(config_dict[group][key]) is np.ndarray :
-                    setT = ''
-                    for ii in range(len(config_dict[group][key])-1):
-                        setT += str(config_dict[group][key][ii]) + ','
-                    setT += str(config_dict[group][key][-1])
-                else :
-                    setT = str(config_dict[group][key])
-                self.labels_lineedits[group][key]['lineedit'].setText(setT)
-                self.labels_lineedits[group][key]['lineedit'].editingFinished.connect(self.write_file)
-                layout.addWidget(self.labels_lineedits[group][key]['lineedit'], i, 1, 1, 1)
-                i += 1
-
-    def write_file(self):
-        with open(self.output_filename, 'w') as f:
-            for group in self.labels_lineedits.keys():
-                f.write('['+group+']' + '\n')
-                
-                for key in self.labels_lineedits[group].keys():
-                    out_str = key
-                    out_str = out_str + ' = '
-                    out_str = out_str + str(self.labels_lineedits[group][key]['lineedit'].text())
-                    f.write( out_str + '\n')
-
-class Run_and_log_command(QtGui.QWidget):
-    """
-    run a command and send a signal when it complete, or it has failed.
-
-    use a Qt timer to check the process
-    
-    realtime streaming of the terminal output has so proved to be fruitless
-    """
-    finished_signal = QtCore.pyqtSignal(bool)
-    
-    def __init__(self):
-        super(Run_and_log_command, self).__init__()
-        
-        self.polling_interval = 0.1
-        self.initUI()
-        
-    def initUI(self):
-        """
-        Just setup a qlabel showing the shell command
-        and another showing the status of the process
-        """
-        # Make a grid layout
-        #layout = QtGui.QGridLayout()
-        hbox = QtGui.QHBoxLayout()
-        
-        # add the layout to the central widget
-        self.setLayout(hbox)
-        
-        # show the command being executed
-        self.command_label0 = QtGui.QLabel(self)
-        self.command_label0.setText('<b>Command:</b>')
-        self.command_label  = QtGui.QLabel(self)
-        #self.command_label.setMaximumSize(50, 250)
-         
-        # show the status of the command
-        self.status_label0  = QtGui.QLabel(self)
-        self.status_label0.setText('<b>Status:</b>')
-        self.status_label   = QtGui.QLabel(self)
-        
-        # add to layout
-        hbox.addWidget(self.status_label0)
-        hbox.addWidget(self.status_label)
-        hbox.addWidget(self.command_label0)
-        hbox.addWidget(self.command_label)
-        hbox.addStretch(1)
-
-        #layout.addWidget(self.status_label0,  0, 0, 1, 1)
-        #layout.addWidget(self.status_label,   0, 1, 1, 1)
-        #layout.addWidget(self.command_label0, 1, 0, 1, 1)
-        #layout.addWidget(self.command_label,  1, 1, 1, 1)
-         
-    def run_cmd(self, cmd):
-        from subprocess import PIPE, Popen
-        import shlex
-        self.command_label.setText(cmd)
-        self.status_label.setText('running the command')
-        self.p = Popen(shlex.split(cmd), stdout = PIPE, stderr = PIPE)
-        
-        # start a Qt timer to update the status
-        QtCore.QTimer.singleShot(self.polling_interval, self.update_status)
-    
-    def update_status(self):
-        status = self.p.poll()
-        if status is None :
-            self.status_label.setText('Running')
-             
-            # start a Qt timer to update the status
-            QtCore.QTimer.singleShot(self.polling_interval, self.update_status)
-        
-        elif status is 0 :
-            self.status_label.setText('Finished')
-            
-            # get the output and error msg
-            self.output, self.err_msg = self.p.communicate()
-            
-            # emmit a signal when complete
-            self.finished_signal.emit(True)
-            print('Output   :', self.output.decode("utf-8"))
-            
-        else :
-            self.status_label.setText(str(status))
-            
-            # get the output and error msg
-            self.output, self.err_msg = self.p.communicate()
-            print('Output   :', self.output.decode("utf-8"))
-            print('Error msg:', self.err_msg.decode("utf-8"))
-            
-            # emmit a signal when complete
-            self.finished_signal.emit(False)
-
-
-class Build_atlas_widget(QtGui.QWidget):
-    def __init__(self, filename, config):
-        super(Build_atlas_widget, self).__init__()
-        
-        self.filename    = filename
-        self.config_dict = config
+        self.config_fnams, self.config_output =  discover_config(self.script_name, \
+                                                 h5_fnam, config_fnam, config_dirs)
+        self.filename    = h5_fnam
         self.initUI()
 
     def initUI(self):
-        # get the output directory
-        self.output_dir = os.path.split(self.filename)[0]
-        self.config_filename = os.path.join(self.output_dir, 'build_atlas.ini')
-        self.f = h5py.File(self.filename, 'r')
-        self.f.close()
-
         # Make a grid layout
         ####################
-        layout = QtGui.QGridLayout()
+        layout = QGridLayout()
         self.setLayout(layout)
         
         # make a vbox for the left column
-        vst = QtGui.QVBoxLayout()
+        vst = QVBoxLayout()
         
         # config widget
         ###############
-        self.config_widget = Write_config_file_widget(self.config_dict, self.config_filename)
-        vst.addWidget(self.config_widget)
+        self.cew = Config_editor_Widget(self.config_fnams, self.config_output)
+        self.config, fnam = config_reader.config_read(self.config_fnams)
+        self.config       = self.config[self.script_name]
+        vst.addWidget(self.cew)
         
         # get feature list
         ##################
@@ -242,10 +62,10 @@ class Build_atlas_widget(QtGui.QWidget):
         
         # add feature grid button
         #########################
-        #hst = QtGui.QHBoxLayout()
-        #add_feature_grid_button   = QtGui.QPushButton('add feature grid')
+        #hst = QHBoxLayout()
+        #add_feature_grid_button   = QPushButton('add feature grid')
         #add_feature_grid_button.clicked.connect( self.add_feature_grid )
-        #self.add_feature_grid_lineedit = QtGui.QLineEdit()
+        #self.add_feature_grid_lineedit = QLineEdit()
         #self.add_feature_grid_lineedit.setText('4')
         #hst.addWidget(add_feature_grid_button)
         #hst.addWidget(self.add_feature_grid_lineedit)
@@ -253,46 +73,46 @@ class Build_atlas_widget(QtGui.QWidget):
 
         # add feature button
         ####################
-        add_feature_button    = QtGui.QPushButton('add feature')
+        add_feature_button    = QPushButton('add feature')
         add_feature_button.clicked.connect( self.add_feature )
         vst.addWidget(add_feature_button)
 
         # remove feature button
         #######################
-        remove_feature_button = QtGui.QPushButton('remove feature')
+        remove_feature_button = QPushButton('remove feature')
         remove_feature_button.clicked.connect( self.remove_feature )
         vst.addWidget(remove_feature_button)
         
         # clear all button
         ##################
-        clear_all_button = QtGui.QPushButton('clear all features')
+        clear_all_button = QPushButton('clear all features')
         clear_all_button.clicked.connect( self.remove_all_features )
         vst.addWidget(clear_all_button)
         
         # write feature button
         ######################
-        write_features_button = QtGui.QPushButton('write features')
+        write_features_button = QPushButton('write features')
         write_features_button.clicked.connect( self.write_features )
         vst.addWidget(write_features_button)
 
         # merge feature button
         ######################
-        #merge_features_button = QtGui.QPushButton('merge features')
+        #merge_features_button = QPushButton('merge features')
         #merge_features_button.clicked.connect( self.merge_features )
         #vst.addWidget(merge_features_button)
         
         # next duplicate button
         ##################
-        next_pair_button = QtGui.QPushButton('next and duplicate')
+        next_pair_button = QPushButton('next and duplicate')
         next_pair_button.clicked.connect( self.next_pair )
         vst.addWidget(next_pair_button)
 
         # next pair button
         ##################
-        hst = QtGui.QHBoxLayout()
-        nextp_button = QtGui.QPushButton('next pair')
+        hst = QHBoxLayout()
+        nextp_button = QPushButton('next pair')
         nextp_button.clicked.connect( self.nextp )
-        prevp_button = QtGui.QPushButton('previous pair')
+        prevp_button = QPushButton('previous pair')
         prevp_button.clicked.connect( self.prevp )
         hst.addWidget(prevp_button)
         hst.addWidget(nextp_button)
@@ -305,18 +125,18 @@ class Build_atlas_widget(QtGui.QWidget):
         
         # run command button
         ####################
-        self.run_button = QtGui.QPushButton('build atlas', self)
+        self.run_button = QPushButton(self.script_name, self)
         self.run_button.clicked.connect(self.run_button_clicked)
         vst.addWidget(self.run_button)
 
         # run command button
         ####################
-        self.run2_button = QtGui.QPushButton('add distortions', self)
+        self.run2_button = QPushButton('add distortions', self)
         self.run2_button.clicked.connect(self.run2_button_clicked)
         vst.addWidget(self.run2_button)
         
         # add a spacer for the labels and such
-        verticalSpacer = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         vst.addItem(verticalSpacer)
         
         # set the layout
@@ -392,8 +212,7 @@ class Build_atlas_widget(QtGui.QWidget):
                 any_features_next = True
         
         if any_features_current is True and any_features_next is False :
-            config = self.config_dict['build_atlas']
-            w = [config['window'], config['window']]
+            w = [self.config['window'], self.config['window']]
             
             for p in pos:
                 # add an roi to frame1 and frame2
@@ -416,21 +235,17 @@ class Build_atlas_widget(QtGui.QWidget):
         self.features = {}
     
     def run_button_clicked(self):
-        self.config_widget.write_file()
-    
         # Run the command 
         #################
-        py = os.path.join('./', 'build_atlas.py')
-        cmd = 'mpiexec -n 8 python ' + py + ' ' + self.filename + ' -c ' + self.config_filename
+        py = os.path.join('./', self.script_name)
+        cmd = 'mpiexec -n 8 python ' + py + ' ' + self.filename + ' -c ' + self.config_output
         self.run_command_widget.run_cmd(cmd)
 
     def run2_button_clicked(self):
-        self.config_widget.write_file()
-    
         # Run the command 
         #################
         py = os.path.join('./', 'add_distortions.py')
-        cmd = 'python ' + py + ' ' + self.filename + ' -c ' + self.config_filename
+        cmd = 'python ' + py + ' ' + self.filename + ' -c ' + self.config_output
         self.run_command_widget.run_cmd(cmd)
 
     def finished(self):
@@ -440,14 +255,13 @@ class Build_atlas_widget(QtGui.QWidget):
 
     def init_display(self):
         # get file info
-        config = self.config_dict['build_atlas']
-        roi    = config['roi']
+        roi    = self.config['roi']
         # show a frame
         self.f = h5py.File(self.filename, 'r')
-        self.mask = self.f[config['mask']][roi[0]:roi[1], roi[2]:roi[3]]
-        self.W    = self.f[config['whitefield']][roi[0]:roi[1], roi[2]:roi[3]]*self.mask
+        self.mask = self.f[self.config['mask']][roi[0]:roi[1], roi[2]:roi[3]]
+        self.W    = self.f[self.config['whitefield']][roi[0]:roi[1], roi[2]:roi[3]]*self.mask
         self.W[self.W==0] = 1
-        self.N      = self.f[config['frames']].shape[0]
+        self.N      = self.f[self.config['frames']].shape[0]
         self.f.close()
         
         self.frame1_index = -1
@@ -487,13 +301,13 @@ class Build_atlas_widget(QtGui.QWidget):
         self.frame2_vline.sigPositionChanged.connect(lambda x : self.update_display(self.frame1_index, int(self.frame2_vline.value())))
 
         # make the layout
-        self.imgs_layout = QtGui.QGridLayout()
+        self.imgs_layout = QGridLayout()
 
-        vst1 = QtGui.QVBoxLayout()
+        vst1 = QVBoxLayout()
         vst1.addWidget(self.frame1_imageView)
         vst1.addWidget(self.frame1_position_plotsW)
 
-        vst2 = QtGui.QVBoxLayout()
+        vst2 = QVBoxLayout()
         vst2.addWidget(self.frame2_imageView)
         vst2.addWidget(self.frame2_position_plotsW)
         
@@ -516,13 +330,12 @@ class Build_atlas_widget(QtGui.QWidget):
         return pg.mkPen(pen)
 
     def add_feature_grid(self):
-        config = self.config_dict['build_atlas']
-        roi    = config['roi']
-        w = [config['window'], config['window']]
+        roi    = self.config['roi']
+        w = [self.config['window'], self.config['window']]
         # get the shift between frames
         f = h5py.File(self.filename)
-        if (config['h5_group']+'/pix_positions') in f :
-            pos = f[config['h5_group']+'/pix_positions'][()]
+        if (self.config['h5_group']+'/pix_positions') in f :
+            pos = f[self.config['h5_group']+'/pix_positions'][()]
             f.close()
             p1 = None
             p2 = None
@@ -560,8 +373,7 @@ class Build_atlas_widget(QtGui.QWidget):
             self.add_feature(i1, j1, i2, j2)
 
     def add_feature(self, i1=0, j1=0, i2=0, j2=0):
-        config = self.config_dict['build_atlas']
-        w = [config['window'], config['window']]
+        w = [self.config['window'], self.config['window']]
         
         pen = self.get_pen()
         fe1 = pg.RectROI([i1 + ((1-w[0])//2),j1 + ((1-w[0])//2)], w, translateSnap=True, pen = pen)
@@ -601,9 +413,8 @@ class Build_atlas_widget(QtGui.QWidget):
                         self.features.pop(self.frame1_index)
 
     def write_features(self):
-        config = self.config_dict['build_atlas']
-        roi    = config['roi']
-        w      = [config['window'], config['window']]
+        roi    = self.config['roi']
+        w      = [self.config['window'], self.config['window']]
         
         print('outputing features:')
         out = []
@@ -625,16 +436,16 @@ class Build_atlas_widget(QtGui.QWidget):
 
         if len(out) > 0 :
             f = h5py.File(self.filename)
-            if config['features'] in f :
-                del f[config['features']]
-            f[config['features']] = out
+            if self.config['features'] in f :
+                del f[self.config['features']]
+            f[self.config['features']] = out
             f.close()
             print('\nfeatures written')
         else :
             print('\nno features to write')
 
     def read_features(self):
-        config = self.config_dict['build_atlas']
+        config = self.config
         roi    = config['roi']
         w      = [config['window'], config['window']]
         
@@ -670,7 +481,7 @@ class Build_atlas_widget(QtGui.QWidget):
                     self.frame2_imageView.removeItem(fe2)
 
     def update_display(self, i, j, update_atlas = False):
-        config = self.config_dict['build_atlas']
+        config = self.config
         roi    = config['roi']
         
         if i >= self.N or j >= self.N :
@@ -726,56 +537,3 @@ class Build_atlas_widget(QtGui.QWidget):
                     fe2.setZValue(10)
 
                 
-class Gui(QtGui.QTabWidget):
-    def __init__(self):
-        super(Gui, self).__init__()
-
-    def initUI(self, filename):
-        self.tabs = []
-
-        self.setMovable(True)
-        #self.setTabsClosable(True)
-
-        # Show frames tab
-        #################
-        params = load_config(filename, name='build_atlas.ini')
-        self.tabs.append( Build_atlas_widget(filename, params) )
-        #self.tabs.append( Write_config_file_widget(params, 'MLL_260/build_atlas.ini'))
-        self.addTab(self.tabs[-1], "build atlas")
-
-def gui(filename):
-    signal.signal(signal.SIGINT, signal.SIG_DFL) # allow Control-C
-    app = QtGui.QApplication([])
-    
-    # Qt main window
-    Mwin = QtGui.QMainWindow()
-    Mwin.setWindowTitle(filename)
-    
-    cw = Gui()
-    cw.initUI(filename)
-    
-    # add the central widget to the main window
-    Mwin.setCentralWidget(cw)
-    
-    Mwin.show()
-    app.exec_()
-
-def parse_cmdline_args():
-    import argparse
-    import os
-    parser = argparse.ArgumentParser(description='calculate a basic stitch of the projection images')
-    parser.add_argument('filename', type=str, \
-                        help="file name of the *.pty file")
-    
-    args = parser.parse_args()
-    
-    # check that cxi file exists
-    if not os.path.exists(args.filename):
-        raise NameError('cxi file does not exist: ' + args.filename)
-    
-    return args
-
-if __name__ == '__main__':
-    args = parse_cmdline_args()
-    
-    gui(args.filename)
