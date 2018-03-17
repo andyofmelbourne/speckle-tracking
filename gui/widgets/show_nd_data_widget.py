@@ -37,6 +37,8 @@ class Show_nd_data_widget(QWidget):
         f = h5py.File(filename, 'r')
         shape = f[name].shape
 
+        if self.name == name :
+            refresh = True
         
         if shape == () :
             if refresh :

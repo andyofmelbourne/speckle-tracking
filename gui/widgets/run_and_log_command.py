@@ -24,6 +24,7 @@ class Run_and_log_command(QWidget):
     realtime streaming of the terminal output has so proved to be fruitless
     """
     finished_signal = pyqtSignal(bool)
+    display_signal = pyqtSignal(str)
     
     def __init__(self):
         super(Run_and_log_command, self).__init__()
@@ -86,6 +87,11 @@ class Run_and_log_command(QWidget):
                 line = self.q.get_nowait()
                 sys.stdout.buffer.write(line)
                 sys.stdout.flush()
+                
+                # emmit a signal on 'display:'
+                line = line.decode("utf-8")
+                if 'display:' in line:
+                    self.display_signal.emit(line.split('display:')[1].strip())
             except Empty :
                 pass
             
