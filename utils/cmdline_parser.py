@@ -51,11 +51,14 @@ def parse_cmdline_args(script_name, description, \
     # process config file
     params, fnam = config_reader.config_read(con_fnams)
     
+    args.config = fnam
+    
     # copy the config file
     ######################
     if copy_config_to_h5dir and not os.path.exists(con_fnams[0]):
         import shutil
         outputdir = os.path.split(os.path.abspath(args.filename))[0]
         shutil.copy(fnam, outputdir)
+        args.config = os.path.join(outputdir, fnam)
 
     return args, params[script_name]

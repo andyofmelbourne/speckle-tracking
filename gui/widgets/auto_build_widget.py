@@ -27,8 +27,7 @@ class Auto_build_widget(QWidget):
         self.script_name = script_name
         
         self.config_fnams, self.config_output =  discover_config(script_name, \
-                                                 h5_fnam, config_dirs,        \
-                                                 config_fnam, config_dirs)
+                                                 h5_fnam, config_fnam, config_dirs)
         
         self.initUI()
 

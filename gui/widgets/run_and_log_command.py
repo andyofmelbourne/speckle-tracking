@@ -9,7 +9,6 @@ import sys
 from threading  import Thread
 from queue import Queue, Empty
 
-
 def enqueue_output(out, queue):
     for line in iter(out.readline, b''):
         queue.put(line)
@@ -100,6 +99,19 @@ class Run_and_log_command(QWidget):
         
         elif status is 0 :
             self.status_label.setText('Finished')
+            
+            # non blocking readline
+            try :
+                line = self.q.get_nowait()
+                sys.stdout.buffer.write(line)
+                sys.stdout.flush()
+                
+                # emmit a signal on 'display:'
+                line = line.decode("utf-8")
+                if 'display:' in line:
+                    self.display_signal.emit(line.split('display:')[1].strip())
+            except Empty :
+                pass
             
             # emmit a signal when complete
             self.finished_signal.emit(True)

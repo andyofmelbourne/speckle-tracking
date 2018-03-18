@@ -251,7 +251,7 @@ class Mask_maker_widget(QWidget):
         if self.index is None :
             next_button.setEnabled(False)
             prev_button.setEnabled(False)
-
+        
         # toggle / mask / unmask checkboxes
         #################################
         self.toggle_checkbox   = QCheckBox('toggle')
