@@ -40,7 +40,7 @@ class Tabs_widget(QTabWidget):
 
 class Speckle_gui(QMainWindow):
 
-    def __init__(self, fnam):
+    def __init__(self, fnam, params):
         super(Speckle_gui, self).__init__()
         self.setWindowTitle(fnam)
         menu = self.menuBar()
@@ -64,6 +64,15 @@ class Speckle_gui(QMainWindow):
         load_pro_widgets = []
         load_pro_actions = []
             
+        # mask maker widget
+        script_names.append('mask maker')
+        load_pro_widgets.append(QAction(script_names[-1], self))
+        load_pro_actions.append(lambda x, s = script_names[-1], 
+                                f = fnam : tabs_widget.addTab( \
+                                widgets.Mask_maker_widget(f, params['data_path'], params['mask_paths']), s))
+        load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
+        pro_menu.addAction(load_pro_widgets[-1])
+        
         # manual tracking widget
         script_names.append('manual_tracking')
         load_pro_widgets.append(QAction(script_names[-1], self))
@@ -96,6 +105,6 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL) # allow Control-C
     app = QApplication([])
     
-    gui = Speckle_gui(args.filename)
+    gui = Speckle_gui(args.filename, params)
 
     app.exec_()
