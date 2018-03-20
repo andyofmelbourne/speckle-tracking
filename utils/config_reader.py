@@ -138,6 +138,9 @@ def config_read_from_h5(config_fnam, h5_file, val_doc_adv=False):
                 val = config[sec][k]
             
             if type(val) is str and val[0] == '/': 
+                if val not in h5_file :
+                    raise KeyError(val + ' not found in file')
+                
                 if h5_file[val].size < 1e5 :
                     valout = h5_file[val][()]
                 else :

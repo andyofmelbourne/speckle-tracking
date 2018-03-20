@@ -46,7 +46,12 @@ def parse_cmdline_args(script_name, description, \
         promt_to_create_h5(args.filename)
     
     con_dirs  = [os.path.split(args.filename)[0],] + config_dirs 
-    con_fnams = [os.path.join(root, cd+'/'+script_name+'.ini') for cd in con_dirs]
+    if args.config is not None :
+        con_fnams = [args.config,]
+    else :
+        con_fnams = []
+
+    con_fnams = con_fnams + [os.path.join(root, cd+'/'+script_name+'.ini') for cd in con_dirs]
     
     # process config file
     params, fnam = config_reader.config_read(con_fnams)

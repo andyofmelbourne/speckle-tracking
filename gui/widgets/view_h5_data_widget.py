@@ -14,6 +14,7 @@ class View_h5_data_widget(QWidget):
         
         self.filename = filename
         self.names = names
+        self.name  = None
             
         self.show_list_widget = Show_h5_list_widget(filename, names = names)
         self.plot1dWidget = Show_nd_data_widget()
@@ -40,10 +41,12 @@ class View_h5_data_widget(QWidget):
         name = str(item.text())
         
         # close the last image
-        self.plot1dWidget.close()
+        if name != self.name :
+            self.plot1dWidget.close()
         
         # load the new one
         self.plot1dWidget.show(self.filename, name)
+        self.name = name
         
     def update(self):
         self.show_list_widget.update()

@@ -59,7 +59,7 @@ class Show_nd_data_widget(QWidget):
             if refresh :
                 self.plotW.clear()
                 for i in range(shape[1]):
-                    self.plotW.setData(f[name][:, i], pen=pens[i])
+                    self.plotW.setData(i, f[name][:, i])
             else :
                 self.plotW = pg.PlotWidget(title = name + ' [0, 1, 2] are [r, g, b]')
                 for i in range(shape[1]):
@@ -86,7 +86,7 @@ class Show_nd_data_widget(QWidget):
 
         elif len(shape) == 3 :
             if refresh :
-                replot_frame()
+                self.replot_frame()
             else :
                 # show the first frame
                 frame_plt = pg.PlotItem(title = name)
@@ -98,21 +98,16 @@ class Show_nd_data_widget(QWidget):
                 # add a little 1d plot with a vline
                 self.plotW2 = pg.PlotWidget(title = 'index')
                 self.plotW2.plot(np.arange(f[name].shape[0]), pen=(255, 150, 150))
-                vline = self.plotW2.addLine(x = 0, movable=True, bounds = [0, f[name].shape[0]-1])
+                self.vline = self.plotW2.addLine(x = 0, movable=True, bounds = [0, f[name].shape[0]-1])
                 self.plotW2.setMaximumSize(10000000, 100)
-                
-                def replot_frame():
-                    i = int(vline.value())
-                    f = h5py.File(filename, 'r')
-                    self.plotW.setImage( f[name][i].real.T, autoRange = False, autoLevels = False, autoHistogramRange = False)
-                    f.close()
                     
-                vline.sigPositionChanged.connect(replot_frame)
+                self.vline.sigPositionChanged.connect(self.replot_frame)
 
         f.close()
          
         # add to layout
-        self.layout.addWidget(self.plotW, stretch = 1)
+        if refresh is False :
+            self.layout.addWidget(self.plotW, stretch = 1)
         
         if self.plotW2 is not None :
             self.layout.addWidget(self.plotW2, stretch = 0)
@@ -120,6 +115,12 @@ class Show_nd_data_widget(QWidget):
         # remember the last file and dataset for updating
         self.name     = name
         self.filename = filename
+
+    def replot_frame(self):
+        i = int(self.vline.value())
+        f = h5py.File(self.filename, 'r')
+        self.plotW.setImage( f[self.name][i].real.T, autoRange = False, autoLevels = False, autoHistogramRange = False)
+        f.close()
     
     def close(self):
         # remove from layout
