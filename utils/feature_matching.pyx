@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 
-from libc.math cimport sin, cos, acos, exp, sqrt, fabs, M_PI
+from libc.math cimport sin, cos, acos, exp, sqrt, fabs, M_PI, ceil, floor
 
 FLOAT = np.float
 INT   = np.int
@@ -190,22 +190,119 @@ def build_atlas_distortions(frames, W, steps, uss, ufs):
     steps2 = np.array(steps)
     steps2[:, 0] += -np.max(steps[:, 0])+np.min(i + uss)
     steps2[:, 1] += -np.max(steps[:, 1])+np.min(j + ufs)
-    steps2 = steps2.astype(np.int)
+    steps2 = np.rint(steps2).astype(np.int)
+
+    uss2 = np.rint(uss).astype(np.int)
+    ufs2 = np.rint(ufs).astype(np.int)
     
     mask0 = frames[0]>0
     N, M  = (- np.min(steps2[:, 0]) + np.max(i + uss), np.max(j + ufs) - np.min(steps2[:, 1]))
+    N = int(round(N))
+    M = int(round(M))
     WW = W**2 * mask0
     
-    print(steps2)
     atlas   = np.zeros((N, M), dtype=np.float)
     overlap = np.zeros((N, M), dtype=np.float)
     
     for frame, step in zip(frames, steps2):
-        ss = i + uss - step[0]
-        fs = j + ufs - step[1]
+        ss = i + uss2 - step[0]
+        fs = j + ufs2 - step[1]
         mask = (ss > 0) * (ss < N) * (fs > 0) * (fs < M) * mask0
         atlas[  ss[mask], fs[mask]] += (frame*W)[mask]
         overlap[ss[mask], fs[mask]] += WW[mask] 
     atlas /= (overlap + 1.0e-5)
     return atlas
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+def sub_pixel_warp(np.ndarray[FLOAT_t, ndim=2] atlas, np.ndarray[FLOAT_t, ndim=2] out, np.ndarray[FLOAT_t, ndim=3] pixel_shifts, float pos_ss, float pos_fs):
+    """
+    apply linear sub-pixel interpolation to get the function:
+        out[i, j] = atlas[i + pixel_shifts[0] - pos_ss, j + pixel_shifts[1] - pos_fs]
+    
+    for float interpolation we use: https://en.wikipedia.org/wiki/Bilinear_interpolation#Unit_square
+    """
+    cdef int i, j, i0, i1, j0, j1
+    cdef float x, y
+    for i in range(out.shape[0]):
+        for j in range(out.shape[1]):
+            x  = i + pixel_shifts[0, i, j] - pos_ss
+            y  = j + pixel_shifts[1, i, j] - pos_fs
+            if x < 0 or x > (atlas.shape[0]-1) or y < 0 or y > (atlas.shape[1]-1):
+                out[i, j] = -1
+            else :
+                i0, i1 = int(floor(x)), int(ceil(x))
+                j0, j1 = int(floor(y)), int(ceil(y))
+                if i1 == i0 :
+                    i1 += 1
+                if j1 == j0 :
+                    j1 += 1
+                out[i, j] = atlas[i0, j0] * (i1-x) * (j1-y) + atlas[i1, j0] * (x-i0) * (j1-y) \
+                          + atlas[i0, j1] * (i1-x) * (y-j0) + atlas[i1, j1] * (x-i0) * (y-j0)
+
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+def build_atlas_warp(np.ndarray[FLOAT_t, ndim=3] frames, np.ndarray[FLOAT_t, ndim=2] W, np.ndarray[FLOAT_t, ndim=3] pixel_shifts, np.ndarray[FLOAT_t, ndim=2] steps):
+    """
+    """
+    cdef int i, j, k, i0, i1, j0, j1, N, M
+    cdef float x, y, t, w, ww, n, m
+    
+    # the regular pixel values
+    shape = frames[0].shape
+    ii, jj  = np.ogrid[0:shape[0], 0:shape[1]]
+    
+    # offset the steps
+    steps2 = np.array(steps)
+    steps2[:, 0] += -np.max(steps[:, 0])+np.min(ii + pixel_shifts[0])
+    steps2[:, 1] += -np.max(steps[:, 1])+np.min(jj + pixel_shifts[1])
+    
+    # define the atlas grid
+    n, m  = (- np.min(steps2[:, 0]) + np.max(ii + pixel_shifts[0]), np.max(jj + pixel_shifts[1]) - np.min(steps2[:, 1]))
+    N = int(ceil(n))
+    M = int(ceil(m))
+    WW = W**2
+    atlas   = -np.ones((N, M), dtype=np.float)
+    overlap = -np.ones((N, M), dtype=np.float)
+
+    for k in range(frames.shape[0]):
+        print(k)
+        for i in range(frames.shape[1]):
+            for j in range(frames.shape[2]):
+                x  = i + pixel_shifts[0, i, j] - steps2[k][0]
+                y  = j + pixel_shifts[1, i, j] - steps2[k][1]
+                if not (x < 0 or x > (atlas.shape[0]-1) or y < 0 or y > (atlas.shape[1]-1)):
+                    t  = frames[k, i, j]
+                    w  = W[i, j]
+                    ww = WW[i, j]
+                    if t > 0 and w > 0 :
+                        i0, i1 = int(floor(x)), int(ceil(x))
+                        j0, j1 = int(floor(y)), int(ceil(y))
+                        if i1 == i0 :
+                            if i1 == atlas.shape[0] :
+                                i0 -= 1
+                            else :
+                                i1 += 1
+                        if j1 == j0 :
+                            if j1 == atlas.shape[1] :
+                                j0 -= 1
+                            else :
+                                j1 += 1
+                        
+                        r0 = (i1-x) * (j1-y)
+                        r1 = (x-i0) * (j1-y)
+                        r2 = (i1-x) * (y-j0)
+                        r3 = (x-i0) * (y-j0)
+                        atlas[i0, j0] += t * r0 * w
+                        atlas[i1, j0] += t * r1 * w
+                        atlas[i0, j1] += t * r2 * w
+                        atlas[i1, j1] += t * r3 * w
+                        
+                        overlap[i0, j0] += r0 * ww
+                        overlap[i1, j0] += r1 * ww
+                        overlap[i0, j1] += r2 * ww
+                        overlap[i1, j1] += r3 * ww
+        
+    atlas[atlas>0] = atlas[atlas>0] / (overlap[atlas>0]+1.0e-5)
+    return atlas
