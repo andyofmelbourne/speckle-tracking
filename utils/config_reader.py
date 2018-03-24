@@ -92,7 +92,7 @@ def config_read(config_fnam, val_doc_adv=False):
         out2 = out
     return out2, fnam[0]
 
-def config_read_from_h5(config_fnam, h5_file, val_doc_adv=False):
+def config_read_from_h5(config_fnam, h5_file, val_doc_adv=False, extract=False, roi=False):
     """
     Same as config_read, but also gets variables from an open h5_file:
         [group-name]
@@ -128,6 +128,38 @@ def config_read_from_h5(config_fnam, h5_file, val_doc_adv=False):
     """
     import h5py
     config, fnam = config_read(config_fnam, val_doc_adv)
+    
+    # get the roi if there
+    r = None
+    if roi :
+        for group in config.keys():
+            if 'roi' in config[group] :
+                r = config[group]['roi']
+                break
+            elif 'ROI' in config[group] :
+                r = config[group]['ROI']
+                break
+
+    def get_val_h5(h5, val):
+        if val not in h5 :
+            raise KeyError(val + ' not found in file')
+        
+        if r is not None :
+            if extract :
+                if len(h5[val].shape) >= 2         \
+                   and h5[val].shape[-2] >= r[1] \
+                   and h5[val].shape[-1] >= r[3] :
+                    valout = h5[val][..., r[0]:r[1], r[2]:r[3]]
+                else :
+                    valout = h5[val][()]
+            else :
+                valout = h5[val]
+        else :
+            if h5[val].size < 1e5 or extract :
+                valout = h5[val][()]
+            else :
+                valout = h5[val]
+        return valout
 
     # now search for '/' and fetch from the open
     for sec in config.keys():
@@ -137,31 +169,22 @@ def config_read_from_h5(config_fnam, h5_file, val_doc_adv=False):
             else :
                 val = config[sec][k]
             
+            # extract from same file
             if type(val) is str and val[0] == '/': 
-                if val not in h5_file :
-                    raise KeyError(val + ' not found in file')
-                
-                if h5_file[val].size < 1e5 :
-                    valout = h5_file[val][()]
-                else :
-                    valout = h5_file[val]
+                valout = get_val_h5(h5_file, val)
             
+            # extract from different file *.h5
             elif type(val) is str and '.h5/' in val:
                 fn, path = val.split('.h5/')
                 f = h5py.File(fn+'.h5', 'r') 
-                if f[path].size < 1e5 :
-                    valout = f[path][()]
-                else :
-                    valout = f[path]
+                valout = get_val_h5(f, path)
                 f.close()
             
+            # extract from different file *.cxi
             elif type(val) is str and '.cxi/' in val:
                 fn, path = val.split('.cxi/')
                 f = h5py.File(fn+'.cxi', 'r') 
-                if f[path].size < 1e5 :
-                    valout = f[path][()]
-                else :
-                    valout = f[path]
+                valout = get_val_h5(f, path)
                 f.close()
             else :
                 valout = None

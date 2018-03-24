@@ -237,14 +237,14 @@ class Manual_tracking_widget(QWidget):
     def run_button_clicked(self):
         # Run the command 
         #################
-        py = os.path.join('./', self.script_name)
+        py = 'process/manual_tracking.py'
         cmd = 'mpiexec -n 8 python ' + py + ' ' + self.filename + ' -c ' + self.config_output
         self.run_command_widget.run_cmd(cmd)
 
     def run2_button_clicked(self):
         # Run the command 
         #################
-        py = os.path.join('./', 'add_distortions.py')
+        py = 'utils/add_distortions.py'
         cmd = 'python ' + py + ' ' + self.filename + ' -c ' + self.config_output
         self.run_command_widget.run_cmd(cmd)
 
