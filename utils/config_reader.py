@@ -105,7 +105,7 @@ def config_read_from_h5(config_fnam, h5_file, val_doc_adv=False, extract=False, 
     config_fnam : string or list or strings
         filename of the configuration file/s to be parsed, the first sucessfully parsed file is parsed.
     
-    h5_file : an open hdf5 file 
+    h5_file : string or an open hdf5 file 
     
     val_doc_adv : bool
         Toggles the output format of 'config_dict', see below.
@@ -128,6 +128,11 @@ def config_read_from_h5(config_fnam, h5_file, val_doc_adv=False, extract=False, 
     """
     import h5py
     config, fnam = config_read(config_fnam, val_doc_adv)
+    
+    close   = False
+    if type(h5_file) is str :
+        h5_file = h5py.File(h5_file, 'r')
+        close   = True
     
     # get the roi if there
     r = None
@@ -196,6 +201,9 @@ def config_read_from_h5(config_fnam, h5_file, val_doc_adv=False, extract=False, 
                 config[sec][k] = (valout, doc, adv)
             else :
                 config[sec][k] = valout
+
+    if close :
+        h5_file.close()
     return config, fnam
 
 def config_write(con_dict, fnam, val_doc_adv=False):
