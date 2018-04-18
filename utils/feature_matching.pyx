@@ -199,7 +199,7 @@ def build_atlas_distortions(frames, W, steps, uss, ufs):
     N, M  = (- np.min(steps2[:, 0]) + np.max(i + uss), np.max(j + ufs) - np.min(steps2[:, 1]))
     N = int(round(N))
     M = int(round(M))
-    WW = W**2 * mask0
+    WW = W**2 
     
     atlas   = np.zeros((N, M), dtype=np.float)
     overlap = np.zeros((N, M), dtype=np.float)

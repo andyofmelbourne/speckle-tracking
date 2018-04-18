@@ -21,7 +21,7 @@ class View_h5_data_widget(QWidget):
         
         # send a signal when an item is clicked
         self.show_list_widget.listWidget.itemClicked.connect(self.dataset_clicked)
-
+        
         self.initUI()
 
     def initUI(self):
@@ -29,20 +29,16 @@ class View_h5_data_widget(QWidget):
         
         # add the layout to the central widget
         self.setLayout(layout)
-
+        
         # add the h5 datasets list
         layout.addWidget(self.show_list_widget)
         
         # add the 1d viewer 
         layout.addWidget(self.plot1dWidget, stretch=1)
         
-
+    
     def dataset_clicked(self, item):
         name = str(item.text())
-        
-        # close the last image
-        if name != self.name :
-            self.plot1dWidget.close()
         
         # load the new one
         self.plot1dWidget.show(self.filename, name)

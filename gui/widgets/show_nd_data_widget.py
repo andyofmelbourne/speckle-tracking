@@ -40,6 +40,9 @@ class Show_nd_data_widget(QWidget):
         if self.name == name :
             refresh = True
         
+        if not refresh :
+            self.close()
+
         if shape == () :
             if refresh :
                 self.plotW.setData(f[name][()])

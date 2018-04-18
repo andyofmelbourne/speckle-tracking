@@ -66,4 +66,4 @@ def parse_cmdline_args(script_name, description, \
         shutil.copy(fnam, outputdir)
         args.config = os.path.join(outputdir, fnam)
 
-    return args, params[script_name]
+    return args, params

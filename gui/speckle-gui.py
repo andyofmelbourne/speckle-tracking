@@ -105,6 +105,6 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL) # allow Control-C
     app = QApplication([])
     
-    gui = Speckle_gui(args.filename, params)
+    gui = Speckle_gui(args.filename, params['speckle-gui'])
 
     app.exec_()
