@@ -36,7 +36,6 @@ class Tabs_widget(QTabWidget):
     def closeTab(self, tab):
         self.removeTab(tab)
 
-        
 
 class Speckle_gui(QMainWindow):
 
@@ -46,34 +45,51 @@ class Speckle_gui(QMainWindow):
         menu = self.menuBar()
          
         # add the tab widget
+        #@@@@###############
         tabs_widget = Tabs_widget(fnam)
         self.setCentralWidget(tabs_widget)
         
         # add the display widgets
         dis_menu = menu.addMenu('Display')
         
+        # Show frames tab
+        #################
+        def load_sfs(fnam, R_paths = params['translation_paths'], W_paths=params['whitefield_paths'],
+                     data_paths = params['data_paths'], good_frames_paths=params['good_frames_paths']):
+            tabs_widget.addTab(widgets.Show_frames_selection_widget(fnam, R_paths, W_paths, data_paths, good_frames_paths), 
+                                          'show / select frames')
+        
+        load_sfs_widget = QAction("show / select frames", self)
+        load_sfs_action = lambda x : load_sfs(fnam)
+        load_sfs_widget.triggered.connect( load_sfs_action ) 
+        dis_menu.addAction(load_sfs_widget)
+        load_sfs_action(fnam)
+
         # view h5 widget
+        ################
         load_view_h5_data_widget = QAction("view h5 data widget", self)
         load_view_h5_data_action = lambda x : tabs_widget.addTab(widgets.View_h5_data_widget(fnam), 'view_h5_data_widget')
         load_view_h5_data_widget.triggered.connect( load_view_h5_data_action ) 
         dis_menu.addAction(load_view_h5_data_widget)
         
         pro_menu = menu.addMenu('Process')
-
+        
         script_names = []
         load_pro_widgets = []
         load_pro_actions = []
             
         # mask maker widget
+        ###################
         script_names.append('mask maker')
         load_pro_widgets.append(QAction(script_names[-1], self))
         load_pro_actions.append(lambda x, s = script_names[-1], 
                                 f = fnam : tabs_widget.addTab( \
-                                widgets.Mask_maker_widget(f, params['data_path'], params['mask_paths']), s))
+                                widgets.Mask_maker_widget(f, params['data_paths'], params['mask_paths']), s))
         load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
         pro_menu.addAction(load_pro_widgets[-1])
         
         # manual tracking widget
+        ########################
         script_names.append('manual_tracking')
         load_pro_widgets.append(QAction(script_names[-1], self))
         load_pro_actions.append(lambda x, s = script_names[-1], f = fnam : tabs_widget.addTab(widgets.Manual_tracking_widget(f), s))
