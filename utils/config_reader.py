@@ -156,6 +156,7 @@ def write_h5(h5_file, h5_group, d):
         if key2 in f :
             del f[key2]
         
+        print(key2, type(val))
         f[key2] = val
     f.close()
 

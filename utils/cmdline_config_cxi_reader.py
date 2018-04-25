@@ -22,12 +22,15 @@ import config_reader
 import cmdline_parser
 
 
-def get_all(sn, des):
+def get_all(sn, des, exclude=[]):
+    """
+    exclude can be used to avoid large datasets for example
+    """
     # get command line args
     args, params = cmdline_parser.parse_cmdline_args(sn, des)
     
     # get the datasets from the cxi file
-    params = config_read_from_h5(params, args.filename, False, True, True)
+    params = config_read_from_h5(params, args.filename, False, True, True, exclude=exclude)
     
     # now convert from physical to pixel units:
     R_ss_fs, dx = get_Fresnel_pixel_shifts_cxi(**params[sn])
@@ -54,8 +57,11 @@ def write_all(params, filename, output_dict, apply_roi=True):
             if type(output_dict[k]) is np.ndarray :
                 if len(output_dict[k].shape) >= 2 :
                     if output_dict[k].shape[-2:] == roi_shape :
-                        temp = np.zeros(output_dict[k].shape[:-2] + shape, 
-                                        dtype=output_dict[k].dtype)
+                        try :
+                            temp = h5_file[h5_group+'/'+k][()]
+                        except :
+                            temp = np.zeros(output_dict[k].shape[:-2] + shape, 
+                                            dtype=output_dict[k].dtype)
                         temp[..., roi[0]:roi[1], roi[2]:roi[3]] = output_dict[k]
                         
                         # now overwrite output array
@@ -179,7 +185,7 @@ def get_val_h5(h5, val, r, shape, extract, k):
             valout   = ~np.bitwise_and(valout, 4 + 8).astype(np.bool) 
     return valout
 
-def config_read_from_h5(config, h5_file, val_doc_adv=False, extract=False, roi=False):
+def config_read_from_h5(config, h5_file, val_doc_adv=False, extract=False, roi=False, exclude=[]):
     """
     Same as config_read, but also gets variables from an open h5_file:
         [group-name]
@@ -240,6 +246,9 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False, extract=False, roi=F
                 val, doc, adv = config[sec][k][0]
             else :
                 val = config[sec][k]
+
+            if k in exclude :
+                continue
             
             # extract from same file
             if type(val) is str and val[0] == '/': 

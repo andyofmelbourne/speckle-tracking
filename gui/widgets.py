@@ -8,3 +8,4 @@ from auto_build_widget            import Auto_build_widget
 from manual_tracking_widget       import Manual_tracking_widget
 from mask_maker_widget            import Mask_maker_widget
 from show_frames_selection_widget import Show_frames_selection_widget 
+from grad_descent_widget          import Grad_descent_widget 
