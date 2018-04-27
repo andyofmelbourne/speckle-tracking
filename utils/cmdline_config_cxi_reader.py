@@ -57,11 +57,18 @@ def write_all(params, filename, output_dict, apply_roi=True):
             if type(output_dict[k]) is np.ndarray :
                 if len(output_dict[k].shape) >= 2 :
                     if output_dict[k].shape[-2:] == roi_shape :
-                        try :
-                            temp = h5_file[h5_group+'/'+k][()]
-                        except :
+                        temp = None
+                        
+                        kk = h5_group+'/'+k
+                        if kk in h5_file :
+                            k_shape = h5_file[h5_group+'/'+k].shape[-2:]
+                            if len(k_shape) > 1 and k_shape[-2:] == shape :
+                                temp = h5_file[h5_group+'/'+k][()]
+                        
+                        if temp is None :
                             temp = np.zeros(output_dict[k].shape[:-2] + shape, 
                                             dtype=output_dict[k].dtype)
+
                         temp[..., roi[0]:roi[1], roi[2]:roi[3]] = output_dict[k]
                         
                         # now overwrite output array
