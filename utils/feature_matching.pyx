@@ -199,7 +199,8 @@ def build_atlas(frames, W, steps,
                 return_steps = False, 
                 return_overlap = False,
                 atlas_shape = None,
-                sub_pixel = False):
+                sub_pixel = False,
+                weights = None):
     """
     assume:
         frames_i(x) = atlas(x + u(x) - x_i)  W(x)
@@ -212,6 +213,9 @@ def build_atlas(frames, W, steps,
 
     bad pixels are < 0
     """
+    if weights is None :
+        weights = np.ones((len(frames),), dtype=np.float)
+    
     # the regular pixel values
     i, j  = np.ogrid[0:W.shape[0], 0:W.shape[1]]
     
@@ -243,16 +247,16 @@ def build_atlas(frames, W, steps,
         WW       = W**2 
      
     # build the atlas and overlap map frame by frame
-    for frame, step in zip(frames, steps2):
+    for frame, step, w in zip(frames, steps2, weights):
         if sub_pixel :
-            atlas, overlap = _build_atlas_warp(atlas, overlap, frame, W, step, pixel_shifts)
+            atlas, overlap = _build_atlas_warp(atlas, overlap, w*frame, w*W, step, pixel_shifts)
         else :
             mask0 = frame>0
             ss = np.rint(i + uss - step[0]).astype(np.int)
             fs = np.rint(j + ufs - step[1]).astype(np.int)
             mask = (ss > 0) * (ss < N) * (fs > 0) * (fs < M) * mask0
-            atlas[  ss[mask], fs[mask]] += (frame*W)[mask]
-            overlap[ss[mask], fs[mask]] += WW[mask] 
+            atlas[  ss[mask], fs[mask]] += (w**2*frame*W)[mask]
+            overlap[ss[mask], fs[mask]] += w**2*WW[mask] 
     
     out = (atlas,)
     

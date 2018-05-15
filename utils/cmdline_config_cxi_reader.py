@@ -20,6 +20,7 @@ import numpy as np
 
 import config_reader
 import cmdline_parser
+import h5py
 
 
 def get_all(sn, des, exclude=[]):
@@ -32,10 +33,23 @@ def get_all(sn, des, exclude=[]):
     # get the datasets from the cxi file
     params = config_read_from_h5(params, args.filename, False, True, True, exclude=exclude)
     
+    # now only take the good_frames
+    """
+    if 'good_frames' in params[sn]:
+        gf = params[sn]['good_frames']
+        with h5py.File(args.filename) as f :
+            shape = f['/entry_1/data_1/data'].shape
+        
+        for k in params[sn].keys():
+            if hasattr(params[sn][k], '__len__') and len(params[sn][k]) == shape[0]:
+                params[sn][k] = params[sn][k][gf]
+    """
+    
     # now convert from physical to pixel units:
     R_ss_fs, dx = get_Fresnel_pixel_shifts_cxi(**params[sn])
     params[sn]['R_ss_fs']              = R_ss_fs
     params[sn]['magnified_pixel_size'] = dx
+    
     return args, params
 
 
@@ -46,7 +60,6 @@ def write_all(params, filename, output_dict, apply_roi=True):
     h5_group = params['h5_group']
     roi      = params['roi']
     
-    import h5py
     h5_file = h5py.File(filename, 'r')
     if apply_roi :
         shape = h5_file['/entry_1/data_1/data'].shape[-2:]
@@ -92,8 +105,8 @@ def get_Fresnel_pixel_shifts_cxi(
     wavelen = sc.h * sc.c / energy
     
     if good_frames is None :
-        good_frames = len(translation)
-
+        good_frames = np.arange(len(translation))
+    
     if defocus is None :
         defocus = translation[0][2]
     
@@ -123,18 +136,20 @@ def get_Fresnel_pixel_shifts_cxi_inverse(
         energy       = None, basis_vectors = None, translation       = None, 
         defocus      = None, good_frames   = None, offset_to_zero    = True,
         **kwargs):
+    """
+    translation must not be truncated by good_frames...
+    """
     import scipy.constants as sc
     du      = np.array([y_pixel_size, x_pixel_size])
     wavelen = sc.h * sc.c / energy
     
     if good_frames is None :
-        good_frames = len(translation)
+        good_frames = np.arange(len(translation))
     
     if defocus is None :
         defocus = translation[0][2]
     
     b = basis_vectors[good_frames]
-    R = translation[good_frames]
     
     R_ss_fs_out = R_ss_fs.astype(np.float).copy()
     
@@ -161,10 +176,11 @@ def get_Fresnel_pixel_shifts_cxi_inverse(
     #print('\ninverting from sample coords to detector coords:')
     for i in range(R_ss_fs_out.shape[0]):
         Ri, r, rank, s = np.linalg.lstsq(b[i][:, :2], R_ss_fs_out[i])
-        R[good_frames[i]][:2] = Ri
+        translation[good_frames[i]][:2] = Ri
         #print(R_ss_fs_out[i], '-->', Ri)
-     
-    return R
+    
+    translation[:, 2] = defocus 
+    return translation
 
 def get_val_h5(h5, val, r, shape, extract, k):
     if val not in h5 :
@@ -192,7 +208,8 @@ def get_val_h5(h5, val, r, shape, extract, k):
             valout   = ~np.bitwise_and(valout, 4 + 8).astype(np.bool) 
     return valout
 
-def config_read_from_h5(config, h5_file, val_doc_adv=False, extract=False, roi=False, exclude=[]):
+def config_read_from_h5(config, h5_file, val_doc_adv=False, 
+                        extract=False, roi=False, exclude=[]):
     """
     Same as config_read, but also gets variables from an open h5_file:
         [group-name]
@@ -224,7 +241,6 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False, extract=False, roi=F
             output = {group-name: {key : eval(val)}}
     
     """
-    import h5py
     
     # open the h5 file if h5_file is a string
     close   = False
