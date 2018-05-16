@@ -230,6 +230,7 @@ def write_data(filename, Pd, pos, frames, **params):
 
 if __name__ == '__main__':
     args, params = cmdline_parser.parse_cmdline_args('forward_sim', 'generate an example cxi file for testing')
+    params = params['forward_sim']
     
     # make the frames
     Pd, Ps, O, pos, frames = make_frames(**params)
