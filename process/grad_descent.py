@@ -184,7 +184,7 @@ def mk_grad_u_MpiArray(atlas, I, W, R, u):
     
     return grad_u
 
-def build_atlas_distortions_MpiArray(frames, W, steps, pixel_shifts, reg = 1, return_steps = False):
+def build_atlas_distortions_MpiArray(frames, W, steps, pixel_shifts, reg = 1, return_steps = False, weights=None):
     """
     Assume that frames, W, pixel_shifts are MpiArray objects split along 
     the ss axis of the detector.
@@ -215,7 +215,8 @@ def build_atlas_distortions_MpiArray(frames, W, steps, pixel_shifts, reg = 1, re
                                     return_steps = False, 
                                     return_overlap = True,
                                     atlas_shape = (N, M),
-                                    sub_pixel = True)
+                                    sub_pixel = True, 
+                                    weights = weights)
     
     # allreduce the atlas
     if rank==0 :
@@ -251,14 +252,15 @@ def get_input():
     
     # frames, split by frame no.
     roi = params['roi']
-    roi = [slice(None), slice(roi[0],roi[1]), slice(roi[2],roi[3])]
+    roi = [params['good_frames'], slice(roi[0],roi[1]), slice(roi[2],roi[3])]
     params['frames']     = MpiArray_from_h5(args.filename, params['frames'], 
                                             axis=0, dtype=np.float64, roi=roi)
+    #params['frames'] = params['frames'][params['good_frames']]
     
     if rank != 0 :
         params['R_ss_fs']    = None 
-
-    params['R_ss_fs']    = MpiArray(params['R_ss_fs'])
+    
+    params['R_ss_fs'] = MpiArray(params['R_ss_fs'])
     params['R_ss_fs'].scatter(axis=0)
      
     # set masked pixels to negative 1
@@ -278,6 +280,9 @@ def get_input():
 
 if __name__ == '__main__':
     args, params, reg = get_input()
+
+    print(params['R_ss_fs'].shape)
+    print(params['frames'].shape)
     
     # merge the frames
     if params['atlas'] is None :

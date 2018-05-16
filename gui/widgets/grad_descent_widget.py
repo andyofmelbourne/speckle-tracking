@@ -73,5 +73,5 @@ class Grad_descent_widget(QWidget):
         #################
         script  = os.path.join(root, 'process/'+self.script_name+'.py')
         script  = os.path.relpath(script, os.getcwd())
-        cmd = 'mpiexec -np 32 python -W ignore ' + script + ' ' + self.h5_fnam + ' -c ' + self.config_output
+        cmd = 'mpiexec -np 2 python -W ignore ' + script + ' ' + self.h5_fnam + ' -c ' + self.config_output
         self.run_and_log_command.run_cmd(cmd)

@@ -44,8 +44,8 @@ if __name__ == '__main__':
     # Do Stuff
     ##########
     # set masked pixels to negative 1
-    mask             = params['mask'].astype(np.bool)
-    params['frames'] = params['frames'].astype(np.float64)
+    mask              = params['mask'].astype(np.bool)
+    params['frames']  = params['frames'][params['good_frames']].astype(np.float64)
     for i in range(len(params['frames'])):
         params['frames'][i][~mask] = -1
     
