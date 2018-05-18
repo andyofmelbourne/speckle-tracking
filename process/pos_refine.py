@@ -1,7 +1,4 @@
 """
-I need to make get_all mpi safe
-split the data according to pixel index
-need a new build_atlas_distortions for sub pixel regions
 """
 
 #! /usr/bin/env python
@@ -152,7 +149,7 @@ def get_input():
 
 if __name__ == '__main__':
     args, params, reg = get_input()
-
+    
     # merge the frames
     if params['atlas'] is None :
         atlas, params['R_ss_fs'] = build_atlas_distortions_MpiArray(params['frames'], 

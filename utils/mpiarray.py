@@ -140,7 +140,7 @@ __all__ = ["MpiArray",
            "fromglobalarray",
            "fromlocalarrays"]
 
-def MpiArray_from_h5(fnam, path, axis=0, dtype=None, roi = None):
+def MpiArray_from_h5_old(fnam, path, axis=0, dtype=None, roi = None):
     import h5py
     # get the array shape
     if rank == 0 :
@@ -175,9 +175,8 @@ def MpiArray_from_h5(fnam, path, axis=0, dtype=None, roi = None):
     # now load the data
     for r in range(size):
         if r == rank: 
-            f = h5py.File(fnam, 'r')
-            dset = f[path][tuple(roi2)]
-            f.close()
+            with h5py.File(fnam, 'r') as f:
+                dset = f[path][tuple(roi2)]
         comm.barrier()
     
     if dtype is None :
@@ -187,6 +186,38 @@ def MpiArray_from_h5(fnam, path, axis=0, dtype=None, roi = None):
     dset_mpi.inds = inds_roi_mpi.arr
 
     return dset_mpi
+
+def MpiArray_from_h5(fnam, path, axis=0, dtype=None, roi = None):
+    import h5py
+    
+    if rank == 0 :
+        with h5py.File(fnam, 'r') as f:
+            if dtype is None :
+                dtype = f[path].dtype
+            dset = f[path][roi].astype(dtype)
+    else :
+        dset = None
+            
+    dset  = MpiArray(dset)
+    dset.scatter(axis=axis)
+
+    # now get the absolute coordinates 
+    # of the dataset for each rank
+    shape = dset.shape
+    
+    if rank == 0 :
+        if roi is None :
+            roi = [slice(None) for s in shape]
+         
+        inds = np.arange(shape[axis])[roi[axis]]
+    else :
+        inds = None
+    
+    inds = MpiArray(inds)
+    inds.scatter(axis=0)
+    
+    dset.inds = inds.arr
+    return dset
 
 class Distribution(object):
     """Custom distribution for MpiArray."""

@@ -6,8 +6,18 @@ except :
 import pyqtgraph as pg
 import h5py
 import numpy as np
+import itertools
 
 from select_frames_widget import Select_frames_widget
+
+def white(f, path, i):
+    Ws = f[path]
+    if len(Ws.shape) == 2 :
+        W = Ws[()].astype(np.float)
+    elif len(Ws.shape) == 3 :
+        W = Ws[i].astype(np.float)
+    W[W<=0] = 1
+    return W
 
 class Show_frames_selection_widget(QWidget):
     def __init__(self, filename, R_paths=None, W_paths=None, data_paths=None, good_frames_paths=None):
@@ -29,22 +39,21 @@ class Show_frames_selection_widget(QWidget):
             if g_path in f :
                 self.good_frames = f[g_path][()]
                 break
-        
-        # load the whitefield
-        self.whitefield = 1
-        if W_paths is not None :
-            for W_path in W_paths :
-                if W_path in f :
-                    self.whitefield  = f[W_path][()]
-                    self.whitefield[self.whitefield==0] = 1.
-                    self.whitefield  = self.whitefield.astype(np.float) 
-                    break
 
         # load the translations
         for R_path in R_paths :
             if R_path in f :
                 self.R = f[R_path][()]
                 break
+        
+        # load the whitefield
+        W = 1
+        if W_paths is not None :
+            for W_path in W_paths :
+                if W_path in f :
+                    self.W_path = W_path
+                    break
+        
         f.close()
         
         self.filename = filename
@@ -73,7 +82,7 @@ class Show_frames_selection_widget(QWidget):
         # frame plot
         ############
         f = h5py.File(self.filename, 'r')
-        self.mkframe = lambda i, f : f[self.D_path][i] / self.whitefield
+        self.mkframe = lambda i, f : f[self.D_path][i] / white(f, self.W_path, i)
         
         frame_plt = pg.PlotItem(title = 'Frame View')
         imageView = pg.ImageView(view = frame_plt)

@@ -46,9 +46,10 @@ def get_all(sn, des, exclude=[]):
     """
     
     # now convert from physical to pixel units:
-    R_ss_fs, dx = get_Fresnel_pixel_shifts_cxi(**params[sn])
-    params[sn]['R_ss_fs']              = R_ss_fs
-    params[sn]['magnified_pixel_size'] = dx
+    if 'translation' in params[sn] :
+        R_ss_fs, dx = get_Fresnel_pixel_shifts_cxi(**params[sn])
+        params[sn]['R_ss_fs']              = R_ss_fs
+        params[sn]['magnified_pixel_size'] = dx
     
     return args, params
 
@@ -58,10 +59,10 @@ def write_all(params, filename, output_dict, apply_roi=True):
     # but undo all roi stuff
     # and convert pixel shifts to sample translations
     h5_group = params['h5_group']
-    roi      = params['roi']
     
     h5_file = h5py.File(filename, 'r')
     if apply_roi :
+        roi      = params['roi']
         shape = h5_file['/entry_1/data_1/data'].shape[-2:]
         roi_shape = (roi[1]-roi[0], roi[3]-roi[2])
          
@@ -90,7 +91,7 @@ def write_all(params, filename, output_dict, apply_roi=True):
     
     # un-pixel convert positions
     if 'R_ss_fs' in output_dict :
-        output_dict['translation'] = get_Fresnel_pixel_shifts_cxi_inverse(offset_to_zero = True,
+        output_dict['translation'] = get_Fresnel_pixel_shifts_cxi_inverse(offset_to_zero = False,
                                                                           **params)
     config_reader.write_h5(filename, h5_group, output_dict)
     
@@ -160,8 +161,8 @@ def get_Fresnel_pixel_shifts_cxi_inverse(
                             energy      , basis_vectors, translation,        
                             defocus     , good_frames  , offset_to_zero = False)
         
-        R_ss_fs_out[:, 0] -= np.max(R_ss_fs_out[:, 0])
-        R_ss_fs_out[:, 1] -= np.max(R_ss_fs_out[:, 1])
+        #R_ss_fs_out[:, 0] -= np.max(R_ss_fs_out[:, 0])
+        #R_ss_fs_out[:, 1] -= np.max(R_ss_fs_out[:, 1])
         
         R_ss_fs_out[:, 0] += np.max(R_ss_fs0[:, 0])
         R_ss_fs_out[:, 1] += np.max(R_ss_fs0[:, 1])

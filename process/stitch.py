@@ -39,7 +39,7 @@ if __name__ == '__main__':
     if ('pixel_shifts' in params) and (params['pixel_shifts'] is not None) :
         pix_shifts = params['pixel_shifts']
     else :
-        pix_shifts = np.zeros((2,) + params['whitefield'].shape, dtype=np.float64)
+        pix_shifts = np.zeros((2,) + params['whitefield'].shape[-2:], dtype=np.float64)
     
     # Do Stuff
     ##########
@@ -49,10 +49,14 @@ if __name__ == '__main__':
     for i in range(len(params['frames'])):
         params['frames'][i][~mask] = -1
     
-    params['whitefield'][~mask]    = -1 
+    if len(params['whitefield'].shape) == 3 :
+        for i in range(len(params['whitefield'])):
+            params['whitefield'][i][~mask]    = -1 
+    else :
+        params['whitefield'][~mask]    = -1 
     
     # add a regularization factor
-    shape = params['whitefield'].shape
+    shape = params['whitefield'].shape[-2:]
     reg   = mk_reg(shape, params['reg'])
     
     # merge the frames

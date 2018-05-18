@@ -1,4 +1,5 @@
 import numpy as np
+import itertools
 cimport numpy as np
 
 from libc.math cimport sin, cos, acos, exp, sqrt, fabs, M_PI, ceil, floor
@@ -10,6 +11,7 @@ ctypedef np.float_t FLOAT_t
 ctypedef np.int_t INT_t
 
 cimport cython
+
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
@@ -217,10 +219,10 @@ def build_atlas(frames, W, steps,
         weights = np.ones((len(frames),), dtype=np.float)
     
     # the regular pixel values
-    i, j  = np.ogrid[0:W.shape[0], 0:W.shape[1]]
+    i, j  = np.ogrid[0:W.shape[-2], 0:W.shape[-1]]
     
     if pixel_shifts is None :
-        pixel_shifts = np.zeros((2,) + W.shape, dtype=np.int)
+        pixel_shifts = np.zeros((2,) + W.shape[-2:], dtype=np.int)
     
     # offset the steps
     if offset_steps :
@@ -245,18 +247,25 @@ def build_atlas(frames, W, steps,
     if not sub_pixel : 
         uss, ufs = np.rint(pixel_shifts).astype(np.int)
         WW       = W**2 
+
+    if len(W.shape) == 2 :
+        Wit  = itertools.repeat(W)
+        WWit = itertools.repeat(WW)
+    else :
+        Wit  = W
+        WWit = WW
      
     # build the atlas and overlap map frame by frame
-    for frame, step, w in zip(frames, steps2, weights):
+    for frame, step, w, Wi, WWi in zip(frames, steps2, weights, Wit, WWit):
         if sub_pixel :
-            atlas, overlap = _build_atlas_warp(atlas, overlap, w*frame, w*W, step, pixel_shifts)
+            atlas, overlap = _build_atlas_warp(atlas, overlap, w*frame, w*Wi, step, pixel_shifts)
         else :
             mask0 = frame>0
             ss = np.rint(i + uss - step[0]).astype(np.int)
             fs = np.rint(j + ufs - step[1]).astype(np.int)
             mask = (ss > 0) * (ss < N) * (fs > 0) * (fs < M) * mask0
-            atlas[  ss[mask], fs[mask]] += (w**2*frame*W)[mask]
-            overlap[ss[mask], fs[mask]] += w**2*WW[mask] 
+            atlas[  ss[mask], fs[mask]] += (w**2*frame*Wi)[mask]
+            overlap[ss[mask], fs[mask]] += w**2*WWi[mask] 
     
     out = (atlas,)
     

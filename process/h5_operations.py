@@ -9,6 +9,7 @@ import h5py
 
 if __name__ == '__main__':
     args, params = cmdline_parser.parse_cmdline_args('h5_operations', 'do stuff to h5 files')
+    params = params['h5_operations']
 
     f = h5py.File(args.filename)
     if params['operation'] == 'cp' :
