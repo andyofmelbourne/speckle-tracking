@@ -104,6 +104,14 @@ class Speckle_gui(QMainWindow):
         load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
         pro_menu.addAction(load_pro_widgets[-1])
 
+        # grid search widget
+        #########################
+        script_names.append('grid_search')
+        load_pro_widgets.append(QAction(script_names[-1], self))
+        load_pro_actions.append(lambda x, s = script_names[-1], f = fnam : tabs_widget.addTab(widgets.Grid_search_widget(s, f), s))
+        load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
+        pro_menu.addAction(load_pro_widgets[-1])
+
         # auto populate the process menu
         ################################
         pro_fnams = glob.glob(root+'/process/*.py')

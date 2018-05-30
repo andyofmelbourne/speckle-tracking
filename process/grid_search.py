@@ -49,22 +49,23 @@ def get_input():
     roi = (params['good_frames'], slice(roi[0],roi[1]), slice(roi[2],roi[3]))
     
     # easy for the mask
-    params['frames']     = MpiArray_from_h5(args.filename, params['frames'], axis=1, roi=roi)
-    params['mask']       = MpiArray_from_h5(args.filename, params['mask']  , axis=0, roi=roi[1:])
+    params['frames']     = MpiArray_from_h5(args.filename, params['frames'], axis=1, roi=roi, dtype=np.float64)
+    params['mask']       = MpiArray_from_h5(args.filename, params['mask']  , axis=0, roi=roi[1:], dtype=np.bool)
     
     with h5py.File(args.filename, 'r') as f:
         shape = f[params['whitefield']].shape
     if len(shape) == 2 :
-        params['whitefield']  = MpiArray_from_h5(args.filename, params['whitefield'], axis=0, roi=roi[1:])
+        params['whitefield']  = MpiArray_from_h5(args.filename, params['whitefield'], axis=0, roi=roi[1:], dtype=np.float64)
         params['whitefield'].arr[~params['mask'].arr]    = -1 
     else :
-        params['whitefield']  = MpiArray_from_h5(args.filename, params['whitefield'], axis=1, roi=roi)
+        params['whitefield']  = MpiArray_from_h5(args.filename, params['whitefield'], axis=1, roi=roi, dtype=np.float64)
         for i in range(params['whitefield'].arr.shape[0]):
             params['whitefield'].arr[i][~params['mask'].arr] = -1
     
     # set masked pixels to negative 1
     for i in range(params['frames'].arr.shape[0]):
         params['frames'].arr[i][~params['mask'].arr] = -1
+    print(params['frames'].arr.dtype)
 
     # special treatment for the pixel_shifts
     if params['pixel_shifts'] is None and rank == 0 :
@@ -79,16 +80,16 @@ def get_input():
     return args, params
 
 def grid_search_ss_split(atlas, I, W, R, u, bounds=[-20, 20]):
-    ss_offset = W.inds[0] 
-    print('W.shape:', W.shape, W.arr.shape)
+    ss_offset = W.distribution.offsets[rank] 
+    print('rank, W.shape, offset:', rank, W.shape, W.arr.shape, ss_offset, W.distribution.offsets[rank])
     
     def fun(ui, uj, i, j, w): 
         ss   = np.rint(-R[:,0] + ui + i + ss_offset).astype(np.int)
         fs   = np.rint(-R[:,1] + uj + j).astype(np.int)
         m    = (ss>0)*(ss<atlas.shape[0])*(fs>0)*(fs<atlas.shape[1])
         forw = atlas[ss[m], fs[m]]
-        m1   = (forw>0)
-        err  = np.sum(m1*(forw - I.arr[m, i, j]/w)**2 )# / np.sum(m1)**2
+        m1   = (forw>0) * (w[m, i, j] > 0)
+        err  = np.sum(m1*(forw - I.arr[m, i, j]/w[m, i, j])**2 ) / np.sum(m1)
         return err
      
     # define the search window
@@ -101,26 +102,25 @@ def grid_search_ss_split(atlas, I, W, R, u, bounds=[-20, 20]):
     fs = np.arange(W.arr.shape[-1])
 
     if len(W.arr.shape) == 2 :
-        w = [W.arr for i in range(I.shape[0])]
+        w = np.array([W.arr for i in range(I.shape[0])])
     else :
         w = W.arr
     
     errs  = np.empty((len(kls),), dtype=np.float64)
-    errs.fill(1e100)
     u_out = MpiArray(u.arr, axis=1)
     for i in ss :
         print(rank, i+ss_offset) ; sys.stdout.flush()
         for j in fs :
+            errs.fill(1e100)
             for k, kl in enumerate(kls) :
-                ww = w[k, i, j]
-                if ww > 0 :
-                    errs[k] = fun(u.arr[0, i, j] + kl[0], u.arr[1, i, j] + kl[1], i, j, ww)
+                if np.any(w[:, i, j]) > 0 :
+                    errs[k] = fun(u.arr[0, i, j] + kl[0], u.arr[1, i, j] + kl[1], i, j, w)
                 
             k = np.argmin(errs) 
             u_out.arr[:, i, j] += kls[k]
         
         # output every 10 ss pixels
-        if i % 10 == 0 and callback is not None :
+        if i % 1 == 0 and callback is not None :
             ug = u_out.gather()
             callback(ug)
             
