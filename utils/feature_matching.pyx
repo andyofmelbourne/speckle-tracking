@@ -194,6 +194,15 @@ def forward_frame(atlas, W, step, pixel_shifts=None, ij = None, sub_pixel=False)
         If[mask] = atlas[ss[mask], fs[mask]]
     return If
 
+def steps_offset(steps, pixel_shifts):
+    # the regular pixel values
+    i, j  = np.ogrid[0:pixel_shifts.shape[-2], 0:pixel_shifts.shape[-1]]
+
+    # offset the steps
+    off0   = np.min(i + pixel_shifts[0]) - np.max(steps[:, 0])
+    off1   = np.min(j + pixel_shifts[1]) - np.max(steps[:, 1])
+    return np.array([off0, off1])
+
 
 def build_atlas(frames, W, steps, 
                 pixel_shifts = None, 
@@ -225,12 +234,9 @@ def build_atlas(frames, W, steps,
         pixel_shifts = np.zeros((2,) + W.shape[-2:], dtype=np.int)
     
     # offset the steps
+    steps2 = np.array(steps)
     if offset_steps :
-        off0   = np.min(i + pixel_shifts[0]) - np.max(steps[:, 0])
-        off1   = np.min(j + pixel_shifts[1]) - np.max(steps[:, 1])
-        steps2 = steps + np.array([off0, off1])
-    else :
-        steps2 = np.array(steps)
+        steps2 += steps_offset(steps, pixel_shifts)
     
     # define the atlas grid
     if atlas_shape is None :
@@ -246,7 +252,7 @@ def build_atlas(frames, W, steps,
     
     if not sub_pixel : 
         uss, ufs = np.rint(pixel_shifts).astype(np.int)
-        WW       = W**2 
+    WW       = W**2 
 
     if len(W.shape) == 2 :
         Wit  = itertools.repeat(W)
@@ -316,6 +322,40 @@ def sub_pixel_warp(np.ndarray[FLOAT_t, ndim=2] atlas, np.ndarray[FLOAT_t, ndim=2
                 else :
                     out[i, j] = -1
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+def sub_pixel_atlas_eval(np.ndarray[FLOAT_t, ndim=2] atlas, np.ndarray[FLOAT_t, ndim=1] out, 
+                         np.ndarray[FLOAT_t, ndim=1] i_s, np.ndarray[FLOAT_t, ndim=1] j_s):
+    """
+    apply linear sub-pixel interpolation to get the function:
+        out[i] = atlas[i_s[i], j_s[i]]
+    
+    where i_s and j_s are float 1d arrays. For float interpolation
+    we use: https://en.wikipedia.org/wiki/Bilinear_interpolation#Unit_square
+    """
+    cdef int i, i0, i1, j0, j1
+    cdef float x, y, a00, a01, a10, a11
+    for i in range(i_s.shape[0]):
+        x  = i_s[i]
+        y  = j_s[i]
+        if x < 0 or x > (atlas.shape[0]-1) or y < 0 or y > (atlas.shape[1]-1):
+            out[i] = -1
+        else :
+            i0, i1 = int(floor(x)), int(ceil(x))
+            j0, j1 = int(floor(y)), int(ceil(y))
+            if i1 == i0 :
+                i1 += 1
+            if j1 == j0 :
+                j1 += 1
+            a00 = atlas[i0, j0]
+            a10 = atlas[i1, j0]
+            a01 = atlas[i0, j1]
+            a11 = atlas[i1, j1]
+            if (a00 > 0) and (a10 > 0) and (a01 > 0) and (a11 > 0):
+                out[i] = atlas[i0, j0] * (i1-x) * (j1-y) + atlas[i1, j0] * (x-i0) * (j1-y) \
+                          + atlas[i0, j1] * (i1-x) * (y-j0) + atlas[i1, j1] * (x-i0) * (y-j0)
+            else :
+                out[i] = -1
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function

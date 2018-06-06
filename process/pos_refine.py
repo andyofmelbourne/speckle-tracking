@@ -121,13 +121,18 @@ def get_input():
     
     # frames, split by frame no.
     roi = params['roi']
-    roi = [params['good_frames'], slice(roi[0],roi[1]), slice(roi[2],roi[3])]
+    roi = (params['good_frames'], slice(roi[0],roi[1]), slice(roi[2],roi[3]))
     params['frames']     = MpiArray_from_h5(args.filename, params['frames'], 
                                             axis=0, dtype=np.float64, roi=roi)
+    #def MpiArray_from_h5(fnam, path, axis=0, dtype=None, roi = None):
     #params['frames'] = params['frames'][params['good_frames']]
     
     if rank != 0 :
         params['R_ss_fs']    = None 
+
+    # offset positions
+    if params['pixel_shifts'] is not None :
+        params['R_ss_fs'] += fm.steps_offset(params['R_ss_fs'], params['pixel_shifts'])
     
     params['R_ss_fs']  = MpiArray(params['R_ss_fs'])
     params['R_ss_fs'].scatter(axis=0)

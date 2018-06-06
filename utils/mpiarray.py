@@ -194,7 +194,8 @@ def MpiArray_from_h5(fnam, path, axis=0, dtype=None, roi = None):
         with h5py.File(fnam, 'r') as f:
             if dtype is None :
                 dtype = f[path].dtype
-            dset = f[path][roi].astype(dtype)
+            shape = f[path].shape
+            dset  = f[path][roi].astype(dtype)
     else :
         dset = None
             
@@ -203,8 +204,6 @@ def MpiArray_from_h5(fnam, path, axis=0, dtype=None, roi = None):
 
     # now get the absolute coordinates 
     # of the dataset for each rank
-    shape = dset.shape
-    
     if rank == 0 :
         if roi is None :
             roi = [slice(None) for s in shape]
