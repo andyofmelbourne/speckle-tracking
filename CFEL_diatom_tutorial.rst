@@ -1,13 +1,4 @@
 ============
-Installation
-============
-Nothing to install just download a `release <https://github.com/andyofmelbourne/ptychography-workspace/releases>`_. Or clone the repo:
-
-.. code-block:: bash
-
-    git clone https://github.com/andyofmelbourne/ptychography-workspace.git
-
-============
 Diatom example
 ============
 .. code-block:: bash
@@ -21,16 +12,22 @@ Diatom example
     module load cfel-python3/latest
     python gui/speckle-gui.py hdf5/diatom/MLL_260_minimal.cxi
 
-Now you should see a confusing error about some widget not having 'R'. This is because the gui doesn't know where to find the sample translations, which is at: MLL_260_minimal.cxi:/entry_1/sample_1/geometry/translation. When you ran the last command above, it automatically created a file called "hdf5/diatom/speckle-gui.ini", which is copied from the template in "gui/speckle-gui.ini". Anyway we must edit this new file and change the line from:
-
+Now you should see a confusing error about some widget not having 'R'. This is because the gui doesn't know where to find the sample translations, which is at: *MLL_260_minimal.cxi:/entry_1/sample_1/geometry/translation*. When you ran the last command above, it automatically created a file called *hdf5/diatom/speckle-gui.ini*, which is copied from the template in *gui/speckle-gui.ini*. Anyway we must edit this new file and change the line from:
 .. code-block:: bash
     
     [hdf5/diatom/speckle-gui.ini]
     translation_paths = ['/pos_refine/translation', '/entry_1/sample_3/geometry/translation']
 
 To: 
-
 .. code-block:: bash
     
     [hdf5/diatom/speckle-gui.ini]
     translation_paths = ['/pos_refine/translation', '/entry_1/sample_3/geometry/translation', '/entry_1/sample_1/geometry/translation']
+
+Now rerun the last command, and you should be looking at a window with two tabs. Click on the tab *show / select frames*, drag the verical yellow line to the right, then adjust the colour scale and you should see diffraction data. 
+
+============
+Select frames
+============
+.. image:: docs/select_frames.png
+   :width: 600
