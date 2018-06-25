@@ -47,7 +47,8 @@ def get_all(sn, des, exclude=[]):
     
     # now convert from physical to pixel units:
     if 'translation' in params[sn] :
-        R_ss_fs, dx = get_Fresnel_pixel_shifts_cxi(**params[sn])
+        R_ss_fs, dx, defocus = get_Fresnel_pixel_shifts_cxi(**params[sn])
+        params[sn]['defocus']              = defocus
         params[sn]['R_ss_fs']              = R_ss_fs
         params[sn]['magnified_pixel_size'] = dx
     
@@ -129,7 +130,7 @@ def get_Fresnel_pixel_shifts_cxi(
     if offset_to_zero :
         R_ss_fs[:, 0] -= np.max(R_ss_fs[:, 0])
         R_ss_fs[:, 1] -= np.max(R_ss_fs[:, 1])
-    return R_ss_fs, (defocus / distance) * du
+    return R_ss_fs, (defocus / distance) * du, defocus
 
 def get_Fresnel_pixel_shifts_cxi_inverse(
         R_ss_fs      = None, 
@@ -156,7 +157,7 @@ def get_Fresnel_pixel_shifts_cxi_inverse(
     
     # un-offset
     if offset_to_zero :
-        R_ss_fs0, dx = get_Fresnel_pixel_shifts_cxi(
+        R_ss_fs0, dx, _ = get_Fresnel_pixel_shifts_cxi(
                             y_pixel_size, x_pixel_size , distance, 
                             energy      , basis_vectors, translation,        
                             defocus     , good_frames  , offset_to_zero = False)

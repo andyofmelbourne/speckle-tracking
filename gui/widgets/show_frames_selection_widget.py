@@ -11,6 +11,8 @@ import itertools
 from select_frames_widget import Select_frames_widget
 
 def white(f, path, i):
+    if path is None :
+        return 1
     Ws = f[path]
     if len(Ws.shape) == 2 :
         W = Ws[()].astype(np.float)
@@ -47,7 +49,7 @@ class Show_frames_selection_widget(QWidget):
                 break
         
         # load the whitefield
-        W = 1
+        self.W_path = None
         if W_paths is not None :
             for W_path in W_paths :
                 if W_path in f :
