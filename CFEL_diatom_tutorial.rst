@@ -13,12 +13,14 @@ Diatom example
     python gui/speckle-gui.py hdf5/diatom/MLL_260_minimal.cxi
 
 Now you should see a confusing error about some widget not having 'R'. This is because the gui doesn't know where to find the sample translations, which is at: *MLL_260_minimal.cxi:/entry_1/sample_1/geometry/translation*. When you ran the last command above, it automatically created a file called *hdf5/diatom/speckle-gui.ini*, which is copied from the template in *gui/speckle-gui.ini*. Anyway we must edit this new file and change the line from:
+
 .. code-block:: bash
     
     [hdf5/diatom/speckle-gui.ini]
     translation_paths = ['/pos_refine/translation', '/entry_1/sample_3/geometry/translation']
 
 To: 
+
 .. code-block:: bash
     
     [hdf5/diatom/speckle-gui.ini]
@@ -30,6 +32,7 @@ Now rerun the last command, and you should be looking at a window with two tabs.
 Select frames
 ============
 Now there are bad frames we need to get rid of. Click with the mouse on red dot representing the first frame (you can tell which is which by dragging the yellow line and observing the blue dot on the frame selector) you should see that it turns grey. Not so obvious is that the entire right hand column is also bad (the translations are badly encoded). Drag the rectangle over these frames and click *bad frames* then click *write to file*. You should then be looking at this:
+
 .. image:: docs/select_frames.png
    :width: 600
 
@@ -67,5 +70,6 @@ Click *Process/stitch*, then set the parameters to:
     translation = /entry_1/sample_1/geometry/translation
 
 Click *Run* and you should see: 
+
 .. image:: docs/stitch.png
    :width: 600
