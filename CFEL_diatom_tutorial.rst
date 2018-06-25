@@ -29,5 +29,43 @@ Now rerun the last command, and you should be looking at a window with two tabs.
 ============
 Select frames
 ============
+Now there are bad frames we need to get rid of. Click with the mouse on red dot representing the first frame (you can tell which is which by dragging the yellow line and observing the blue dot on the frame selector) you should see that it turns grey. Not so obvious is that the entire right hand column is also bad (the translations are badly encoded). Drag the rectangle over these frames and click *bad frames* then click *write to file*. You should then be looking at this:
 .. image:: docs/select_frames.png
+   :width: 600
+
+Now select the *view_h5_data_widget* widget and click update. At the bottom a new entry should appear called: *frame_selector/good_frames* which is just a list of good diffraction data to use.
+
+
+============
+Make whitefield
+============
+Now let's make a whitefield. Click *Process/make_whitefield*, set *sigma_t* to None (mouse hover over text for a tooltip). Then click *Run* when finished an image should appear, adjust the colour scale and you should see a white square. 
+
+Now you can close the *show / select frames* tab, then click *Display/show / select frames* to open it again. Now each of the diffraction patterns should be divided by the whitefield.  
+
+
+============
+Make mask
+============
+Click *Process/mask maker*, then click the button *next frame* and adjust colour scale. Mask bad pixels, (click *next frame* to see if any hot pixels light up), then click *save mask*.
+
+============
+Stitch (make an object map)
+============
+Click *Process/stitch*, then set the parameters to:
+
+.. code-block:: bash
+    [stitch]
+    roi = (80, 430, 60, 450)
+    whitefield = /make_whitefield/whitefield
+    good_frames = /frame_selector/good_frames
+    defocus = 0.0022
+    reg = 50
+    
+    [stitch-advanced]
+    mask = /mask_maker/mask
+    translation = /entry_1/sample_1/geometry/translation
+
+Click *Run* and you should see: 
+.. image:: docs/stitch.png
    :width: 600
