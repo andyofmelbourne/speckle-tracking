@@ -58,6 +58,7 @@ Stitch (make an object map)
 Click *Process/stitch*, then set the parameters to:
 
 .. code-block:: bash
+
     [stitch]
     roi = (80, 430, 60, 450)
     whitefield = /make_whitefield/whitefield

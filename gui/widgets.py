@@ -9,4 +9,4 @@ from manual_tracking_widget       import Manual_tracking_widget
 from mask_maker_widget            import Mask_maker_widget
 from show_frames_selection_widget import Show_frames_selection_widget 
 from grad_descent_widget          import Grad_descent_widget 
-from grid_search_widget           import Grid_search_widget 
+from update_pixel_map_widget      import Update_pixel_map_widget 

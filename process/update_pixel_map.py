@@ -36,10 +36,10 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 def get_input():
-    args, params = cmdline_config_cxi_reader.get_all('grid_search', 
+    args, params = cmdline_config_cxi_reader.get_all('update_pixel_map', 
                    'update the pixel shifts according to a least squares minimisation procedure',
                    exclude=['frames', 'whitefield', 'mask'])
-    params = params['grid_search']
+    params = params['update_pixel_map']
     
     # split by ss pixels 
     ####################

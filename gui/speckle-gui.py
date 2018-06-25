@@ -45,7 +45,7 @@ class Speckle_gui(QMainWindow):
         menu = self.menuBar()
          
         # add the tab widget
-        #@@@@###############
+        ####################
         tabs_widget = Tabs_widget(fnam)
         self.setCentralWidget(tabs_widget)
         
@@ -88,27 +88,11 @@ class Speckle_gui(QMainWindow):
         load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
         pro_menu.addAction(load_pro_widgets[-1])
         
-        # manual tracking widget
-        ########################
-        script_names.append('manual_tracking')
-        load_pro_widgets.append(QAction(script_names[-1], self))
-        load_pro_actions.append(lambda x, s = script_names[-1], f = fnam : tabs_widget.addTab(widgets.Manual_tracking_widget(f), s))
-        load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
-        pro_menu.addAction(load_pro_widgets[-1])
-        
-        # gradient descent widget
+        # update_pixel_map widget
         #########################
-        script_names.append('grad_descent')
+        script_names.append('update_pixel_map')
         load_pro_widgets.append(QAction(script_names[-1], self))
-        load_pro_actions.append(lambda x, s = script_names[-1], f = fnam : tabs_widget.addTab(widgets.Grad_descent_widget(s, f), s))
-        load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
-        pro_menu.addAction(load_pro_widgets[-1])
-
-        # grid search widget
-        #########################
-        script_names.append('grid_search')
-        load_pro_widgets.append(QAction(script_names[-1], self))
-        load_pro_actions.append(lambda x, s = script_names[-1], f = fnam : tabs_widget.addTab(widgets.Grid_search_widget(s, f), s))
+        load_pro_actions.append(lambda x, s = script_names[-1], f = fnam : tabs_widget.addTab(widgets.update_pixel_map_widget(s, f), s))
         load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
         pro_menu.addAction(load_pro_widgets[-1])
 

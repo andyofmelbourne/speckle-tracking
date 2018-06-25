@@ -16,7 +16,7 @@ from config_editor_widget import discover_config
 from run_and_log_command  import Run_and_log_command
 from show_nd_data_widget  import Show_nd_data_widget
 
-class Grid_search_widget(QWidget):
+class Update_pixel_map_widget(QWidget):
     """
     ui layout is :
         | config editor |
@@ -25,7 +25,7 @@ class Grid_search_widget(QWidget):
     
     """
     def __init__(self, script_name, h5_fnam, config_fnam = '', config_dirs = ['/process/',]):
-        super(Grid_search_widget, self).__init__()
+        super(Update_pixel_map_widget, self).__init__()
         self.h5_fnam     = h5_fnam
         self.script_name = script_name
         
