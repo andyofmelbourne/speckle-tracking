@@ -3,7 +3,7 @@ Diatom example
 ============
 
 Workflow:
-install --> select diffraction frames --> make whitefield --> make mask --> make object map --> update pixel shift map (and obj.) --> update translations (and obj.)
+    install --> select diffraction frames --> make whitefield --> make mask --> make object map --> update pixel shift map (and obj.) --> update translations (and obj.)
 
 Then one can cylce through:
     update pixel shift map --> make object map --> update translations --> make object map
