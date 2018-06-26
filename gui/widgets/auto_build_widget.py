@@ -13,6 +13,9 @@ from config_editor_widget import discover_config
 from run_and_log_command  import Run_and_log_command
 from show_nd_data_widget  import Show_nd_data_widget
 
+import multiprocessing
+CPUS = min(multiprocessing.cpu_count() // 2, 8)
+
 class Auto_build_widget(QWidget):
     """
     ui layout is :
@@ -21,10 +24,12 @@ class Auto_build_widget(QWidget):
         ---run command widget---
     
     """
-    def __init__(self, script_name, h5_fnam, config_fnam = '', config_dirs = ['/process/',]):
+    def __init__(self, script_name, h5_fnam, config_fnam = '', config_dirs = ['/process/',], mpi=False):
         super(Auto_build_widget, self).__init__()
+        print('auto loading:', script_name)
         self.h5_fnam     = h5_fnam
         self.script_name = script_name
+        self.mpi         = mpi
         
         self.config_fnams, self.config_output =  discover_config(script_name, \
                                                  h5_fnam, config_fnam, config_dirs)
@@ -73,5 +78,8 @@ class Auto_build_widget(QWidget):
         #################
         script  = os.path.join(root, 'process/'+self.script_name+'.py')
         script  = os.path.relpath(script, os.getcwd())
-        cmd = 'python ' + script + ' ' + self.h5_fnam + ' -c ' + self.config_output
+        if self.mpi is True :
+            cmd = 'mpiexec -np '+str(CPUS)+' python -W ignore ' + script + ' ' + self.h5_fnam + ' -c ' + self.config_output
+        else :
+            cmd = 'python ' + script + ' ' + self.h5_fnam + ' -c ' + self.config_output
         self.run_and_log_command.run_cmd(cmd)

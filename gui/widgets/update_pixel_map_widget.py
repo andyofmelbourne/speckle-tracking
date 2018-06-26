@@ -9,7 +9,7 @@ root = os.path.split(root)[0]
 root = os.path.split(root)[0]
 
 import multiprocessing
-CPUS = multiprocessing.cpu_count() // 2
+CPUS = min(multiprocessing.cpu_count() // 2, 8)
 
 from config_editor_widget import Config_editor_Widget
 from config_editor_widget import discover_config

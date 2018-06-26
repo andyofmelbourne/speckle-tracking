@@ -92,7 +92,7 @@ def write_all(params, filename, output_dict, apply_roi=True):
     
     # un-pixel convert positions
     if 'R_ss_fs' in output_dict :
-        output_dict['translation'] = get_Fresnel_pixel_shifts_cxi_inverse(offset_to_zero = False,
+        output_dict['translation'] = get_Fresnel_pixel_shifts_cxi_inverse(offset_to_zero = True,
                                                                           **params)
     config_reader.write_h5(filename, h5_group, output_dict)
     

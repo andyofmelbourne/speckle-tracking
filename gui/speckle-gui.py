@@ -92,7 +92,15 @@ class Speckle_gui(QMainWindow):
         #########################
         script_names.append('update_pixel_map')
         load_pro_widgets.append(QAction(script_names[-1], self))
-        load_pro_actions.append(lambda x, s = script_names[-1], f = fnam : tabs_widget.addTab(widgets.update_pixel_map_widget(s, f), s))
+        load_pro_actions.append(lambda x, s = script_names[-1], f = fnam : tabs_widget.addTab(widgets.Update_pixel_map_widget(s, f), s))
+        load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
+        pro_menu.addAction(load_pro_widgets[-1])
+
+        # update_pixel_map widget
+        #########################
+        script_names.append('pos_refine')
+        load_pro_widgets.append(QAction(script_names[-1], self))
+        load_pro_actions.append(lambda x, s = script_names[-1], f = fnam : tabs_widget.addTab(widgets.Update_pixel_map_widget(s, f), s))
         load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
         pro_menu.addAction(load_pro_widgets[-1])
 
@@ -105,8 +113,14 @@ class Speckle_gui(QMainWindow):
             if script_name in script_names :
                 continue
 
+            if 'pos_refine' in script_name:
+                mpi = True 
+            else :
+                mpi = False 
+            
             load_pro_widgets.append(QAction(script_name, self))
-            load_pro_actions.append(lambda x, s = script_name, f = fnam : tabs_widget.addTab(widgets.Auto_build_widget(s, f), s))
+            load_pro_actions.append(lambda x, s = script_name, 
+                    f = fnam : tabs_widget.addTab(widgets.Auto_build_widget(s, f, mpi=mpi), s))
             load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
             pro_menu.addAction(load_pro_widgets[-1])
 
