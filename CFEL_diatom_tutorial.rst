@@ -2,6 +2,8 @@
 Diatom example
 ============
 
+.. contens::
+
 Workflow:
     install --> select diffraction frames --> make whitefield --> make mask --> make object map --> update pixel shift map (and obj.) --> update translations (and obj.)
 
@@ -10,6 +12,9 @@ Then one can cylce through:
 
 until satisfied.
 
+============
+Install
+============
 .. code-block:: bash
     
     ssh -X max-cfel
