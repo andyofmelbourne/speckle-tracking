@@ -2,7 +2,7 @@
 Diatom example
 ============
 
-.. contens::
+.. contens:: :local:
 
 Workflow:
     install --> select diffraction frames --> make whitefield --> make mask --> make object map --> update pixel shift map (and obj.) --> update translations (and obj.)
