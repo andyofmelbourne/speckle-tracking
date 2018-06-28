@@ -199,7 +199,7 @@ if __name__ == '__main__':
     if params['sub_pixel'] is True :
         params['pixel_shifts']  = grid_search_ss_split_sub_pix(params['atlas'], params['frames'], 
                                               params['whitefield'], params['R_ss_fs'], 
-                                              params['pixel_shifts'], #bounds=[-1.0, 1.0])
-                                              bounds=[-params['max_step'], params['max_step']])
+                                              params['pixel_shifts'], bounds=[-1.0, 1.0])
+                                              #bounds=[-params['max_step'], params['max_step']])
     u = params['pixel_shifts'].gather()
     callback(u)
