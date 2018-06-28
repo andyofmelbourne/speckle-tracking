@@ -2,7 +2,8 @@
 Diatom example
 ============
 
-.. contens:: :local:
+.. contents:: Table of Contents
+.. section-numbering::
 
 Workflow:
     install --> select diffraction frames --> make whitefield --> make mask --> make object map --> update pixel shift map (and obj.) --> update translations (and obj.)
