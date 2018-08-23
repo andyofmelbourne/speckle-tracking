@@ -60,15 +60,18 @@ if __name__ == '__main__':
     reg   = mk_reg(shape, params['reg'])
     
     # merge the frames
-    atlas, = fm.build_atlas(reg * params['frames'], 
-                            reg * params['whitefield'], 
+    atlas, pix_steps = fm.build_atlas(reg * params['frames'].astype(np.float64), 
+                            reg * params['whitefield'].astype(np.float64), 
                             params['R_ss_fs'], pix_shifts, 
-                            sub_pixel = params['sub_pixel'])
+                            sub_pixel = params['sub_pixel'], 
+                            return_steps = True)
     
     # write the result 
     ##################
-    out = {'O': atlas, 'reg': reg}
+    out = {'O': atlas, 'reg': reg, 'R_ss_fs': pix_steps}
     cmdline_config_cxi_reader.write_all(params, args.filename, out)
     
     print('display: '+params['h5_group']+'/O') ; sys.stdout.flush()
+    import time
+    time.sleep(1)
     
