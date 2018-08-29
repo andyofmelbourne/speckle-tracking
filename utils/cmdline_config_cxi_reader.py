@@ -52,6 +52,10 @@ def get_all(sn, des, exclude=[]):
         params[sn]['R_ss_fs']              = R_ss_fs
         params[sn]['magnified_pixel_size'] = dx
     
+    # calculate the wavelength if needed
+    if 'wavelength' not in params[sn] and 'energy' in params[sn]:
+        import scipy.constants as sc
+        params[sn]['wavelength'] = sc.h * sc.c / params[sn]['energy']
     return args, params
 
 
