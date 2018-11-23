@@ -1,3 +1,6 @@
+.. image:: https://travis-ci.org/andyofmelbourne/speckle-tracking.svg?branch=feature%2Ftravis
+    :target: https://travis-ci.org/andyofmelbourne/speckle-tracking
+
 ============
 Installation
 ============
