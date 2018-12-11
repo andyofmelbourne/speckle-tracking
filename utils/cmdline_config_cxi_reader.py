@@ -78,11 +78,11 @@ def write_all(params, filename, output_dict, apply_roi=True):
                     if output_dict[k].shape[-2:] == roi_shape :
                         temp = None
                         
-                        kk = h5_group+'/'+k
-                        if kk in h5_file :
-                            k_shape = h5_file[h5_group+'/'+k].shape[-2:]
-                            if len(k_shape) > 1 and k_shape[-2:] == shape :
-                                temp = h5_file[h5_group+'/'+k][()]
+                        #kk = h5_group+'/'+k
+                        #if kk in h5_file :
+                        #    k_shape = h5_file[h5_group+'/'+k].shape[-2:]
+                        #    if len(k_shape) > 1 and k_shape[-2:] == shape :
+                        #        temp = h5_file[h5_group+'/'+k][()]
                         
                         if temp is None :
                             temp = np.zeros(output_dict[k].shape[:-2] + shape, 

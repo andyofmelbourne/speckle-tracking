@@ -179,7 +179,7 @@ def pos_refine_all(atlas, W, R, u, I,
         r_out, err = pos_refine_grid(atlas, W, r, u, frame, bounds, max_iters, sub_pixel)
         R_out.append(r_out.copy())
         err_out.append(err)
-        print(r, r_out); sys.stdout.flush()
+        print(r - r_out, err); sys.stdout.flush()
     
     Rs   = MpiArray(np.array(R_out), axis=0)
     errs = MpiArray(np.array(err_out), axis=0)

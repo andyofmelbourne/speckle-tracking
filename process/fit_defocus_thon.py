@@ -140,18 +140,18 @@ if __name__ == '__main__':
     # get input 
     ###########
     # get command line args and config
-    sc  = 'fit_defocus'
+    sc  = 'fit_defocus_thon'
     des = 'fit the sample to focus distance to the Thon rings.'
     args, params = cmdline_parser.parse_cmdline_args(sc, des)
     
-    if params['fit_defocus']['use_existing_thon'] is not False :
+    if params['fit_defocus_thon']['use_existing_thon'] is not False :
         exclude = ['frames', 'whitefield']
     else :
         exclude = []
     
     # now load the necessary data
     args, params = cmdline_config_cxi_reader.get_all(sc,des,exclude)
-    params = params['fit_defocus']
+    params = params['fit_defocus_thon']
     
     # Do Stuff
     ##########
@@ -206,7 +206,8 @@ if __name__ == '__main__':
     
     # write the result 
     ##################
-    out = {'thon': thon, 'thon_with_fit': thon_show, 'fits': np.array([thon_1d, t_fit]), 
+    out = {'thon': thon, 'thon_with_fit': thon_show, 'thon_radial_average': np.fft.fftshift(thon_av),
+           'fits': np.array([thon_1d, t_fit]), 
            'errs': np.array([errs, zs]), 'defocus' : zs[np.argmin(errs)]}
     cmdline_config_cxi_reader.write_all(params, args.filename, out)
     
