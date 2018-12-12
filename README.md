@@ -4,7 +4,7 @@ To install just download a [release](https://github.com/andyofmelbourne/ptychogr
 Or clone the repo:
 
 ```bash
-    git clone https://github.com/andyofmelbourne/ptychography-workspace.git
+    git clone https://github.com/andyofmelbourne/speckle-tracking.git
 ```
 
 Then compile the cython code:
