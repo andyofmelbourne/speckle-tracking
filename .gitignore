@@ -5,3 +5,7 @@ hdf5/*
 utils/Ptychography/*
 cxi_files/*
 papers/*
+_build
+_static
+_templates
+latex
