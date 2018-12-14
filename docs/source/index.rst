@@ -1,16 +1,17 @@
-Welcome to speckle-tracking's documentation!
-============================================
+speckle-tracking
+================
+
+Software for light phase constrast imaging and wavefront sensing using many projection images.
+
+This is a gui, a python module and some scripts for processing your data. You can call the python module from your own scripts, use the command line for bash processing (for example on a cluster of CPUs) or use the gui (a high level interface). 
+
+Theory and Concepts 
+-------------------
+
+* :ref:`Coordinate system <coord>`
+
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+    :maxdepth: 2
+    
 
-.. automodule:: update_pixel_map
-   :members:
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
