@@ -8,11 +8,8 @@ from __future__ import unicode_literals
 # with a small sample and small aberations
 
 import sys, os
-root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, os.path.join(root, 'utils'))
 
-import config_reader
-import cmdline_parser
+import speckle_tracking as st
 
 import h5py
 import scipy.misc
@@ -229,7 +226,9 @@ def write_data(filename, Pd, pos, frames, **params):
     f.close()
 
 if __name__ == '__main__':
-    args, params = cmdline_parser.parse_cmdline_args('forward_sim', 'generate an example cxi file for testing')
+    args, params = st.cmdline_parser.parse_cmdline_args('forward_sim', 
+                                                        'generate an example cxi file for testing', 
+                                                        config_dirs=[os.path.dirname(st.__file__),])
     params = params['forward_sim']
     
     # make the frames
@@ -240,7 +239,7 @@ if __name__ == '__main__':
 
     # write the result 
     ##################
-    config_reader.write_h5(args.filename, params['h5_group'], 
+    st.config_reader.write_h5(args.filename, params['h5_group'], 
                            {'O' : O.astype(np.complex128),
                             '/Pupil' : Pd, 
                             'good_frames' : np.arange(len(frames))})
