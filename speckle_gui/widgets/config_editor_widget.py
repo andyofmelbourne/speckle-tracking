@@ -5,7 +5,8 @@ try :
 except :
     from PyQt4.QtGui import *
 
-import config_reader
+import speckle_tracking 
+from speckle_tracking import config_reader
 
 def discover_config(script_name, h5_fnam, config_fnam='', config_dirs = ['/process/',]):
     import sys, os

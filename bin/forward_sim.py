@@ -9,6 +9,12 @@ from __future__ import unicode_literals
 
 import sys, os
 
+# add the parant directory to path in case speckle tracking has not been installed
+import sys, os
+root = os.path.split(os.path.abspath(__file__))[0]
+root = os.path.split(root)[0]
+sys.path.insert(0, root)
+
 import speckle_tracking as st
 
 import h5py
