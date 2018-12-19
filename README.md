@@ -1,26 +1,28 @@
 Installation
 ============
-To install just download a [release](https://github.com/andyofmelbourne/ptychography-workspace/releases). 
-Or clone the repo:
+To install just download the repo:
 
 ```bash
     git clone https://github.com/andyofmelbourne/speckle-tracking.git
 ```
 
-Then compile the cython code:
+Then install:
 
 ```bash
-    cd utils 
-    python setup.py build_ext --inplace
-    cd ..
+    cd speckle-tracking 
+    python setup.py develop
 ```
-
 
 quick start
 ===========
 
+Make a simulated diffraction experiment, this will output a cxi file:
 ```bash
-    python process/forward_sim.py -c process/forward_sim.ini hdf5/example/example.cxi
+    forward_sim.py hdf5/example/example.cxi
+    python bin/speckle-gui.py hdf5/example/example.cxi
+```
 
-    python gui/speckle-gui.py hdf5/example/example.cxi
+Launch the gui:
+```bash
+    python bin/speckle-gui.py hdf5/example/example.cxi
 ```

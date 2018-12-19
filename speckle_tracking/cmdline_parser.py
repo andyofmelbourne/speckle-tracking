@@ -3,7 +3,7 @@ try :
 except ImportError :
     import configparser
 
-import config_reader
+from . import config_reader
 import argparse
 import os
 

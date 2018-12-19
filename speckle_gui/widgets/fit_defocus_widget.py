@@ -17,6 +17,8 @@ from config_editor_widget import discover_config
 from run_and_log_command  import Run_and_log_command
 from show_nd_data_widget  import Show_nd_data_widget
 
+from speckle_tracking import config_reader
+
 import multiprocessing
 CPUS = min(multiprocessing.cpu_count() // 2, 8)
 
@@ -140,7 +142,6 @@ class Fit_defocus_widget(QWidget):
     def update_display(self):
         import h5py
         sys.path.insert(0, os.path.join(root, 'utils'))
-        import config_reader
         # re-read the output config file 
         # in case the output group has changed (config_output)
         params, fnam = config_reader.config_read([self.config_output] + self.config_fnams)
@@ -171,5 +172,5 @@ class Fit_defocus_widget(QWidget):
         if self.mpi is True :
             cmd = 'mpiexec -np '+str(CPUS)+' python -W ignore ' + script + ' ' + self.h5_fnam + ' -c ' + self.config_output
         else :
-            cmd = 'python ' + script + ' ' + self.h5_fnam + ' -c ' + self.config_output
+            cmd = self.script_name + ' ' + self.h5_fnam + ' -c ' + self.config_output
         self.run_and_log_command.run_cmd(cmd)

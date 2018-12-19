@@ -17,10 +17,10 @@ each load the full dataset of frames, so by default I guess we split over frames
 Maybe we also want the option to split over detector pixels...
 """
 import numpy as np
-
-import config_reader
-import cmdline_parser
 import h5py
+
+from . import config_reader
+from . import cmdline_parser
 
 
 def get_all(sn, des, exclude=[]):

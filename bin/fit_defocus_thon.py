@@ -15,10 +15,11 @@ base = os.path.join(os.path.dirname(__file__), '..')
 root = os.path.abspath(base)
 sys.path.insert(0, os.path.join(root, 'utils'))
 
-import pyximport; pyximport.install()
-import feature_matching as fm
-import cmdline_config_cxi_reader
-import cmdline_parser 
+#import pyximport; pyximport.install()
+import speckle_tracking
+import speckle_tracking.feature_matching as fm
+from speckle_tracking import cmdline_config_cxi_reader
+from speckle_tracking import cmdline_parser 
 
 import numpy as np
 
@@ -33,7 +34,7 @@ def mk_reg(shape, reg):
         reg = 1
     return reg
 
-def get_r_theta(shape, is_fft_shifted = True):
+def get_r_theta(shape, is_fft_shifted = True, angle_range=None):
     i = np.fft.fftfreq(shape[0]) * shape[0]
     j = np.fft.fftfreq(shape[1]) * shape[1]
     i, j = np.meshgrid(i, j, indexing='ij')
@@ -42,8 +43,8 @@ def get_r_theta(shape, is_fft_shifted = True):
     if is_fft_shifted is False :
         rs = np.fft.fftshift(rs)
     
-    if angle_range is not None :
-        ts = np.arctan2(i, j)
+    ts = np.arctan2(i, j)
+
     return rs, ts
 
 def radial_symetry(background, rs, mask=None):
@@ -69,7 +70,7 @@ def radial_symetry(background, rs, mask=None):
     background = r_av[rs].reshape(background.shape)
     return background, r_av
 
-def make_thon_from_data(frames):
+def make_thon_from_data(frames, reg):
     a = np.zeros(frames[0].shape, dtype=np.float64)
     count = 0.
     for frame in frames :
@@ -83,7 +84,7 @@ def thon_rad_av(thon, edge=10, sigma=10, rad_range=None, angle_range=None, flatt
     thon_2 = thon.copy()
     
     # edge, angle, radius mask
-    rad, theta = get_r_theta(thon.shape)
+    rad, theta = get_r_theta(thon.shape, angle_range=angle_range)
     mask = np.ones(thon.shape, dtype=np.bool)
     if angle_range is not None :
         mask[theta < angle_range[0]] = False
@@ -131,18 +132,19 @@ def fit_thon(thon_1d, wavelength, distance, x_pixel_size,
                                       forward(z[0])[rad_range[0]:rad_range[1]])
         return -err
     
+    print('defocus_range:', defocus_range)
     zs = np.linspace(defocus_range[0], defocus_range[1], 10000)
     errs = np.array([fun([z]) for z in zs])
     return forward(zs[np.argmin(errs)]), zs, errs
     
-
-if __name__ == '__main__':
+def main():
     # get input 
     ###########
     # get command line args and config
     sc  = 'fit_defocus_thon'
     des = 'fit the sample to focus distance to the Thon rings.'
-    args, params = cmdline_parser.parse_cmdline_args(sc, des)
+    args, params = cmdline_parser.parse_cmdline_args(sc, des, 
+                                                     config_dirs=[os.path.dirname(speckle_tracking.__file__),])
     
     if params['fit_defocus_thon']['use_existing_thon'] is not False :
         exclude = ['frames', 'whitefield']
@@ -158,7 +160,10 @@ if __name__ == '__main__':
     if params['use_existing_thon'] is False :
         # set masked pixels to negative 1
         mask              = params['mask'].astype(np.bool)
+        if params['good_frames'] is None :
+            params['good_frames'] = slice(None, None, None)
         params['frames']  = params['frames'][params['good_frames']].astype(np.float64)
+        print(params['frames'].shape, mask.shape)
         for i in range(len(params['frames'])):
             params['frames'][i][~mask] = -1
         
@@ -173,7 +178,7 @@ if __name__ == '__main__':
         reg   = mk_reg(shape, params['reg'])
         
         # calculate 2D thon rings from data
-        thon = make_thon_from_data(params['frames']/params['whitefield'])
+        thon = make_thon_from_data(params['frames']/params['whitefield'], reg)
     else :
         thon = params['use_existing_thon']
     
@@ -211,3 +216,6 @@ if __name__ == '__main__':
            'errs': np.array([errs, zs]), 'defocus' : zs[np.argmin(errs)]}
     cmdline_config_cxi_reader.write_all(params, args.filename, out)
     
+
+if __name__ == '__main__':
+    main()

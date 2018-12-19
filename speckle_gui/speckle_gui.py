@@ -5,18 +5,15 @@ try :
 except :
     from PyQt4.QtGui import *
 
+import sys, os
 import signal
 import glob
 
-# set the root dir
-import sys, os
-root = os.path.split(os.path.abspath(__file__))[0]
-root = os.path.split(root)[0]
 
-sys.path.insert(0, os.path.join(root, 'utils'))
-import cmdline_parser
+import speckle_tracking 
+from speckle_tracking import cmdline_parser
 
-import widgets 
+from . import widgets 
 
 class Tabs_widget(QTabWidget):
     def __init__(self, fnam):
@@ -106,7 +103,7 @@ class Speckle_gui(QMainWindow):
 
         # fit_defocus widget
         #########################
-        script_names.append('fit_defocus')
+        script_names.append('fit_defocus_thon')
         load_pro_widgets.append(QAction(script_names[-1], self))
         load_pro_actions.append(lambda x, s = script_names[-1], 
                                 f = fnam : tabs_widget.addTab(widgets.Fit_defocus_widget(s, f), s))
@@ -115,7 +112,9 @@ class Speckle_gui(QMainWindow):
 
         # auto populate the process menu
         ################################
-        pro_fnams = glob.glob(root+'/process/*.py')
+        #pro_fnams = glob.glob(root+'/process/*.py')
+        pro_fnams = "fit_defocus_registration.py forward_sim.py make_whitefield.py speckle-gui.py update_pixel_map.py fit_defocus_thon.py h5_operations.py  pos_refine.py stitch.py zernike.py".split()
+
         for pfnam in pro_fnams:
             script_name = os.path.split(pfnam)[1][:-3]
             
@@ -138,8 +137,11 @@ class Speckle_gui(QMainWindow):
     def autoTab(self, script_name, fnam):
         print(script_name, fnam)
 
-if __name__ == '__main__':
-    args, params = cmdline_parser.parse_cmdline_args('speckle-gui', 'speckle-tracking main gui')
+
+def main():
+    args, params = cmdline_parser.parse_cmdline_args('speckle-gui', 
+                                                     'speckle-tracking main gui', 
+                                                     config_dirs=[os.path.dirname(__file__),])
     
     signal.signal(signal.SIGINT, signal.SIG_DFL) # allow Control-C
     app = QApplication([])
@@ -147,3 +149,6 @@ if __name__ == '__main__':
     gui = Speckle_gui(args.filename, params['speckle-gui'])
 
     app.exec_()
+
+if __name__ == '__main__':
+    main()
