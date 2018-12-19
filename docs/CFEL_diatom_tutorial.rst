@@ -1,5 +1,5 @@
-Diatom example
-**************
+Diatom example (out-of-date)
+****************************
 
 .. contents:: Table of Contents
 
