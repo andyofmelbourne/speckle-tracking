@@ -8,11 +8,24 @@ This is a gui, a python module and some scripts for processing your data. You ca
 Theory and Concepts 
 -------------------
 
-* :ref:`Coordinate system <coord>`
+.. toctree::
+    :maxdepth: 2
 
+    coordinate_system
+
+Developers
+----------
 
 .. toctree::
     :maxdepth: 2
     
-    coordinate_system
+    code_structure
+    code_notes
 
+Tutorials
+---------
+
+.. toctree::
+    :maxdepth: 1
+
+    CFEL_diatom_tutorial

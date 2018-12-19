@@ -1,4 +1,6 @@
 *.swp
+*.so
+*.egg*
 *.pyc
 *.h5
 hdf5/*
