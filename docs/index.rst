@@ -28,6 +28,15 @@ Theory and Concepts
     :maxdepth: 2
 
     coordinate_system
+    thon_rings
+
+Python Reference
+----------------
+
+.. toctree::
+    :maxdepth: 2
+
+    python_funcs
 
 Developers
 ----------

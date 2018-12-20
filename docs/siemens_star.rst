@@ -1,3 +1,5 @@
+.. _siemens_star:
+
 Siemens Star
 ============
 
@@ -36,7 +38,7 @@ Python Interface
 ----------------
 
 Make the mask
-    First let's import speckle tracking and things, then call the :code:`make_mask` function with default settings to create a binary True/False (good/bad) pixel map for the detector. Then we are going to write this back into the file::
+    First let's import speckle tracking and things, then call the :py:func:`~speckle_tracking.make_mask` function with default settings to create a binary True/False (good/bad) pixel map for the detector. Then we are going to write this back into the file::
 
         import speckle_tracking as st
         import h5py
