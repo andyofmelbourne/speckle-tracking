@@ -69,6 +69,51 @@ def find_symmetry(thon):
     print(d, b)
     return var, rav
 
+def get_r_theta(shape, d, is_fft_shifted = True):
+    i = np.fft.fftfreq(shape[0], d[0]) 
+    j = np.fft.fftfreq(shape[1], d[1]) 
+    i, j = np.meshgrid(i, j, indexing='ij')
+    qs   = np.sqrt(i**2 + j**2)
+    
+    ts = np.arctan2(i, j)
+    if is_fft_shifted is False :
+        qs = np.fft.fftshift(qs)
+        ts = np.fft.fftshift(ts)
+
+    return qs, ts
+
+def fit_envolopes(q, z1, zD, wav, thon_rav):
+    pass
+
+
+def interp(xn, xo, y):
+    # trilinear interp
+    if type(xn) is float :
+        # find the largest xo smaller than xn
+        i = np.searchsorted(xo, xn)
+        if i == 0 :
+            out = y[0]
+        elif i == len(y) :
+            out = y[-1]
+        else :
+            out = (xo[i]-xn)*y[i-1] + (xn-xo[i-1])*y[i]
+            out /= xo[i]-xo[i-1]
+    else :
+        i  = np.searchsorted(xo, xn)
+        im = i-1  
+        
+        # keep in bounds
+        im[im<0] = 0
+        im[im>=len(y)] = len(y)-1
+        i[im<0] = 0
+        i[im>=len(y)] = len(y)-1
+        
+        out = (xo[i]-xn)*y[im] + (xn-xo[im])*y[i]
+        d   = xo[i]-xo[im]
+        out[d>0] = out[d>0]/d[d>0]
+   return out
+
+
 # extract data
 f = h5py.File('siemens_star.cxi', 'r')
 
@@ -92,10 +137,13 @@ roi = st.guess_roi(W)
 
 thon = make_thon(data, mask, W, roi)
 
-r, t = st.get_r_theta(thon.shape, False)
-thon_rav = st.radial_symetry(thon, r, mask)
+q, t = get_r_theta(thon.shape, [x_pixel_size, y_pixel_size], False)
 
-var, rav = find_symmetry(np.fft.ifftshift(thon)**0.1)
+r     = q * np.sqrt(thon.shape[0]**2 + thon.shape[1]**2)/2 / q.max()
+thon_rav = st.radial_symetry(thon, r, mask)
+q_rav    = np.linspace(0, q.max(), thon_rav.shape[0])
+
+#var, rav = find_symmetry(np.fft.ifftshift(thon)**0.1)
 
 #f = h5py.File('siemens_star.cxi', 'a')
 #f['results/mask'] = mask
