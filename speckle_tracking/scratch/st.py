@@ -6,7 +6,7 @@ import scipy.signal
 
 
 def make_thon(data, mask, W, roi=None):
-    sig = data.shape[-1]//8
+    sig = data.shape[-1]//4
     if roi is not None :
         centre = [(roi[1]-roi[0])/2 + roi[0], 
                   (roi[3]-roi[2])/2 + roi[2]]
@@ -82,11 +82,78 @@ def get_r_theta(shape, d, is_fft_shifted = True):
 
     return qs, ts
 
+def fit_thon(q, z1, zD, wav, thon_rav):
+    import scipy.stats
+    def fun(z):
+        err, _ = scipy.stats.pearsonr(thon_1d[rad_range[0]:rad_range[1]], 
+                                forward(z[0])[rad_range[0]:rad_range[1]])
+
+    z1s  = np.linspace(z1*0.5, z1*1.5, 300)
+    errs = np.zeros_like(z1s)
+    for i, z in enumerate(z1s) :
+        bac, env, zi, oi = fit_envolopes(q, z, zD, wav, thon_rav)
+        
+        f = (thon_rav-bac)/env 
+        
+        # range from the second minima to the 
+        # horizontal egdge of the detector
+        istart, istop = zi[1], int(len(thon_rav)/np.sqrt(2))
+            
+        s = np.sin( np.pi * wav * (zD - z1) * zD/z1 * q**2 )**2
+        err, _ = scipy.stats.pearsonr( s[istart:istop], f[istart:istop] )
+        errs[i] = err
+        print(i, err)
+
+    i = np.argmax(errs)
+    z1out = z1s[i]
+    err   = errs[i]
+    print('best defocus, err:', z1out, err)
+    bac, env, zi, oi = fit_envolopes(q, z1out, zD, wav, thon_rav)
+    return np.sin( np.pi * wav * (zD - z1out) * zD/z1out * q**2 )**2, bac, env, errs, z1s
+
+def fit_envolopes_min_max(q, z1, zD, wav, thon_rav):
+    """
+    estimate background and envelope by looking for the 
+    min / max value within each period
+    this ensures that the env > 0
+    """
+    t  = z1 / (wav * zD * (zD-z1))
+    nmax = int(q[-1]**2  / t)
+    mmax = int(q[-1]**2  / t - 0.5)
+    lmax = int(q[-1]**2  / t - 0.25)
+    
+    qn = np.sqrt( t *  np.arange(nmax+1))
+    qm = np.sqrt( t * (np.arange(mmax+1) + 0.5))
+    ql = np.sqrt( t * (np.arange(lmax+1) + 0.25))
+
+
 def fit_envolopes(q, z1, zD, wav, thon_rav):
-    pass
+    t = z1 / (wav * zD * (zD-z1))
+    nmax = int(q[-1]**2  / t)
+    mmax = int(q[-1]**2  / t - 0.5)
+    qz = np.sqrt( t *  np.arange(nmax+1))
+    qo = np.sqrt( t * (np.arange(mmax+1) + 0.5))
+
+    zi = np.searchsorted(q, qz)
+    oi = np.searchsorted(q, qo)
+    
+    # get the value of thon_rav at these points
+    thonz = interp(qz, q, thon_rav)
+    thono = interp(qo, q, thon_rav)
+    thonz[0] = 2*thono[0]
+    
+    # now estimate the background from the zeros
+    b  = interp(q, qz, thonz)
+    
+    # now estimate the envelope
+    en = interp(q, qo, thono) - b
+    return b, en, zi, oi
 
 
 def interp(xn, xo, y):
+    if len(y) != len(xo) :
+        raise ValueError('xo and y must be the same length')
+    
     # trilinear interp
     if type(xn) is float :
         # find the largest xo smaller than xn
@@ -103,16 +170,45 @@ def interp(xn, xo, y):
         im = i-1  
         
         # keep in bounds
-        im[im<0] = 0
-        im[im>=len(y)] = len(y)-1
-        i[im<0] = 0
-        i[im>=len(y)] = len(y)-1
-        
-        out = (xo[i]-xn)*y[im] + (xn-xo[im])*y[i]
-        d   = xo[i]-xo[im]
-        out[d>0] = out[d>0]/d[d>0]
-   return out
+        m = np.ones(i.shape, dtype=np.bool)
+        m[i<=0]      = False
+        m[i>=len(y)] = False
 
+        out    = np.zeros(xn.shape, dtype = np.float)
+        
+        # lever interpolation
+        out[m] = (xo[i[m]]-xn[m])*y[im[m]] + (xn[m]-xo[im[m]])*y[i[m]]
+        
+        # divide by step size 
+        d              = xo[i[m]]-xo[im[m]]
+        out[m]         = out[m]/d
+        out[i<=0]      = y[0]
+        out[i>=len(y)] = y[-1]
+    return out
+
+def make_edge_mask(shape, edge, is_fft_shifted=True):
+    mask = np.ones(shape, dtype=np.bool)
+    mask[:edge,  :] = False
+    mask[-edge:, :] = False
+    mask[:,  :edge] = False
+    mask[:, -edge:] = False
+    if not is_fft_shifted :
+        mask = np.fft.fftshift(mask)
+    return mask
+
+def make_thon_rav(thon, pix_size, mask, is_fft_shifted=True):
+    # get the q and theta grid
+    q, t = get_r_theta(thon.shape, [x_pixel_size, y_pixel_size], False)
+    
+    # scale q so that we sample the pixels well
+    r     = q * np.sqrt(thon.shape[0]**2 + thon.shape[1]**2)/2 / q.max()
+    
+    # now get the radial average
+    thon_rav = st.radial_symetry(thon, r, mask)
+    
+    # now scale the 1d q-scale
+    q_rav    = np.linspace(0, q.max(), thon_rav.shape[0])
+    return q_rav, thon_rav
 
 # extract data
 f = h5py.File('siemens_star.cxi', 'r')
@@ -135,16 +231,17 @@ W = st.make_whitefield(data, mask)
 
 roi = st.guess_roi(W)
 
-thon = make_thon(data, mask, W, roi)
+thon = np.fft.fftshift(make_thon(data, mask, W, roi))
 
-q, t = get_r_theta(thon.shape, [x_pixel_size, y_pixel_size], False)
+edge_mask = make_edge_mask(thon.shape, 5)
 
-r     = q * np.sqrt(thon.shape[0]**2 + thon.shape[1]**2)/2 / q.max()
-thon_rav = st.radial_symetry(thon, r, mask)
-q_rav    = np.linspace(0, q.max(), thon_rav.shape[0])
+q_rav, thon_rav = make_thon_rav(thon, [x_pixel_size, y_pixel_size], mask)
 
-#var, rav = find_symmetry(np.fft.ifftshift(thon)**0.1)
+sin, bac, env, errs, z1s = fit_thon(q_rav, 0.00035, z, wav, thon_rav)
 
-#f = h5py.File('siemens_star.cxi', 'a')
-#f['results/mask'] = mask
-#f.close()
+plot = pg.plot(thon_rav[0:])
+plot.plot((env*sin + bac)[0:], pen=pg.mkPen('y'))
+
+
+plot = pg.plot( (thon_rav-bac)/env )
+plot.plot(sin , pen=pg.mkPen('y'))
