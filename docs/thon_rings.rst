@@ -107,7 +107,8 @@ One problem with trying to fit the above equation for z_1 is that we don't know 
     
     \begin{align}
     f(q, z_1) &= \sum_n \int_0^{2\pi} \big| \hat{I}_n^{z_1}(q_x, q_y, z_D-z_1)\big|^2 d\theta_q \\
-    &=  \left( \sin(\pi\lambda z_\text{eff} q'^2) - \frac{\beta_\lambda}{\delta_\lambda} \cos(\pi\lambda z_\text{eff} q'^2)\right)^2 \sum_n \int_0^{2\pi} \big| \frac{4\pi\delta_\lambda}{\lambda} \hat{t}_n(q') \big|^2 d\theta_q + b(q)
+    &=  \left( \sin(\pi\lambda z_\text{eff} q'^2) - \frac{\beta_\lambda}{\delta_\lambda} \cos(\pi\lambda z_\text{eff} q'^2)\right)^2 \sum_n \int_0^{2\pi} \big| \frac{4\pi\delta_\lambda}{\lambda} \hat{t}_n(q') \big|^2 d\theta_q + b(q) \\
+    &=  \left( \sin(\pi\lambda z_\text{eff} q'^2) - \frac{\beta_\lambda}{\delta_\lambda} \cos(\pi\lambda z_\text{eff} q'^2)\right)^2 \text{Env}(q) + b(q)
     \end{align}
 
 where I have also added a q-dependent background term for safe keeping.
@@ -119,55 +120,24 @@ For now let us assume that :math:`\beta_\lambda=0` and make an initial estimate 
 .. math::
     
     \begin{align}
-    \sin^2(\pi\lambda z_\text{eff} q'^2) &= 0  & \text{for } q_n &= \sqrt{ \frac{n z_1}{\lambda z_D(z_D-z_1)} } \\
-    \sin^2(\pi\lambda z_\text{eff} q'^2) &= 1  & \text{for } q_m &= \sqrt{ \frac{(m+1/2) z_1}{\lambda z_D(z_D-z_1)} } \\
+    \sin^2(\pi\lambda z_\text{eff} q'^2) &= \frac{1}{2}  & \text{for } q_l &= \sqrt{ \frac{(l+1/4) z_1}{\lambda z_D(z_D-z_1)} } \\
     \end{align}
 
 to estimate a smooth background, which can be subtracted, as well as the envelope function in the previous equation.  
-
-
-.. math::
-    
-    \begin{align}
-    b(q) \approx &(q_n - q) f(q_{n-1}, z_1) + (q - q_{n-1}) f(q_{n}, z_1)  &&\text{for } q_{n-1} < q < q_n\\
-    \sum_n \int_0^{2\pi} \big| \frac{4\pi\delta_\lambda}{\lambda} \hat{t}_n(q') \big|^2 d\theta_q \approx &(q_m - q) [f(q_{m-1}, z_1)-b(q_{m-1})] \\
-    + &(q - q_{m-1}) [f(q_{m}, z_1)-b(q_{m})]  &&\text{for } q_{m-1} < q < q_m\\
-    \end{align}
-
-Discreet Formalism
-------------------
-
-So what is the sampling of q? By the Fresnel scaling theorem we have that :math:`I^{z_1}(r, z_2) = M^{-2}I^\inf(r/M, z_2/M)`, where :math:`z_1` is the focus to sample distance, :math:`z_2` is the sample to detector distance and :math:`M=(z_1+z_2)/z_1`. If we set :math:`z_D = z_1 + z_2` as the focus to sample distance then we have:
+We would like to ensure that :math:`b(q)>\text{Env}(q)` for all q. To that end let's set the background and envelope term to the min max value of :math:`f(q)` within a single period:
 
 .. math::
     
     \begin{align}
-    I^{z_1}(i\Delta x, j\Delta y, z_D-z_1) &= I^\infty(i\Delta x z_1 / z_D, j\Delta y z_1 / z_D, (z_D-z_1) z_1 / z_D) \\
-                                               &= I^\infty(i\Delta x_x, j\Delta y', z_\text{eff}) \\
+    b(q_{l+1/2})          &= \text{min}\left[ f(q, z_1) \right]                && \text{for } q_{l} < q < q_{l+1} \\
+    \text{Env}(q_{l+1/2}) &= \text{min}\left[ f(q, z_1)\right]  - b(q_{l+1/2}) && \text{for } q_{l} < q < q_{l+1} \\
     \end{align}
 
-where :math:`\Delta x` and :math:`\Delta y` are the (real) x and y dimensions of each detector pixel. So when we look at the power stectrum we see:
+Then we can just use linear interpolation to fill out the rest of the q-values:
 
 .. math::
     
     \begin{align}
-    \hat{I}^{z_1}(\frac{i}{N\Delta x}, \frac{j}{M\Delta y}, z_D-z_1) &= \hat{I}^\infty(\frac{i}{N\Delta x'}, \frac{j}{M\Delta y'}, z_\text{eff}) \\
-    &\approx \frac{4\pi}{\lambda} \hat{t}(q_{ij}) \left( \delta_\lambda \sin(\pi\lambda z_\text{eff} q_{ij}^2) - \beta_\lambda \cos(\pi\lambda z_\text{eff} q_{ij}^2)\right) \quad \text{for } i,j \neq 0 \\
-    z_\text{eff} q_{ij}^2 &= \frac{(z_D-z_1)z_1}{z_D} \frac{z_D^2}{z_1^2}\left(\frac{i^2}{N^2\Delta x^2}+ \frac{j^2}{M^2\Delta y^2}\right) \\
-    &= \frac{(z_D-z_1)z_D}{z_1}\left(\frac{i^2}{N^2\Delta x^2}+ \frac{j^2}{M^2\Delta y^2}\right) \\
+    b(q) \approx &(q_{l+1} - q) f(q_l, z_1) + (q - q_l) f(q_{l+1}, z_1)  &&\text{for } q_{l} < q < q_{l+1}\\
     \end{align}
-
-where N and M are number of pixels along the x and y dimensions of the detector respectively. 
-
-Fitting
-^^^^^^^
-One problem with trying to fit the above equation for z_1 is that we don't know t. Furthermore, :math:`\hat{t}(q)` is just as likely to be positive as it is negative. So if we average over many frames and the azimuthal angle then we may just cancel out the signal we are trying to fit. So let's take the square of each power spectrum before averaging over frame number and angle. Given this our new target function is:
-
-.. math::
-    
-    \begin{align}
-    f(i, z_D-z_1) &= \sum_n \sum_{\sqrt{l^2+k^2}=i} \hat{I}^{z_1}_n(\frac{l}{N\Delta x}, \frac{k}{M\Delta y}, z_D-z_1) \\
-    &\approx \sum_n \sum_{\sqrt{l^2+k^2}=i}
-    \end{align}
-
 

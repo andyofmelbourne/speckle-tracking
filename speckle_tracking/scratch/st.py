@@ -82,34 +82,37 @@ def get_r_theta(shape, d, is_fft_shifted = True):
 
     return qs, ts
 
-def fit_thon(q, z1, zD, wav, thon_rav):
+def fit_thon(q, z1, zD, wav, thon_rav, pr=[40,160]):
     import scipy.stats
-    def fun(z):
-        err, _ = scipy.stats.pearsonr(thon_1d[rad_range[0]:rad_range[1]], 
-                                forward(z[0])[rad_range[0]:rad_range[1]])
+    # range from the second minima to the 
+    # horizontal egdge of the detector
+    #istart, istop = zi[1], int(len(thon_rav)/np.sqrt(2))
+    rad_range = pr
+    def forward(z):
+        return np.sin( np.pi * wav * (zD - z1) * zD/z1 * q**2 )**2
+        
+    def fun(z, f):
+        err, _ = scipy.stats.pearsonr(f[rad_range[0]:rad_range[1]], 
+                                forward(z)[rad_range[0]:rad_range[1]])
+        return err
 
-    z1s  = np.linspace(z1*0.5, z1*1.5, 300)
+    z1s  = np.linspace(z1*0.5, z1*1.5, 1000)
     errs = np.zeros_like(z1s)
     for i, z in enumerate(z1s) :
-        bac, env, zi, oi = fit_envolopes(q, z, zD, wav, thon_rav)
-        
+        # make the target function
+        bac, env = fit_envolopes_min_max(q, z, zD, wav, thon_rav)
         f = (thon_rav-bac)/env 
-        
-        # range from the second minima to the 
-        # horizontal egdge of the detector
-        istart, istop = zi[1], int(len(thon_rav)/np.sqrt(2))
             
-        s = np.sin( np.pi * wav * (zD - z1) * zD/z1 * q**2 )**2
-        err, _ = scipy.stats.pearsonr( s[istart:istop], f[istart:istop] )
+        err = fun(z1, f)
         errs[i] = err
-        print(i, err)
+        #print(i, err)
 
     i = np.argmax(errs)
     z1out = z1s[i]
     err   = errs[i]
     print('best defocus, err:', z1out, err)
-    bac, env, zi, oi = fit_envolopes(q, z1out, zD, wav, thon_rav)
-    return np.sin( np.pi * wav * (zD - z1out) * zD/z1out * q**2 )**2, bac, env, errs, z1s
+    bac, env = fit_envolopes_min_max(q, z1out, zD, wav, thon_rav)
+    return forward(z1out), bac, env, errs, z1s
 
 def fit_envolopes_min_max(q, z1, zD, wav, thon_rav):
     """
@@ -118,13 +121,65 @@ def fit_envolopes_min_max(q, z1, zD, wav, thon_rav):
     this ensures that the env > 0
     """
     t  = z1 / (wav * zD * (zD-z1))
-    nmax = int(q[-1]**2  / t)
-    mmax = int(q[-1]**2  / t - 0.5)
+
+    def get_ql(l):
+        return np.sqrt( t * (l + 0.25))
+
+    #nmax = int(q[-1]**2  / t)
+    #mmax = int(q[-1]**2  / t - 0.5)
     lmax = int(q[-1]**2  / t - 0.25)
     
-    qn = np.sqrt( t *  np.arange(nmax+1))
-    qm = np.sqrt( t * (np.arange(mmax+1) + 0.5))
-    ql = np.sqrt( t * (np.arange(lmax+1) + 0.25))
+    #qn = np.sqrt( t *  np.arange(nmax+1))
+    #qm = np.sqrt( t * (np.arange(mmax+1) + 0.5))
+    qls     = np.sqrt( t * (np.arange(lmax+1) + 0.25))
+    qls_mid = np.sqrt( t * (np.arange(lmax+1) + 0.75))
+    qls_i   = np.searchsorted(q, qls)
+    
+    # the min value between l and l+1
+    thon_mins = [np.min(thon_rav[qls_i[i]:qls_i[i+1]]) for i in range(len(qls)-1)]
+    thon_maxs = [np.max(thon_rav[qls_i[i]:qls_i[i+1]]) for i in range(len(qls)-1)]
+    thon_mins = np.array(thon_mins)
+    thon_maxs = np.array(thon_maxs)
+
+    from scipy.interpolate import interp1d
+    fmins = interp1d(qls_mid[:-1], thon_mins, kind='cubic', fill_value='extrapolate', bounds_error=False)
+    fmaxs = interp1d(qls_mid[:-1], thon_maxs, kind='cubic', fill_value='extrapolate', bounds_error=False)
+
+    b   = fmins(q)
+    env = fmaxs(q) - b
+
+    return b, env
+
+def fit_envolopes_min_max_linear(q, z1, zD, wav, thon_rav):
+    """
+    estimate background and envelope by looking for the 
+    min / max value within each period
+    this ensures that the env > 0
+    """
+    t  = z1 / (wav * zD * (zD-z1))
+
+    def get_ql(l):
+        return np.sqrt( t * (l + 0.25))
+
+    #nmax = int(q[-1]**2  / t)
+    #mmax = int(q[-1]**2  / t - 0.5)
+    lmax = int(q[-1]**2  / t - 0.25)
+    
+    #qn = np.sqrt( t *  np.arange(nmax+1))
+    #qm = np.sqrt( t * (np.arange(mmax+1) + 0.5))
+    qls     = np.sqrt( t * (np.arange(lmax+1) + 0.25))
+    qls_mid = np.sqrt( t * (np.arange(lmax+1) + 0.75))
+    qls_i   = np.searchsorted(q, qls)
+    
+    # the min value between l and l+1
+    thon_mins = [np.min(thon_rav[qls_i[i]:qls_i[i+1]]) for i in range(len(qls)-1)]
+    thon_maxs = [np.max(thon_rav[qls_i[i]:qls_i[i+1]]) for i in range(len(qls)-1)]
+    thon_mins = np.array(thon_mins)
+    thon_maxs = np.array(thon_maxs)
+
+    b   = interp(q, qls_mid[:-1], thon_mins)
+    env = interp(q, qls_mid[:-1], thon_maxs-thon_mins) 
+    return b, env
 
 
 def fit_envolopes(q, z1, zD, wav, thon_rav):
@@ -198,7 +253,7 @@ def make_edge_mask(shape, edge, is_fft_shifted=True):
 
 def make_thon_rav(thon, pix_size, mask, is_fft_shifted=True):
     # get the q and theta grid
-    q, t = get_r_theta(thon.shape, [x_pixel_size, y_pixel_size], False)
+    q, t = get_r_theta(thon.shape, pix_size, is_fft_shifted)
     
     # scale q so that we sample the pixels well
     r     = q * np.sqrt(thon.shape[0]**2 + thon.shape[1]**2)/2 / q.max()
@@ -231,16 +286,30 @@ W = st.make_whitefield(data, mask)
 
 roi = st.guess_roi(W)
 
-thon = np.fft.fftshift(make_thon(data, mask, W, roi))
+thon = np.fft.ifftshift(make_thon(data, mask, W, roi))
 
 edge_mask = make_edge_mask(thon.shape, 5)
 
-q_rav, thon_rav = make_thon_rav(thon, [x_pixel_size, y_pixel_size], mask)
+"""
+for y in np.linspace(53.4e-6, 53.6e-6, 50):
+    print(y)
+    q_rav, thon_rav = make_thon_rav(thon, [x_pixel_size, y], mask)
+    
+    #bac, env = fit_envolopes_min_max(q_rav, 0.00035, z, wav, thon_rav)
+    
+    sin, bac, env, errs, z1s = fit_thon(q_rav, 0.00035, z, wav, thon_rav)
+#y = 5.342105263157895e-05
+"""
+y = 5.3514285714285716e-05
 
+q_rav, thon_rav = make_thon_rav(thon, [x_pixel_size, y], mask)
 sin, bac, env, errs, z1s = fit_thon(q_rav, 0.00035, z, wav, thon_rav)
 
 plot = pg.plot(thon_rav[0:])
-plot.plot((env*sin + bac)[0:], pen=pg.mkPen('y'))
+plot.plot(bac[0:], pen=pg.mkPen('y'))
+plot.plot((env+bac)[0:], pen=pg.mkPen('r'))
+plot.plot((env*sin+bac)[0:], pen=pg.mkPen('g'))
+#plot.plot((env*sin + bac)[0:], pen=pg.mkPen('y'))
 
 
 plot = pg.plot( (thon_rav-bac)/env )
