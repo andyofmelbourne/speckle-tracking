@@ -3,6 +3,7 @@ import h5py
 import numpy as np
 import pyqtgraph as pg
 import scipy.signal
+from scipy.ndimage import filters 
 
 
 def make_thon(data, mask, W, roi=None):
@@ -113,6 +114,38 @@ def fit_thon(q, z1, zD, wav, thon_rav, pr=[40,160]):
     print('best defocus, err:', z1out, err)
     bac, env = fit_envolopes_min_max(q, z1out, zD, wav, thon_rav)
     return forward(z1out), bac, env, errs, z1s
+
+def fit_sincos(f, r):
+    vis = f.max() - f.min()
+    def forward(a, b):
+        return (np.sin(a*r**2) - b * np.cos(a*r**2))**2 * vis / max(1., b**2)
+    
+    def fun(a, b):
+        err, _ = scipy.stats.pearsonr(f,forward(a,b))
+        return err
+    
+    # set the maximum a so that we don't alias
+    dr = np.abs(r[-1] - r[-2])
+    rr = np.abs(r[-1] - r[0])
+    amax = np.pi / (2. * dr * np.max(r))
+    amin = 2. * np.pi / (rr * np.max(r))
+
+    print(amin, amax)
+    
+    a_s = np.linspace(amin, amax, 1000, endpoint=False)
+    b_s = np.linspace(-1, 1, 100)
+    
+    error = np.empty(a_s.shape + b_s.shape, dtype=np.float)
+    error.fill(np.inf)
+    for ai, a in enumerate(a_s) :
+        for bi, b in enumerate(b_s) :
+            error[ai, bi] = fun(a, b)
+            #print(ai, bi, error[ai, bi])
+    
+    ai, bi  = np.unravel_index(np.argmax(error), error.shape)
+    a, b    = a_s[ai], b_s[bi]
+    res = {'error_map': error, 'fit': forward(a, b)}
+    return a, b, res
 
 def fit_envolopes_min_max(q, z1, zD, wav, thon_rav):
     """
@@ -265,6 +298,65 @@ def make_thon_rav(thon, pix_size, mask, is_fft_shifted=True):
     q_rav    = np.linspace(0, q.max(), thon_rav.shape[0])
     return q_rav, thon_rav
 
+def flatten(im, mask, w=5, sig=2.):
+    """
+    out = (im - min) * min / max
+    """
+    if sig > 0. :
+        out = filters.gaussian_filter(im * mask, sig, mode = 'wrap')
+        
+        # normalise
+        m   = filters.gaussian_filter(mask.astype(np.float), sig, mode = 'wrap')
+        m[m==0] = 1
+        out /= m
+    else :
+        out = mask * im
+    
+    imin = filters.minimum_filter(out, size = w, mode = 'wrap')
+    imax = filters.maximum_filter(out, size = w, mode = 'wrap')
+    c   = (imax - imin)
+    out = (out - imin) 
+
+    c[c==0] = 1
+    out /= c
+    return out
+
+def fit_theta_scale(im, mask):
+    import speckle_tracking as st 
+    ts = np.linspace(0, np.pi/2, 50, endpoint=False)
+    ds = np.linspace(0.5, 1.5, 50)
+
+    shape = im.shape
+    i = np.fft.fftfreq(shape[0]) * shape[0]
+    j = np.fft.fftfreq(shape[1]) * shape[1]
+    i, j = np.meshgrid(i, j, indexing='ij')
+    ij = np.vstack((np.ravel(i), np.ravel(j)))
+    
+    def forward(t, d):
+        R = np.array([[np.cos(t), np.sin(t)], [-np.sin(t), np.cos(t)]])
+        D = np.diag([1, d])
+        
+        r = np.sqrt(np.sum(np.dot(D, np.dot(R, ij)**2), axis=0).reshape(shape))
+        im_rav = st.radial_symetry(im, r, mask=mask)
+        im2    = im_rav[r.astype(np.int)].reshape(shape)
+        return im2, r, im_rav
+    
+    def fun(t,d):
+        return np.sum( mask * (forward(t, d)[0] - im)**2 )
+    
+    error = np.empty(ts.shape + ds.shape, dtype=np.float)
+    error.fill(np.inf)
+    for ti, t in enumerate(ts) :
+        for di, d in enumerate(ds) :
+            error[ti, di] = fun(t, d)
+            print(ti, di, error[ti, di])
+
+    ti, di  = np.unravel_index(np.argmin(error), error.shape)
+    t, d    = ts[ti], ds[di]
+    im_sym, r_vals, im_rav = forward(t, d)
+    res = {'error_map': error, 'im_sym': im_sym, 'r_vals': r_vals, 'im_rav': im_rav}
+    return t, d, res
+
 # extract data
 f = h5py.File('siemens_star.cxi', 'r')
 
@@ -281,36 +373,28 @@ f.close()
 
 #mask  = st.make_mask(data)
 
-
+# estimate the whitefield
 W = st.make_whitefield(data, mask)
 
+# estimate the region of interest
 roi = st.guess_roi(W)
 
+# generate the thon rings
 thon = np.fft.ifftshift(make_thon(data, mask, W, roi))
 
+# make an edge mask
 edge_mask = make_edge_mask(thon.shape, 5)
 
-"""
-for y in np.linspace(53.4e-6, 53.6e-6, 50):
-    print(y)
-    q_rav, thon_rav = make_thon_rav(thon, [x_pixel_size, y], mask)
-    
-    #bac, env = fit_envolopes_min_max(q_rav, 0.00035, z, wav, thon_rav)
-    
-    sin, bac, env, errs, z1s = fit_thon(q_rav, 0.00035, z, wav, thon_rav)
-#y = 5.342105263157895e-05
-"""
-y = 5.3514285714285716e-05
+# flatten the thon rings with a min max filter
+thon_flat = flatten(thon, edge_mask, w=20, sig=0.)
 
-q_rav, thon_rav = make_thon_rav(thon, [x_pixel_size, y], mask)
-sin, bac, env, errs, z1s = fit_thon(q_rav, 0.00035, z, wav, thon_rav)
+# fit the quadratic symmetry to account for astigmatism etc
+theta, scale_fs, res = fit_theta_scale(thon_flat, edge_mask)
 
-plot = pg.plot(thon_rav[0:])
-plot.plot(bac[0:], pen=pg.mkPen('y'))
-plot.plot((env+bac)[0:], pen=pg.mkPen('r'))
-plot.plot((env*sin+bac)[0:], pen=pg.mkPen('g'))
-#plot.plot((env*sin + bac)[0:], pen=pg.mkPen('y'))
+# fit the target function for thon rings
+rs = np.arange(50, 200, 1)
+a, b, res2 = fit_sincos(res['im_rav'][rs], rs)
 
+# convert to physical units
+###########################
 
-plot = pg.plot( (thon_rav-bac)/env )
-plot.plot(sin , pen=pg.mkPen('y'))
