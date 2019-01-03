@@ -29,6 +29,7 @@ Theory and Concepts
 
     coordinate_system
     thon_rings
+    projection_imaging
 
 Python Reference
 ----------------
