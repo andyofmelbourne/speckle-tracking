@@ -5,10 +5,60 @@ If you look at the defocused image of a thin sample with phase contrast, then yo
 .. image:: images/siemens_fringes.png
    :width: 200
 
-Now these fringes will become broader the closer the object is to the focus, and more fine the further away it is. So they are a useful means to determine this information. Of course this method relies on our ability to actually see the fringes, if the coherence of the beam is too low, or the sample wobbles during the exposure, then these fringes will be washed out. 
+These fringes arise from the effective contrast transfer function, or optical transfer function, of the imaging system:
 
-Simple
-------
+.. math::
+    
+    \begin{align}
+       I(\mathbf{x}) &= \big| T(\mathbf{x}) \otimes \mathcal{F}^{-1}[\text{TF}](\mathbf{x}) \big|^2
+    \end{align}
+
+where I is the image on a detector, T the transmission function of an object and TF is the transfer function of the imaging system. 
+
+For example, take free-space propagation:
+
+.. math::
+    
+    \begin{align}
+       I(\mathbf{x}) &= \big| T(\mathbf{x}) \otimes \mathcal{F}^{-1}[e^{-i\pi\lambda z_2\mathbf{q}^2}] \big|^2
+    \end{align}
+
+this roughly corresponds to the situation in the image above. Now if we take the Fourier transform of this image (see the image below) then we can often observe concentric rings modulating a complicated pattern. These are the Thon rings and they can be used to roughly estimate the TF, for example this might give us the propagation distance :math:`z_2` in the above example.
+
+Thin weakly scattering object
+-----------------------------
+For a thin weakly scattering object we can approximate:
+
+.. math::
+    
+    \begin{align}
+    T(\mathbf{x})  &\approx e^{-\frac{2\pi}{\lambda} \int dz n(\mathbf{x})} &&\text{projection approximation (thin sample)} \\
+    &&& \text{with refractive index } n(\mathbf{x}) = \delta_\lambda(\mathbf{x}) -i\beta_\lambda(\mathbf{x}) \\
+    &\approx e^{-\frac{2\pi}{\lambda} t(\mathbf{x}) (\delta_\lambda -i\beta_\lambda)} &&\text{single material of projected thickness } t(\mathbf{x}) \\
+    &\approx 1 - \frac{2\pi}{\lambda} t(\mathbf{x}) (\beta_\lambda + i \delta_\lambda) &&\text{weakly scattering}
+    \end{align}
+
+Now we can approximate the Fourier transform of the image as:
+
+.. math::
+    
+    \begin{align}
+       \hat{I}(\mathbf{q}) &\approx \frac{4\pi}{\lambda}\left[ 
+       \beta_\lambda  \Re\{\hat{t}^*(\mathbf{q}) \text{TF}(\mathbf{q})\} +
+       \delta_\lambda \Im\{\hat{t}^*(\mathbf{q}) \text{TF}(\mathbf{q})\} 
+       \right]  \quad \text{for } \mathbf{q} \neq 0
+    \end{align}
+
+Let us consider the case of free-space propagation, and a pure phase contrast image (:math:`\beta_\lambda = 0`):
+
+.. math::
+    
+    \begin{align}
+       \hat{I}(\mathbf{q}) &= \frac{4\pi}{\lambda} 
+       \delta_\lambda \Im\{\hat{t}^*(\mathbf{q}) e^{-i\pi\lambda z_2 \mathbf{q}^2}\} 
+       \quad \text{for } \mathbf{q} \neq 0
+    \end{align}
+
 Let's assume that we have:
 
 1. A thin weakly scattering object: :math:`T(r) = |T(r)| e^{i\phi(r)} \approx 1 + i\phi(r)`, and

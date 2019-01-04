@@ -54,8 +54,8 @@ It turns out that :math:`I^{z_1}_\phi` is, more or less, a magnified view of :ma
     A^{-2}(\mathbf{x}) I^{z_1}_\phi(\mathbf{x} 
     - \frac{\lambda z^-_\text{eff}}{2\pi} \nabla\Phi(\mathbf{x}), z_2) \quad \text{where} \\
     M = \frac{z_1 + z_2}{z_1} \quad \text{and} 
-    \quad z_\text{eff} &= \frac{z_2}{1 + \frac{\lambda z_2}{2 \pi} \langle\nabla^2 \phi\rangle_{\mathbf{x}}} \quad \text{and} 
-    \quad z^-_\text{eff} = \frac{-z_2}{1 + \frac{\lambda (-z_2)}{2 \pi} \langle\nabla^2 \Phi\rangle_{\mathbf{x}}}
+    \quad z_\text{eff} &= \frac{z_2}{1 + \frac{\lambda z_2}{2 \pi} \frac{1}{2}\langle\nabla^2 \phi\rangle_{\mathbf{x}}} \quad \text{and} 
+    \quad z^-_\text{eff} = \frac{-z_2}{1 + \frac{\lambda (-z_2)}{2 \pi} \frac{1}{2}\langle\nabla^2 \Phi\rangle_{\mathbf{x}}}
     \end{align}
 
 Fresnel Scaling Theorem
@@ -70,7 +70,7 @@ and we can see that this is indeed the case if we set :math:`\Phi = \pi \mathbf{
     \begin{align}
     \Phi(\mathbf{x})          &= \frac{\pi \mathbf{x}^2}{\lambda (z_1 + z_2)} \quad
     \nabla \Phi(\mathbf{x})   = \frac{2\pi \mathbf{x}}{\lambda (z_1 + z_2)}  \quad
-    \nabla^2 \Phi(\mathbf{x}) = \frac{2\pi}{\lambda (z_1 + z_2)}
+    \frac{1}{2}\nabla^2 \Phi(\mathbf{x}) = \frac{2\pi}{\lambda (z_1 + z_2)}
     \end{align}
 
 and:
@@ -100,4 +100,55 @@ and finally:
     \begin{align}
     I^{\infty}_0(\mathbf{x}, z_\text{eff}) &\approx M^{-2} I^{z_1}_\Phi(M\mathbf{x}, z_2) \quad \text{as required}
     \end{align}
+
+Reciprocity of sample / detector phase
+--------------------------------------
+The two speckle-tracking formula imply the reciprocal relations:
+
+.. math::
+    
+    \begin{align}
+        \frac{\lambda z^-_\text{eff}}{2\pi} \nabla\Phi(\mathbf{x}) &= -\frac{\lambda z_\text{eff}}{2\pi} \nabla\phi( \mathbf{x} - \frac{\lambda z^-_\text{eff}}{2\pi} \nabla\Phi(\mathbf{x}))
+    \end{align}
+
+which relates the phase of the illumination wavefronts in the sample and detector planes respectively.
+
+We can check this with a well known case, that of a point source of illumination with no aberrations. In this case:
+
+.. math::
+    
+    \begin{align}
+    \nabla \phi(\mathbf{x})   = \frac{2\pi \mathbf{x}}{\lambda z_1}  \quad
+    \nabla \Phi(\mathbf{x})   = \frac{2\pi \mathbf{x}}{\lambda (z_1 + z_2)}  \\
+    \end{align}
+
+and therefore:
+
+.. math::
+    
+    \begin{align}
+    z_\text{eff}   = \frac{z_1 z_2}{z_1+z_2} \quad
+    z^-_\text{eff} = -\frac{z_2}{z_1}(z_1+z_2) 
+    \end{align}
+
+Let's evaluate the left and right hand sides of the reciprocal formula:
+
+.. math::
+    
+    \begin{align}
+        \text{LHS} &= -\frac{\lambda }{2\pi}\frac{z_2}{z_1}(z_1+z_2) \frac{2\pi \mathbf{x}}{\lambda (z_1+z_2)}
+                    = -\frac{z_2}{z_1} \mathbf{x} \\
+    \end{align}
+
+and the RHS:
+
+.. math::
+    
+    \begin{align}
+        \text{RHS} &= -\frac{\lambda }{2\pi}\frac{z_1 z_2}{z_1+z_2} \frac{2\pi}{\lambda z_1}( \mathbf{x} - \frac{\lambda z^-_\text{eff}}{2\pi} \nabla\Phi(\mathbf{x})) \\
+                   &= -\frac{z_2}{z_1+z_2}( \mathbf{x} + \frac{\lambda}{2\pi} \frac{z_2}{z_1}(z_1+z_2)\frac{2\pi \mathbf{x}}{\lambda (z_1 + z_2)}) \\ 
+                   &= -\frac{z_2}{z_1+z_2} \mathbf{x} \frac{z_1 + z_2}{z_1} \\ 
+                   &= -\frac{z_2}{z_1}\mathbf{x} \quad \text{= LHS as required}
+    \end{align}
+
 
