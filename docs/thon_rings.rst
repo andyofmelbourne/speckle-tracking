@@ -32,9 +32,9 @@ For a thin weakly scattering object we can approximate:
 .. math::
     
     \begin{align}
-    T(\mathbf{x})  &\approx e^{-\frac{2\pi}{\lambda} \int dz n(\mathbf{x})} &&\text{projection approximation (thin sample)} \\
+    T(\mathbf{x})  &\approx e^{-i\frac{2\pi}{\lambda} \int dz n(\mathbf{x})} &&\text{projection approximation (thin sample)} \\
     &&& \text{with refractive index } n(\mathbf{x}) = \delta_\lambda(\mathbf{x}) -i\beta_\lambda(\mathbf{x}) \\
-    &\approx e^{-\frac{2\pi}{\lambda} t(\mathbf{x}) (\delta_\lambda -i\beta_\lambda)} &&\text{single material of projected thickness } t(\mathbf{x}) \\
+    &\approx e^{-\frac{2\pi}{\lambda} t(\mathbf{x}) (i\delta_\lambda + \beta_\lambda)} &&\text{single material of projected thickness } t(\mathbf{x}) \\
     &\approx 1 - \frac{2\pi}{\lambda} t(\mathbf{x}) (\beta_\lambda + i \delta_\lambda) &&\text{weakly scattering}
     \end{align}
 
@@ -43,43 +43,23 @@ Now we can approximate the Fourier transform of the image as:
 .. math::
     
     \begin{align}
-       \hat{I}(\mathbf{q}) &\approx \frac{4\pi}{\lambda}\left[ 
-       \beta_\lambda  \Re\{\hat{t}^*(\mathbf{q}) \text{TF}(\mathbf{q})\} +
-       \delta_\lambda \Im\{\hat{t}^*(\mathbf{q}) \text{TF}(\mathbf{q})\} 
+       \hat{I}(\mathbf{q}) &\approx \frac{2\pi}{\lambda}\hat{t}(q)\left[ 
+       i\delta_\lambda \left( \text{TF}^*(-\mathbf{q}) - \text{TF}(\mathbf{q}) \right)
+       -\beta_\lambda \left( \text{TF}^*(-\mathbf{q}) + \text{TF}(\mathbf{q}) \right)
        \right]  \quad \text{for } \mathbf{q} \neq 0
     \end{align}
 
+Pure phase contrast image
+^^^^^^^^^^^^^^^^^^^^^^^^^
 Let us consider the case of free-space propagation, and a pure phase contrast image (:math:`\beta_\lambda = 0`):
 
 .. math::
     
     \begin{align}
-       \hat{I}(\mathbf{q}) &= \frac{4\pi}{\lambda} 
-       \delta_\lambda \Im\{\hat{t}^*(\mathbf{q}) e^{-i\pi\lambda z_2 \mathbf{q}^2}\} 
-       \quad \text{for } \mathbf{q} \neq 0
-    \end{align}
-
-Let's assume that we have:
-
-1. A thin weakly scattering object: :math:`T(r) = |T(r)| e^{i\phi(r)} \approx 1 + i\phi(r)`, and
-2. that plane wave light of wavelength :math:`\lambda` passes through it,
-3. a pixilated detector imaging the intensity a distance z from the sample.
-
-Let us now see what the defocused image looks like, ignoring terms of order :math:`\phi^2`:
-
-.. math::
-    
-    \begin{align}
-    I(r) &= \big| T(r) \otimes e^{i\pi \frac{r^2}{\lambda z}} \big|^2 \\ 
-                &\approx 1 - 2 \Im\left\{\phi(r) \otimes e^{i\pi \frac{r^2}{\lambda z}}\right\} 
-    \end{align}
-    
-Now take the Fourier transform of the defocused image to see the rings:
-
-.. math::
-    
-    \begin{align}
-    \mathcal{F}[I](q) &\approx \delta(q) + 2 \sin(\pi \lambda z q^2)\hat{\phi}(q)
+       \text{TF}(\mathbf{q}) &= e^{-i\pi\lambda z_2 \mathbf{q}^2} && \text{TF}^*(-\mathbf{q}) - \text{TF}(\mathbf{q}) 
+       = 2i\sin(\pi\lambda z_2 \mathbf{q}^2) \\
+       \hat{I}(\mathbf{q}) &= -\frac{4\pi}{\lambda} \delta_\lambda \hat{t}(\mathbf{q}) \sin(\pi\lambda z_2 \mathbf{q}^2)
+       && \text{for } \mathbf{q} \neq 0
     \end{align}
 
 .. image:: images/siemens_thon.png
@@ -95,59 +75,69 @@ The above image was actually made from:
 
 where :math:`n` is the image number, :math:`M(r)` is the mask, :math:`W(r)` is the whitefield, and the Gaussian is applied to avoid Fourier aliasing artefacts. The image was then taken to the power of 0.1 to enhance the contrast.
 
-More complex
-------------
-But, what if the sample is on a subtrate, or there is some absorption contrast? Also, we are looking at magnified projection images that have distortions...
+Projection images
+-----------------
+For projection imaging we have the approximation:
 
 .. math::
     
     \begin{align}
-    T(r) &= |T(r)| e^{i\phi(r) + i\phi_\text{sub}}  &&\text{substrate phase shift added} \\
-         &\approx e^{-i\frac{2\pi}{\lambda} t(r) (\delta_\lambda - i \beta_\lambda) + i\phi_\text{sub}}  &&\text{projection approximation for a single material } \\
-         &             && \text{of thickness t(r) and refractive index } \delta_\lambda - i \beta_\lambda \\
-         &\approx e^{i\phi_\text{sub}}\left(1-i\frac{2\pi}{\lambda} t(r) (\delta_\lambda - i \beta_\lambda)\right) &&\text{expanded to first order in t}
+    I^{z_1}_\phi(\mathbf{x}, z_2) &\approx \big|T(\mathbf{x}) \otimes e^{\frac{i \pi}{\lambda z^\text{eff}_x} \left( x - \frac{\lambda z^\text{eff}_x}{2\pi} \phi_{,x}(\mathbf{x})\right)^2
+                                                                 \times  \frac{i \pi}{\lambda z^\text{eff}_y} \left( y - \frac{\lambda z^\text{eff}_y}{2\pi} \phi_{,y}(\mathbf{x})\right)^2} \big|^2
     \end{align}
 
-
-So we have:
+Let make a Taylor series expansion of the phase up to second order in :math:`x` and :math:`y`:
 
 .. math::
     
     \begin{align}
-    I^\infty(r, z) &= \big| T(r) \otimes e^{i\pi \frac{r^2}{\lambda z}} \big|^2 \\ 
-                     &\approx 1 - \frac{4\pi\delta_\lambda}{\lambda}\Im \left\{  t(r) \otimes e^{i\pi \frac{r^2}{\lambda z}}\right\} - \frac{4\pi\beta_\lambda}{\lambda}\Re \left\{ t(r) \otimes e^{i\pi \frac{r^2}{\lambda z}}\right\} 
+    \phi(\mathbf{x}) &\approx \phi_{00} + \phi_{10}x + \phi_{01}y + \frac{1}{2}\phi_{20}x^2 + \frac{1}{2}\phi_{02}y^2  \\
+    \text{for } \phi_{nm} &= \frac{\partial^{n+m} \phi(\mathbf{x})}{\partial x^n \partial y^2}\biggr\rvert_{\mathbf{x}=0}
     \end{align}
 
-The overall phase shift from the substrate is factored out, obviously. Note that here I've assumed that the sample is sitting on top of the subtrate, so every x-ray gets the same phase shift. But if the sample where embedded in the subtrate, for example in ice, then it's a different story.
-
-Taking the Fourier transform of the intensity gives:
+where zeroth, first and second order terms correspond to piston, tilt and defocus aberrations. We have also set :math:`\phi_{11}=0` for simplicity. Now let's expand the exponential term:
 
 .. math::
     
     \begin{align}
-    \hat{I}^\infty(q, z) &\approx \delta(q) + \frac{4\pi}{\lambda} \hat{t}(q) \left( \delta_\lambda \sin(\pi\lambda z q^2) - \beta_\lambda \cos(\pi\lambda z q^2)\right)
+    \frac{i \pi}{\lambda z^\text{eff}_x} \left(x - \frac{\lambda z^\text{eff}_x}{2\pi} \phi_{,x}(\mathbf{x})\right)^2 
+    &= \frac{i \pi}{\lambda z^\text{eff}_x} \left(x - \frac{\lambda z^\text{eff}_x}{2\pi} (\phi_{10} + \phi_{20}x) \right)^2 \\
+    &= \frac{i \lambda z^\text{eff}_x}{4\pi} \left( \phi_{10} + (\phi_{20} -  \frac{2\pi}{\lambda z_x^\text{eff}})x\right)^2\\
+    &= \frac{i \lambda z^\text{eff}_x}{4\pi} \left( \phi_{10} + \frac{2\pi}{\lambda z_2}x\right)^2 
+     = \frac{i \pi z^\text{eff}_x}{\lambda z_2^2} \left( x + \frac{\lambda z_2}{2\pi}\phi_{10} \right)^2 \quad \text{where}\\
+    z^\text{eff}_x = \frac{z_2}{1+\frac{\lambda z_2}{2\pi}\phi_{20}} \quad &\text{and} \quad 
+    \phi_{20} -  \frac{2\pi}{\lambda z_x^\text{eff}} = \phi_{20} -  \frac{2\pi}{\lambda }\left(\frac{1}{z_2}+\frac{\lambda }{2\pi}\phi_{20}\right) = \frac{2\pi}{\lambda z_2} \\
     \end{align}
 
-The complicating factor here, is that if we are looking at magnified projection images rather than just a plane wave illuminated sample, then z will actually effect the above function **and** the magnification.  
-
-By the Fresnel scaling theorem we have that :math:`I^{z_1}(r, z_2) = M^{-2}I^\inf(r/M, z_2/M)`, where :math:`z_1` is the focus to sample distance, :math:`z_2` is the sample to detector distance and :math:`M=(z_1+z_2)/z_1`. If we set :math:`z_D = z_1 + z_2` as the focus to sample distance then we have:
+Now we can take the Fourier transform and evaluate the effective transfer function of the imaging system:
 
 .. math::
     
     \begin{align}
-    I^{z_1}(x, y, z_D-z_1) &= (z_D / z_1)^2 I^\infty(x z_1 / z_D, y z_1 / z_D, (z_D-z_1) z_1 / z_D) \\
-                           &= (z_D / z_1)^2 I^\infty(x', y', z_\text{eff}) \\
+    \text{TF}(\mathbf{q}) &= e^{-i\pi\lambda q'^2} 
+                          e^{ i \lambda z_2 (\phi_{10} q_x + \phi_{01} q_y)} \quad \text{where}\\
+    M_x &= \frac{z_2}{z_x^\text{eff}}, \quad M_y = \frac{z_2}{z_y^\text{eff}} \quad \text{and} \quad q'^2 = z^\text{eff}_x (q_x/M_x)^2 + z^\text{eff}_y (q_y/M_y)^2
     \end{align}
 
-and, ignoring the scalling factor, we therefore have:
+OK, so what do our Thon rings look like?
 
 .. math::
     
     \begin{align}
-    \hat{I}^{z_1}(q_x, q_y, z_D-z_1) &= \hat{I}^\infty(q_x z_D / z_1, q_y z_D / z_1, (z_D-z_1) z_1 / z_D) \\
-    &\approx \frac{4\pi}{\lambda} \hat{t}(q') \left( \delta_\lambda \sin(\pi\lambda z_\text{eff} q'^2) - \beta_\lambda \cos(\pi\lambda z_\text{eff} q'^2)\right) \quad \text{for } q_x,q_y \neq 0 \\
-    \text{with } z_\text{eff} q'^2 &= \frac{(z_D-z_1)z_D}{z_1}q^2
+       \text{TF}^*(-\mathbf{q}) - \text{TF}(\mathbf{q}) &= 2i\sin(\pi \lambda q'^2) e^{ i \lambda z_2 (\phi_{10} q_x + \phi_{01} q_y)}\\
+       \text{TF}^*(-\mathbf{q}) + \text{TF}(\mathbf{q}) &= 2\cos(\pi \lambda q'^2) e^{ i \lambda z_2 (\phi_{10} q_x + \phi_{01} q_y)}\\
     \end{align}
+
+which yeilds:
+
+.. math::
+    
+    \begin{align}
+       \big| \hat{I}(\mathbf{q})\big|^2 = \frac{4\pi}{\lambda}\big| \hat{t}(\mathbf{q})\big|^2 \left(\delta_\lambda  \sin(\pi \lambda q'^2) + 
+       \beta_\lambda   \cos(\pi \lambda q'^2)
+       \right)
+    \end{align}
+
 
 Fitting
 -------
