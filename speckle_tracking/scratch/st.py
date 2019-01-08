@@ -6,19 +6,23 @@ import scipy.signal
 from scipy.ndimage import filters 
 
 
-def make_thon(data, mask, W, roi=None):
-    sig = data.shape[-1]//4
-    if roi is not None :
+def make_thon(data, mask, W, roi=None, sig=None, centre=None):
+    if sig is None :
+        sig = data.shape[-1]//4
+    
+    if roi is not None and centre is None :
         centre = [(roi[1]-roi[0])/2 + roi[0], 
                   (roi[3]-roi[2])/2 + roi[2]]
-    else :
-        centre = None
-    
+
     reg = st.mk_2dgaus(data.shape[1:], sig, centre)
     
     thon = np.zeros(data.shape[1:], dtype=np.float)
     for i in range(data.shape[0]):
-        thon += np.abs(np.fft.fftn(np.fft.fftshift(mask * reg * data[i] / W)))**2
+        # mask data and fill masked pixels
+        temp = mask * data[i] / W
+        temp[mask==False] = 1.
+        temp *= reg
+        thon += np.abs(np.fft.fftn(np.fft.fftshift(temp)))**2  
     
     return np.fft.fftshift(thon)
 
@@ -115,10 +119,24 @@ def fit_thon(q, z1, zD, wav, thon_rav, pr=[40,160]):
     bac, env = fit_envolopes_min_max(q, z1out, zD, wav, thon_rav)
     return forward(z1out), bac, env, errs, z1s
 
+def calculate_thon(z, z1, dz, x_pixel_size, y_pixel_size, shape, wav, bd):
+    z2 = z-z1
+    z_ss = 1/(1/z2 + 1/(z1+dz))
+    z_fs = 1/(1/z2 + 1/(z1-dz))
+    M_ss = z2 / z_ss
+    M_fs = z2 / z_fs
+    i = M_ss * np.fft.fftfreq(shape[0], x_pixel_size)
+    j = M_fs * np.fft.fftfreq(shape[1], y_pixel_size)
+    i, j = np.meshgrid(i, j, indexing='ij')
+    
+    q2 = np.pi * wav * (z_ss * i**2 + z_fs * j**2)
+    thon = (np.sin(q2) + bd * np.cos(q2))**2
+    return thon
+
 def fit_sincos(f, r):
     vis = f.max() - f.min()
     def forward(a, b):
-        return (np.sin(a*r**2) - b * np.cos(a*r**2))**2 * vis / max(1., b**2)
+        return (np.sin(a*r**2) + b * np.cos(a*r**2))**2 * vis / max(1., b**2)
     
     def fun(a, b):
         err, _ = scipy.stats.pearsonr(f,forward(a,b))
@@ -380,21 +398,39 @@ W = st.make_whitefield(data, mask)
 roi = st.guess_roi(W)
 
 # generate the thon rings
-thon = np.fft.ifftshift(make_thon(data, mask, W, roi))
+# offset centre to avoid panel edges
+centre = [(roi[1]-roi[0])/2 + roi[0] + 20, 
+          (roi[3]-roi[2])/2 + roi[2] + 0]
+thon = np.fft.ifftshift(make_thon(data, mask, W, roi, sig=10, centre=centre))
 
 # make an edge mask
 edge_mask = make_edge_mask(thon.shape, 5)
 
 # flatten the thon rings with a min max filter
-thon_flat = flatten(thon, edge_mask, w=20, sig=0.)
+thon_flat = flatten(thon, edge_mask, w=30, sig=0.)
 
 # fit the quadratic symmetry to account for astigmatism etc
 theta, scale_fs, res = fit_theta_scale(thon_flat, edge_mask)
 
 # fit the target function for thon rings
-rs = np.arange(50, 200, 1)
-a, b, res2 = fit_sincos(res['im_rav'][rs], rs)
+rs = np.arange(20, 200, 1)
+c, bd, res2 = fit_sincos(res['im_rav'][rs], rs)
 
 # convert to physical units
 ###########################
 
+# solve for z1 and dz
+a = (thon.shape[0] * x_pixel_size)**2 * c / (np.pi * wav)
+b = (thon.shape[1] * y_pixel_size)**2 * c / (np.pi * wav) * scale_fs
+
+z1 = (-a*b + 2*z**2 + np.sqrt(a**2*b**2 + a**2*z**2 - 2*a*b*z**2 + b**2*z**2))/(a + b + 2*z)
+dz = (a*b - np.sqrt(a**2*b**2 + a**2*z**2 - 2*a*b*z**2 + b**2*z**2))/(a - b)
+
+# calculate thon rings
+thon_calc = calculate_thon(z, z1, dz, x_pixel_size, y_pixel_size, thon.shape, wav, bd)
+
+thon = np.fft.ifftshift(make_thon(data, mask, W, roi, sig=None, centre=centre))
+thon_dis = np.log(thon)**0.2
+thon_dis = (thon_dis-thon_dis.min())/(thon_dis-thon_dis.min()).max()
+thon_dis[:thon.shape[0]//2, :thon.shape[1]//2] = thon_calc[:thon.shape[0]//2, :thon.shape[1]//2]
+thon_dis = np.fft.fftshift(thon_dis)

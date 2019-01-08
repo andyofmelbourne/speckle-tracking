@@ -116,7 +116,9 @@ Now we can take the Fourier transform and evaluate the effective transfer functi
     \begin{align}
     \text{TF}(\mathbf{q}) &= e^{-i\pi\lambda q'^2} 
                           e^{ i \lambda z_2 (\phi_{10} q_x + \phi_{01} q_y)} \quad \text{where}\\
-    M_x &= \frac{z_2}{z_x^\text{eff}}, \quad M_y = \frac{z_2}{z_y^\text{eff}} \quad \text{and} \quad q'^2 = z^\text{eff}_x (q_x/M_x)^2 + z^\text{eff}_y (q_y/M_y)^2
+    M_x &= \frac{z_2}{z_x^\text{eff}}, 
+    \quad M_y = \frac{z_2}{z_y^\text{eff}} \quad \text{and} \quad 
+    q'^2 = z^\text{eff}_x (M_x q_x)^2 + z^\text{eff}_y (M_y q_y)^2
     \end{align}
 
 OK, so what do our Thon rings look like?
@@ -141,43 +143,70 @@ which yeilds:
 
 Fitting
 -------
-One problem with trying to fit the above equation for z_1 is that we don't know t. Furthermore, :math:`\hat{t}(q)` is just as likely to be positive as it is negative. So if we average over many frames and the azimuthal angle then we may just cancel out the signal we are trying to fit. So let's take the square of each power spectrum before averaging over frame number and angle. So our new target function is:
+Let's ignore the physics for a moment and say that we have some array :math:`I_{nm}` given by:
 
 .. math::
     
     \begin{align}
-    f(q, z_1) &= \sum_n \int_0^{2\pi} \big| \hat{I}_n^{z_1}(q_x, q_y, z_D-z_1)\big|^2 d\theta_q \\
-    &=  \left( \sin(\pi\lambda z_\text{eff} q'^2) - \frac{\beta_\lambda}{\delta_\lambda} \cos(\pi\lambda z_\text{eff} q'^2)\right)^2 \sum_n \int_0^{2\pi} \big| \frac{4\pi\delta_\lambda}{\lambda} \hat{t}_n(q') \big|^2 d\theta_q + b(q) \\
-    &=  \left( \sin(\pi\lambda z_\text{eff} q'^2) - \frac{\beta_\lambda}{\delta_\lambda} \cos(\pi\lambda z_\text{eff} q'^2)\right)^2 \text{Env}(q) + b(q)
+       I_{nm} &= \big| \hat{I}(\mathbf{q}_{nm})\big|^2 
     \end{align}
 
-where I have also added a q-dependent background term for safe keeping.
-
-Background and Envelope estimation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For now let us assume that :math:`\beta_\lambda=0` and make an initial estimate for :math:`z_1`. Given these assumptions we can use the fact that:
+Now we filter the image, in order to flatten the contrast. Then we solve the problem:
 
 .. math::
     
     \begin{align}
-    \sin^2(\pi\lambda z_\text{eff} q'^2) &= \frac{1}{2}  & \text{for } q_l &= \sqrt{ \frac{(l+1/4) z_1}{\lambda z_D(z_D-z_1)} } \\
+       I_{nm'} &= f_\sqrt{n^2 + m'^2} \quad \text{where} \quad m'= \text{scale_fs} \times m
     \end{align}
 
-to estimate a smooth background, which can be subtracted, as well as the envelope function in the previous equation.  
-We would like to ensure that :math:`b(q)>\text{Env}(q)` for all q. To that end let's set the background and envelope term to the min max value of :math:`f(q)` within a single period:
+meaning that we are looking for the scaling factor along the fast scan axis of the array that makes the image most circular.
+Now we fit a and b in the following profile:
 
 .. math::
     
     \begin{align}
-    b(q_{l+1/2})          &= \text{min}\left[ f(q, z_1) \right]                && \text{for } q_{l} < q < q_{l+1} \\
-    \text{Env}(q_{l+1/2}) &= \text{min}\left[ f(q, z_1)\right]  - b(q_{l+1/2}) && \text{for } q_{l} < q < q_{l+1} \\
+       f_n &= \sin(c n^2) + d\cos(c n^2)
     \end{align}
 
-Then we can just use linear interpolation to fill out the rest of the q-values:
+Now we return to the physics: given scale_fs, a and b we would like to determine:
 
 .. math::
     
     \begin{align}
-    b(q) \approx &(q_{l+1} - q) f(q_l, z_1) + (q - q_l) f(q_{l+1}, z_1)  &&\text{for } q_{l} < q < q_{l+1}\\
+       &z_1, z_2, \delta z \quad \text{where}\\
+       &\phi_{20} = \frac{2\pi}{\lambda (z_1 + \delta z)} \quad \text{and} \quad
+       \phi_{02} = \frac{2\pi}{\lambda (z_1 - \delta z)}
     \end{align}
+
+With the results in the above sections we have that:
+
+.. math::
+    
+    \begin{align}
+       \text{scale_fs} &= \left(\frac{N M_{fs} \Delta_{ss}}{M M_{ss} \Delta_{fs}}\right)^2 \frac{z_{fs}^{eff}}{z_{ss}^{eff}} && \\
+         z_{ss}^{eff} &= \left( \frac{1}{z_2} + \frac{1}{z_1 + \delta z} \right)^{-1} &
+         z_{fs}^{eff} &= \left( \frac{1}{z_2} + \frac{1}{z_1 - \delta z} \right)^{-1} \\
+         z &= z_1 + z_2 &
+         d &= \frac{\beta_\lambda}{\delta_\lambda} \\
+         c &= \pi \lambda z_{ss}^{eff} \left(\frac{M_{ss}}{N\Delta_{ss}}\right)^2 
+    \end{align}
+
+So we have:
+
+.. math::
+    
+    \begin{align}
+        z_2^2 / z^\text{eff}_{ss} &= \frac{z_2(z+\delta z)}{z-z_2+\delta z} = \frac{(N \Delta_{ss})^2}{\pi \lambda} c = a\\ 
+        z_2^2 / z^\text{eff}_{fs} &= \frac{z_2(z-\delta z)}{z-z_2-\delta z} = \frac{(M \Delta_{fs})^2}{\pi \lambda} c \times \text{scale_fs} = b
+    \end{align}
+
+This has the solution:
+
+.. math::
+    
+    \begin{align}
+        z_1      &= \frac{2z^2 - ab + \sqrt{a^2b^2 + a^2z^2 - 2abz^2 + b^2z^2}}{a + b + 2z} \\
+        \delta z &= \frac{ab - \sqrt{a^2b^2 + a^2z^2 - 2abz^2 + b^2z^2}}{a - b}
+    \end{align}
+
 
