@@ -5,3 +5,4 @@ from .fit_defocus import fit_defocus
 from .utils import *
 from .guess_roi import guess_roi
 from .make_whitefield import make_whitefield
+from .fit_thon_rings import fit_thon_rings

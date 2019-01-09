@@ -6,7 +6,7 @@ def guess_roi(W):
     Parameters
     ----------
     W : ndarray
-        The whitefield, that is the image one obtains whithout a 
+        The whitefield, that is the image one obtains without a 
         sample in place.
     
     Returns
@@ -14,7 +14,7 @@ def guess_roi(W):
     roi : list
         e.g. roi = [10, 400, 23, 500], indicates that most of the 
         interesting data in a frame will be in the region:
-        frame[roi[0]:roi[1], roi[2]:roi[3]
+        frame[roi[0]:roi[1], roi[2]:roi[3]]
     """
     roi = [0, 0, 0, 0]
     

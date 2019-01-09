@@ -49,7 +49,7 @@ It turns out that :math:`I^{z_1}_\phi` is, more or less, a magnified view of :ma
     \begin{align}
     I^{z_1}_\phi(\mathbf{x}, z_2) &\approx 
     A^{2}(\mathbf{x}) I^{\infty}_0(\mathbf{x} 
-    - \frac{\lambda z_\text{eff}}{2\pi} \nabla\phi(\mathbf{x}), z_2) \quad \text{and} \\
+    - \frac{\lambda z_\text{eff}}{2\pi} \nabla\phi(\mathbf{x}), z_\text{eff}) \quad \text{and} \\
     I^{\infty}_0(\mathbf{x}, z_\text{eff}) &\approx 
     A^{-2}(\mathbf{x}) I^{z_1}_\phi(\mathbf{x} 
     - \frac{\lambda z^-_\text{eff}}{2\pi} \nabla\Phi(\mathbf{x}), z_2) \quad \text{where} \\

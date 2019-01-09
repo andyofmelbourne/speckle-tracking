@@ -4,8 +4,8 @@ import scipy.signal
 def make_whitefield(data, mask):
     """Estimate the image one would obtain without the sample in the beam.
 
-    This is done by taking the median value at each pixel, then we try 
-    to filter bad / zero pixels.
+    This is done by taking the median value at each pixel along the first 
+    axis, then we try to fill in bad / zero pixels (where mask == False).
 
     Parameters
     ----------

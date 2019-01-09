@@ -183,12 +183,12 @@ With the results in the above sections we have that:
 .. math::
     
     \begin{align}
-       \text{scale_fs} &= \left(\frac{N M_{fs} \Delta_{ss}}{M M_{ss} \Delta_{fs}}\right)^2 \frac{z_{fs}^{eff}}{z_{ss}^{eff}} && \\
-         z_{ss}^{eff} &= \left( \frac{1}{z_2} + \frac{1}{z_1 + \delta z} \right)^{-1} &
-         z_{fs}^{eff} &= \left( \frac{1}{z_2} + \frac{1}{z_1 - \delta z} \right)^{-1} \\
+       \text{scale_fs} &= \left(\frac{N M_{fs} \Delta_{ss}}{M M_{ss} \Delta_{fs}}\right)^2 \frac{z_{fs}^\text{eff}}{z_{ss}^\text{eff}} && \\
+         z_{ss}^\text{eff} &= \left( \frac{1}{z_2} + \frac{1}{z_1 + \delta z} \right)^{-1} &
+         z_{fs}^\text{eff} &= \left( \frac{1}{z_2} + \frac{1}{z_1 - \delta z} \right)^{-1} \\
          z &= z_1 + z_2 &
          d &= \frac{\beta_\lambda}{\delta_\lambda} \\
-         c &= \pi \lambda z_{ss}^{eff} \left(\frac{M_{ss}}{N\Delta_{ss}}\right)^2 
+         c &= \pi \lambda z_{ss}^\text{eff} \left(\frac{M_{ss}}{N\Delta_{ss}}\right)^2 
     \end{align}
 
 So we have:
@@ -205,8 +205,8 @@ This has the solution:
 .. math::
     
     \begin{align}
-        z_1      &= \frac{2z^2 - ab + \sqrt{a^2b^2 + a^2z^2 - 2abz^2 + b^2z^2}}{a + b + 2z} \\
-        \delta z &= \frac{ab - \sqrt{a^2b^2 + a^2z^2 - 2abz^2 + b^2z^2}}{a - b}
+        z_1      &= \frac{2z^2 - ab + \sqrt{a^2b^2 + z^2(a-b)^2}}{a + b + 2z} \\
+        \delta z &= \frac{ab - \sqrt{a^2b^2 + z^2(a-b)^2}}{a - b}
     \end{align}
 
 
