@@ -6,3 +6,4 @@ from .utils import *
 from .guess_roi import guess_roi
 from .make_whitefield import make_whitefield
 from .fit_thon_rings import fit_thon_rings
+from .make_pixel_map import make_pixel_map

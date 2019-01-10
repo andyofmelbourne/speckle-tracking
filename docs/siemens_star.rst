@@ -99,7 +99,10 @@ Determine the defocus
 Generate the pixel mapping
     Now let us estimate the geometric distortions of each image from the defocus, and the astigmatism (dz)::
         
-        blah
+        pixel_map, pixel_map_inv = st.make_pixel_map(
+                                      z, defocus, dz, roi, 
+                                      x_pixel_size, y_pixel_size, 
+                                      W.shape)
     
 Form the object image
     Now we make a projection image of the sample, which will be somewhat blurry because of the lens aberrations::

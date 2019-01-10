@@ -10,3 +10,5 @@ Python Reference
 .. autofunction:: speckle_tracking.fit_defocus
 
 .. autofunction:: speckle_tracking.fit_thon_rings
+
+.. autofunction:: speckle_tracking.make_pixel_map

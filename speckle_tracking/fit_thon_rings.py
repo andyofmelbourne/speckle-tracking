@@ -3,7 +3,7 @@ from scipy.ndimage import filters
 from scipy.stats import pearsonr
 
 def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centre=None, sig=10, edge_pix=5, window=30, rad_range=None):
-    """Find the focus to sample distance by fitting Thon rings to power spectrum.
+    r"""Find the focus to sample distance by fitting Thon rings to power spectrum.
 
     This is done by generating a filtered power spectrum of the data. Then fitting
     concentric rings to this profile. The fitting parameters are then used to 
@@ -75,6 +75,33 @@ def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centr
         Contains diagnostic information:
         res['thon_display'] shows the thon rings and the fit rings in one 
         quadrant of the array.
+    
+    Notes
+    -----
+    This routine fits the following function to the power spectrum:
+    
+    .. math::
+
+        f(q_{ss}, q_{fs}) = p(q) \left( \delta_\lambda \sin(\pi\lambda u^2) + 
+                                    \beta_\lambda \cos(\pi\lambda u^2) \right)
+    
+    where :math:`p(q)` is a q dependent profile that depends on the details of the 
+    object, :math:`\lambda` is the wavelength and u is given by:
+    
+    .. math::
+        
+        u(q_{ss}, q_{fs}) = z_{ss}^\text{eff} (M_{ss} q_{ss})^2 + 
+                            z_y^\text{eff} (M_{fs} q_{fs})^2 
+    
+    .. math::
+        z_{ss}^\text{eff} &= \left( \frac{1}{z_2} + \frac{1}{z_1+\delta z} \right)^{-1} &
+        z_{fs}^\text{eff} &= \left( \frac{1}{z_2} + \frac{1}{z_1-\delta z} \right)^{-1} \\
+        M_{ss} &= z_2  / z_{ss}^\text{eff} & 
+        M_{fs} &= z_2  / z_{fs}^\text{eff}
+
+    subject to:
+    
+    .. math:: z = z_1 + z_2
     """
     # generate the thon rings
     # offset centre to avoid panel edges
