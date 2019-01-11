@@ -7,3 +7,6 @@ from .guess_roi import guess_roi
 from .make_whitefield import make_whitefield
 from .fit_thon_rings import fit_thon_rings
 from .make_pixel_map import make_pixel_map
+from .make_pixel_translations import make_pixel_translations
+from .make_object_map import make_object_map
+from .update_pixel_map import update_pixel_map

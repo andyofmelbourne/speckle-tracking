@@ -97,18 +97,22 @@ Determine the defocus
         pg.show(res['thon_display'])
 
 Generate the pixel mapping
-    Now let us estimate the geometric distortions of each image from the defocus, and the astigmatism (dz)::
+    Now let us estimate the geometric distortions of each image from the defocus 
+    using :py:func:`~speckle_tracking.make_pixel_map`, and the astigmatism (dz)::
         
-        pixel_map, pixel_map_inv = st.make_pixel_map(
-                                      z, defocus, dz, roi, 
-                                      x_pixel_size, y_pixel_size, 
-                                      W.shape)
+        pixel_map, pixel_map_inv, dxy = st.make_pixel_map(
+                                           z, defocus, dz, roi, 
+                                           x_pixel_size, y_pixel_size, 
+                                           W.shape)
     
 Form the object image
-    Now we make a projection image of the sample, which will be somewhat blurry because of the lens aberrations::
+    Now we make a projection image of the sample using 
+    :py:func:`~speckle_tracking.make_pixel_translations` and :py:func:`~speckle_tracking.make_object_map`, 
+    which will be somewhat blurry because of the lens aberrations::
         
-        O, coords = st.stitch(data, mask,
-                              pixel_shifts)
+        dij_n = st.make_pixel_translations(translations, basis, dxy[0], dxy[1])
+        
+        O = st.make_object_map(data, mask, W, dij_n, pixel_map_inv)
 
 Determine the lens pupil function
     Now that we have an estimate of the object projection image, we can refine the :code:`pixel_shifts` which can then be used to form the pupil function::

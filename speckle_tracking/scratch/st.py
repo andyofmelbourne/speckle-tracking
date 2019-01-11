@@ -18,20 +18,67 @@ wav          = f['/entry_1/instrument_1/source_1/wavelength'][()]
 translations = f['/entry_1/sample_3/geometry/translation'][()]
 
 mask  = f['results/mask'][()]
+
+W   = f['results/whitefield'][()]
+roi = f['results/roi'][()]
+z1  = f['results/z1'][()]
+dz  = f['results/dz'][()]
 f.close()
 
 #mask  = st.make_mask(data)
 
 # estimate the whitefield
-W = st.make_whitefield(data, mask)
+#W = st.make_whitefield(data, mask)
 
 # estimate the region of interest
-roi = st.guess_roi(W)
+#roi = st.guess_roi(W)
 
 # fit thon rings
-z1, dz, res = st.fit_defocus(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi)
+#z1, dz, res = st.fit_defocus(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi)
 print(z1, dz)
 
+pixel_map, pixel_map_inv, dxy = st.make_pixel_map(z, z1, dz, roi, x_pixel_size, y_pixel_size, data.shape[1:])
+
+dij_n = st.make_pixel_translations(translations, basis, dxy[0], dxy[1])
+
+sig = 20.
+c   = [(roi[1]-roi[0])//2 + roi[0], (roi[3]-roi[2])//2 + roi[2]]
+i0  = c[0] + 20
+j0  = c[1] + 20
+ii, jj = (np.arange(data.shape[1])-i0), (np.arange(data.shape[2])-j0)
+sig = np.outer(np.exp(-ii**2 / (2. * sig**2)), np.exp(-jj**2 / (2. * sig**2)))
+
+I = st.make_object_map(sig*data, mask, sig*W, dij_n, pixel_map_inv)
+
+
+
+"""
+Mss, Mfs = (z + dz)/(z1 + dz), (z - dz)/(z1 - dz)
+
+dx = dy = min(x_pixel_size / Mss, y_pixel_size / Mfs)
+
+shape = data.shape[1:]
+i, j = np.arange(shape[0]), np.arange(shape[1])
+i, j = np.meshgrid(i, j, indexing='ij')
+
+pixel_map = np.array([x_pixel_size * (i - roi[0]) / (dx * Mss), 
+                      y_pixel_size * (j - roi[2]) / (dy * Mfs)]) 
+pixel_map = np.rint(pixel_map).astype(np.int)
+
+
+rois = (slice(roi[0], roi[1], 1), slice(roi[2], roi[3], 1))
+m = np.rint(pixel_map).astype(np.int)
+n = np.rint(pixel_map_inv).astype(np.int)
+a = np.zeros( (m[0][rois].max()+1, m[1][rois].max()+1), dtype=np.float)
+
+#rois = (slice(roi[0], roi[1], 1), slice(roi[2], roi[3], 1))
+a[m[0][rois], m[1][rois]] = data[0][rois]
+
+b = data[0][n[0], n[1]]
+"""
+
+
+"""
 # generate the x shifts
 z2 = z - z2
 z1ss = z1 + dz
@@ -72,4 +119,5 @@ dx_D[:, 1] -= np.mean(dx_D[:, 1])
 # O[x] = I_n[x_map + dx_D[n]]
 
 # convert to pixel shifts : 
-
+# this 
+"""

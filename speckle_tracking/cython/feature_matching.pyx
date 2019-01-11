@@ -166,7 +166,7 @@ def forward_frame(atlas, W, step, pixel_shifts=None, ij = None, sub_pixel=False)
     """
     evaluate:
         frames_i(x) = atlas(x + u(x) - x_i)  W(x)
-
+    
     un-asigned pixels are -1
     """
     if pixel_shifts is None :
