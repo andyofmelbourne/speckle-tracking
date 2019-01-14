@@ -149,6 +149,4 @@ def make_pixel_map(z, z1, dz, roi, x_pixel_size, y_pixel_size, shape, dx=None, d
     ii, jj = np.meshgrid(i_map, j_map, indexing='ij')
     pixel_map_inv = np.array([ii, jj]) 
     
-    #pixel_map = np.rint(pixel_map).astype(np.int)
-    #pixel_map_inv = np.rint(pixel_map_inv).astype(np.int)
     return pixel_map, pixel_map_inv, (dx, dy)

@@ -38,6 +38,14 @@ f.close()
 print(z1, dz)
 
 pixel_map, pixel_map_inv, dxy = st.make_pixel_map(z, z1, dz, roi, x_pixel_size, y_pixel_size, data.shape[1:])
+print('pixel_map.shape', pixel_map.shape)
+print('mask.shape', mask.shape)
+
+# mask the area outside of the roi
+t = mask[roi[0]:roi[1], roi[2]:roi[3]].copy()
+mask.fill(False)
+mask[roi[0]:roi[1], roi[2]:roi[3]] = t
+
 
 dij_n = st.make_pixel_translations(translations, basis, dxy[0], dxy[1])
 
@@ -48,10 +56,11 @@ j0  = c[1] + 20
 ii, jj = (np.arange(data.shape[1])-i0), (np.arange(data.shape[2])-j0)
 sig = np.outer(np.exp(-ii**2 / (2. * sig**2)), np.exp(-jj**2 / (2. * sig**2)))
 
-I = st.make_object_map(sig*data, mask, sig*W, dij_n, pixel_map_inv)
+I, n0, m0 = st.make_object_map(sig*data, mask, sig*W, dij_n, pixel_map)
 
+pixel_map2, errors, overlaps = st.update_pixel_map(data, mask, W, I, pixel_map, n0, m0, dij_n, window=10)
 
-
+I2, n0, m0 = st.make_object_map(sig*data, mask, sig*W, dij_n, pixel_map2)
 """
 Mss, Mfs = (z + dz)/(z1 + dz), (z - dz)/(z1 - dz)
 
