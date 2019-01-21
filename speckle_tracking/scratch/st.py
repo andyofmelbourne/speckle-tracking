@@ -49,18 +49,25 @@ mask[roi[0]:roi[1], roi[2]:roi[3]] = t
 
 dij_n = st.make_pixel_translations(translations, basis, dxy[0], dxy[1])
 
+"""
 sig = 20.
 c   = [(roi[1]-roi[0])//2 + roi[0], (roi[3]-roi[2])//2 + roi[2]]
 i0  = c[0] + 20
 j0  = c[1] + 20
 ii, jj = (np.arange(data.shape[1])-i0), (np.arange(data.shape[2])-j0)
 sig = np.outer(np.exp(-ii**2 / (2. * sig**2)), np.exp(-jj**2 / (2. * sig**2)))
+"""
 
-I, n0, m0 = st.make_object_map(sig*data, mask, sig*W, dij_n, pixel_map)
+I, n0, m0 = st.make_object_map(data, mask, W, dij_n, pixel_map)
 
-pixel_map2, errors, overlaps = st.update_pixel_map(data, mask, W, I, pixel_map, n0, m0, dij_n, window=10)
+"""
+pixel_map2, errors, overlaps = st.update_pixel_map(
+                                  data, mask, W, I, pixel_map, 
+                                  n0, m0, dij_n, search_window=10,
+                                  window=2)
 
 I2, n0, m0 = st.make_object_map(sig*data, mask, sig*W, dij_n, pixel_map2)
+"""
 """
 Mss, Mfs = (z + dz)/(z1 + dz), (z - dz)/(z1 - dz)
 

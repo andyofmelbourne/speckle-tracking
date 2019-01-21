@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.ndimage.filters import gaussian_filter
 
 def make_projection_images(mask, W, O, pixel_map, n0, m0, dij_n):
     out = -np.ones((len(dij_n),) + W.shape, dtype=np.float) 
@@ -21,7 +22,7 @@ def make_projection_images(mask, W, O, pixel_map, n0, m0, dij_n):
     return out 
 
 
-def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, window=3):
+def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3, window=0):
     r"""
     Notes
     -----
@@ -32,7 +33,7 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, window=3):
             - W[i, j] I^\infty[&\text{ij}_\text{map}[0, i, j] - \Delta ij[n, 0] + n_0,\\
                                &\text{ij}_\text{map}[1, i, j] - \Delta ij[n, 1] + m_0]\bigg)^2
     """
-    shifts = np.arange(-(window-1)//2, (window+1)//2, 1) 
+    shifts = np.arange(-(search_window-1)//2, (search_window+1)//2, 1) 
     ij_out = pixel_map.copy()
     errors   = np.zeros((len(shifts)**2,)+W.shape, dtype=np.float) 
     overlaps = np.zeros((len(shifts)**2,)+W.shape, dtype=np.uint16) 
@@ -43,17 +44,24 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, window=3):
     index = 0
     for i in shifts:
         for j in shifts:
-            forw = make_projection_images(mask, W, O, pixel_map, n0, m0, dij_n+np.array([i,j]))
+            forw = make_projection_images(mask, W, O, pixel_map, n0, m0, dij_n-np.array([i,j]))
             for n in range(data.shape[0]):
                 m = forw[n]>0
                 errors[  index][m] += (data[n][m] - forw[n][m])**2
                 overlaps[index][m] += 1
+            
+            # apply the window averaging
+            if window is not 0 :
+                errors[index]   = gaussian_filter(errors[index], window, mode = 'constant')
+                overlaps[index] = gaussian_filter(overlaps[index], window, mode = 'constant')
+            
             index += 1
             print(i, j)
         
-    m = (overlaps >= 2)
+    m = (overlaps >= 1)
     errors[m] /= overlaps[m]
-
+    errors[~m] = np.inf
+    
     # choose the delta ij with the lowest error
     i, j = np.unravel_index(np.argmin(errors, axis=0), (len(shifts), len(shifts)))
     ij_out[0] += shifts[i]
