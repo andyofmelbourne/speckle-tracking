@@ -65,6 +65,7 @@ Make the mask
         %gui qt  
         pg.show(mask)
         pg.show(data[0])
+        
 
 Generate the Whitefield
     Now we make the "whitefield" which is what I call the image formed on the detector when there is no sample in place. You might already have this from a separate measurement, but usually it's better to estimate it directly from the scan data which we do by calling :py:func:`~speckle_tracking.make_whitefield`::
@@ -112,13 +113,34 @@ Form the object image
         
         dij_n = st.make_pixel_translations(translations, basis, dxy[0], dxy[1])
         
-        O = st.make_object_map(data, mask, W, dij_n, pixel_map_inv)
+        O, n0, m0 = st.make_object_map(data, mask, W, dij_n, pixel_map)
 
 Determine the lens pupil function
-    Now that we have an estimate of the object projection image, we can refine the :code:`pixel_shifts` which can then be used to form the pupil function::
+    Now that we have an estimate of the object projection image, we can refine the 
+    :py:func:`~speckle_tracking.update_pixel_map` which can then be used to form the pupil function::
         
-        phase, pixel_shifts = st.pixel_shifts_data(data, mask,
-                                                   pixel_shifts)
+        pixel_map, res = st.update_pixel_map(
+                            data, mask, W, O, pixel_map, 
+                            n0, m0, dij_n, search_window=20)
+
+Refinement
+    Now we have the pixel map and the object map, we can refine our estimate for all parameters 
+    in the system. Here is the basic loop::
+        
+        for i in range(5):
+            # update object map
+            O, n0, m0 = st.make_object_map(
+                           data, mask, W, dij_n, pixel_map)
+            
+            # update pixel map
+            pixel_map, res = st.update_pixel_map(
+                                data, mask, W, O, pixel_map, 
+                                n0, m0, dij_n, search_window=20)
+            
+            # update translations
+            pixel_map, res = st.update_translations(
+                                data, mask, W, O, pixel_map, 
+                                n0, m0, dij_n, search_window=20)
 
 Command-line Interface
 ----------------------

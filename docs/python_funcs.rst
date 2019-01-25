@@ -16,3 +16,5 @@ Python Reference
 .. autofunction:: speckle_tracking.make_object_map
 
 .. autofunction:: speckle_tracking.update_pixel_map
+
+.. autofunction:: speckle_tracking.docstring_glossary

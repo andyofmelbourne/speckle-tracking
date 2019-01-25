@@ -18,8 +18,8 @@ def make_object_map(data, mask, W, dij_n, pixel_map):
         Float array of shape (N, 2) containing the object translations 
         that have been mapped onto the detector's frame of reference.     
     
-    pixel_map : ndarray
-        Array of shape (2,) + shape containing the pixel mapping 
+    pixel_map : ndarray, (2, M, L)
+        An array containing the pixel mapping 
         between a detector frame and the object, such that: 
         
         .. math:: 
@@ -40,6 +40,22 @@ def make_object_map(data, mask, W, dij_n, pixel_map):
         
         see Notes for more.
     
+    n0 : float
+        Slow scan offset to the pixel mapping such that:
+            
+        .. math::
+            
+            \text{ij}_\text{map}[0, i, j] - \Delta ij[n, 0] + n_0 \ge 0 
+            \quad\text{for all} i,j
+
+    m0 : float
+        Fast scan offset to the pixel mapping such that:
+            
+        .. math::
+            
+            \text{ij}_\text{map}[1, i, j] - \Delta ij[n, 1] + m_0 \ge 0 
+            \quad\text{for all} i,j
+
     Notes
     -----
     .. math::
@@ -59,8 +75,8 @@ def make_object_map(data, mask, W, dij_n, pixel_map):
     
     .. math::
         
-        n_0 &= \text{max}_{i,j\in M}(\text{ij}_\text{map}[0, i, j] - \Delta ij[n, 0])  \\
-        m_0 &= \text{max}_{i,j\in M}(\text{ij}_\text{map}[1, i, j] - \Delta ij[n, 1])  
+        n_0 &= \text{max}_{i,j\in M}(\Delta ij[n, 0] - \text{ij}_\text{map}[0, i, j]) + 0.5  \\
+        m_0 &= \text{max}_{i,j\in M}(\Delta ij[n, 1] - \text{ij}_\text{map}[1, i, j]) + 0.5  
     """
     # mask the pixel mapping
     ij     = np.array([pixel_map[0][mask], pixel_map[1][mask]])
