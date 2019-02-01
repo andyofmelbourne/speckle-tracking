@@ -59,33 +59,17 @@ Make the mask
         
         mask  = st.make_mask(data)
         
-        # check the result
-        import pyqtgraph as pg
-        # enable qt for ipython
-        %gui qt  
-        pg.show(mask)
-        pg.show(data[0])
-        
 
 Generate the Whitefield
     Now we make the "whitefield" which is what I call the image formed on the detector when there is no sample in place. You might already have this from a separate measurement, but usually it's better to estimate it directly from the scan data which we do by calling :py:func:`~speckle_tracking.make_whitefield`::
 
         W = st.make_whitefield(data, mask)
         
-        # check the result
-        pg.show(W)
-
 Define the ROI 
     Usually the region of the detector with useful diffraction is small compared to the full detector area. So defining the ROI (Region Of Interest) speeds things up, do this manually or by using a script that tries to guess this region :py:func:`~speckle_tracking.guess_roi`::
         
         roi = st.guess_roi(W)
         
-        # check the result
-        pg.show(W[roi[0]:roi[1], roi[2]:roi[3]])
-        
-        >>> print(roi)
-        [33, 440, 46, 411]
-
 Determine the defocus
     Now let's refine the focus to sample distance :py:func:`~speckle_tracking.fit_defocus`:: 
         
@@ -94,9 +78,6 @@ Determine the defocus
                               x_pixel_size, y_pixel_size, 
                               z, wav, mask, W, roi)
         
-        # check the result
-        pg.show(res['thon_display'])
-
 Generate the pixel mapping
     Now let us estimate the geometric distortions of each image from the defocus 
     using :py:func:`~speckle_tracking.make_pixel_map`, and the astigmatism (dz)::
@@ -136,11 +117,11 @@ Refinement
             pixel_map, res = st.update_pixel_map(
                                 data, mask, W, O, pixel_map, 
                                 n0, m0, dij_n, search_window=20)
-            
-            # update translations
-            pixel_map, res = st.update_translations(
-                                data, mask, W, O, pixel_map, 
-                                n0, m0, dij_n, search_window=20)
+
+.. raw:: html
+
+    <script src="https://asciinema.org/a/14.js" id="asciicast-14" async></script>
+
 
 Command-line Interface
 ----------------------

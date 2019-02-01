@@ -1,6 +1,6 @@
 import numpy as np
 
-def make_pixel_map(z, z1, dz, roi, x_pixel_size, y_pixel_size, shape, dx=None, dy=None):
+def make_pixel_map(z, z1, dz, roi, x_pixel_size, y_pixel_size, shape, dx=None, dy=None, verbose=True):
     r"""
 
     Parameters
@@ -34,7 +34,10 @@ def make_pixel_map(z, z1, dz, roi, x_pixel_size, y_pixel_size, shape, dx=None, d
     y_pixel_size : float
         (:math:`\Delta_{fs}`) The side length of a detector pixel in metres, along the fast
         scan axis.
-
+    
+    verbose : bool, optional
+        print what I'm doing. 
+    
     Returns
     -------
     pixel_map : ndarray
@@ -131,6 +134,9 @@ def make_pixel_map(z, z1, dz, roi, x_pixel_size, y_pixel_size, shape, dx=None, d
     detector roi, and :math:`n_0, m_0` so that :math:`\text{ij}_\text{map}>0` for all
     pixels in the roi.
     """
+    if verbose: 
+        print('making the pixel mapping using defocus and astigmatism\n')
+            
     Mss, Mfs = (z + dz)/(z1 + dz), (z - dz)/(z1 - dz)
     
     if dx is None or dy is None :

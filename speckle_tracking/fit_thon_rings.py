@@ -2,7 +2,7 @@ import numpy as np
 from scipy.ndimage import filters 
 from scipy.stats import pearsonr
 
-def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centre=None, sig=10, edge_pix=5, window=30, rad_range=None):
+def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centre=None, sig=10, edge_pix=5, window=30, rad_range=None, verbose=True):
     r"""Find the focus to sample distance by fitting Thon rings to power spectrum.
 
     This is done by generating a filtered power spectrum of the data. Then fitting
@@ -59,6 +59,9 @@ def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centr
         is set to:
         [min(10, W.shape[0], W.shape[1]), max(W.shape[0], W.shape[1])//2]
     
+    verbose : bool, optional
+        print what I'm doing. 
+    
     Returns
     -------
     defocus : float
@@ -103,6 +106,8 @@ def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centr
     
     .. math:: z = z_1 + z_2
     """
+
+    if verbose : print('fitting the defocus and astigmatism:\n')
     # generate the thon rings
     # offset centre to avoid panel edges
     thon = make_thon(data, mask, W, roi, sig=sig, centre=centre)
@@ -239,8 +244,7 @@ def fit_theta_scale(im, mask):
     for ti, t in enumerate(ts) :
         for di, d in enumerate(ds) :
             error[ti, di] = fun(t, d)
-            print(ti, di, error[ti, di])
-
+    
     ti, di  = np.unravel_index(np.argmin(error), error.shape)
     t, d    = ts[ti], ds[di]
     im_sym, r_vals, im_rav = forward(t, d)

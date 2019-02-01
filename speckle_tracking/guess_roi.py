@@ -1,6 +1,6 @@
 import numpy as np
 
-def guess_roi(W):
+def guess_roi(W, verbose=True):
     """Find the rectangular region that contains most of the whitefield.
 
     Parameters
@@ -9,6 +9,9 @@ def guess_roi(W):
         The whitefield, that is the image one obtains without a 
         sample in place.
     
+    verbose : bool, optional
+        print what I'm doing.
+    
     Returns
     -------
     roi : list
@@ -16,6 +19,8 @@ def guess_roi(W):
         interesting data in a frame will be in the region:
         frame[roi[0]:roi[1], roi[2]:roi[3]]
     """
+    if verbose : print('guessing the region of interest:\n')
+    
     roi = [0, 0, 0, 0]
     
     # left ss intercept

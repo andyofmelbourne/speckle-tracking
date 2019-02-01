@@ -39,6 +39,9 @@ def fit_defocus(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, **kwargs
         indicates that most of the interesting data in a frame will 
         be in the region: frame[roi[0]:roi[1], roi[2]:roi[3]]
 
+    verbose : bool, optional
+        print what I'm doing. 
+    
     kwargs : dict 
         keyword arguments that are passed on to any functions called.
     

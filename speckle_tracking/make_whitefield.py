@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.signal
 
-def make_whitefield(data, mask):
+def make_whitefield(data, mask, verbose=True):
     """Estimate the image one would obtain without the sample in the beam.
 
     This is done by taking the median value at each pixel along the first 
@@ -16,11 +16,16 @@ def make_whitefield(data, mask):
         Boolean array of shape (M, L), where True indicates a good
         pixel and False a bad pixel.
     
+    verbose : bool, optional
+        print what I'm doing.
+    
     Returns
     -------
     W : ndarray
         Float array of shape (M, L) containing the estimated whitefield.
     """
+    if verbose: print('Making the whitefield')
+    
     whitefield = np.median(data, axis=0)
     
     mask2  = mask.copy()

@@ -1,6 +1,6 @@
 import numpy as np
 
-def make_object_map(data, mask, W, dij_n, pixel_map):
+def make_object_map(data, mask, W, dij_n, pixel_map, verbose=True, minimum_overlap=None):
     r"""
     Parameters
     ----------
@@ -28,6 +28,11 @@ def make_object_map(data, mask, W, dij_n, pixel_map):
             = W[i, j] I^\infty[&\text{ij}_\text{map}[0, i, j] - \Delta ij[n, 0] + n_0,\\
                                &\text{ij}_\text{map}[1, i, j] - \Delta ij[n, 1] + m_0]
     
+    minimum_overlap : float or None, optional
+        Default is None. If float then the the object will be set to -1 
+        where the number of data points contributing to that value is less
+        than "minimum_overlap".
+
     Returns
     -------
     I : ndarray
@@ -55,7 +60,10 @@ def make_object_map(data, mask, W, dij_n, pixel_map):
             
             \text{ij}_\text{map}[1, i, j] - \Delta ij[n, 1] + m_0 \ge 0 
             \quad\text{for all} i,j
-
+    
+    verbose : bool, optional
+        print what I'm doing.
+    
     Notes
     -----
     .. math::
@@ -78,6 +86,8 @@ def make_object_map(data, mask, W, dij_n, pixel_map):
         n_0 &= \text{max}_{i,j\in M}(\Delta ij[n, 0] - \text{ij}_\text{map}[0, i, j]) + 0.5  \\
         m_0 &= \text{max}_{i,j\in M}(\Delta ij[n, 1] - \text{ij}_\text{map}[1, i, j]) + 0.5  
     """
+    if verbose : print('Building the object map:\n')
+    
     # mask the pixel mapping
     ij     = np.array([pixel_map[0][mask], pixel_map[1][mask]])
     
@@ -109,4 +119,9 @@ def make_object_map(data, mask, W, dij_n, pixel_map):
     
     I[m]  = I[m] / overlap[m]
     I[~m] = -1
+    
+    if minimum_overlap is not None :
+        m = overlap < minimum_overlap
+        I[m] = -1
+    
     return I, n0, m0
