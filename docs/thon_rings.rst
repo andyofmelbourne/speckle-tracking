@@ -82,31 +82,17 @@ For projection imaging we have the approximation:
 .. math::
     
     \begin{align}
-    I^{z_1}_\phi(\mathbf{x}, z_2) &\approx \big|T(\mathbf{x}) \otimes e^{\frac{i \pi}{\lambda z^\text{eff}_x} \left( x - \frac{\lambda z^\text{eff}_x}{2\pi} \phi_{,x}(\mathbf{x})\right)^2
-                                                                 \times  \frac{i \pi}{\lambda z^\text{eff}_y} \left( y - \frac{\lambda z^\text{eff}_y}{2\pi} \phi_{,y}(\mathbf{x})\right)^2} \big|^2
+    I^{z_1}_\phi(\mathbf{x}, z) &\approx \big|T(\mathbf{x}) \otimes e^{\frac{i \pi}{\lambda z^x_\Phi} \left( x - \frac{\lambda z}{2\pi} \Phi_{,x}(\mathbf{x})\right)^2
+                                                                 +  \frac{i \pi}{\lambda z^y_\Phi} \left( x - \frac{\lambda z}{2\pi} \Phi_{,y}(\mathbf{x})\right)^2} \big|^2, \\
+    \text{where, } z^x_\Phi &= z \left(1 - \frac{\lambda z}{2\pi} \langle \Phi_{,xx} \rangle_x \right)
     \end{align}
 
-Let make a Taylor series expansion of the phase up to second order in :math:`x` and :math:`y`:
+Here :math:`\Phi(\mathbf{x})` is the phase profile of the probe in the plane of the detector. Now let us make a low order approximation for :math:`\Phi(\mathbf{x})`:
 
 .. math::
     
     \begin{align}
-    \phi(\mathbf{x}) &\approx \phi_{00} + \phi_{10}x + \phi_{01}y + \frac{1}{2}\phi_{20}x^2 + \frac{1}{2}\phi_{02}y^2  \\
-    \text{for } \phi_{nm} &= \frac{\partial^{n+m} \phi(\mathbf{x})}{\partial x^n \partial y^2}\biggr\rvert_{\mathbf{x}=0}
-    \end{align}
-
-where zeroth, first and second order terms correspond to piston, tilt and defocus aberrations. We have also set :math:`\phi_{11}=0` for simplicity. Now let's expand the exponential term:
-
-.. math::
-    
-    \begin{align}
-    \frac{i \pi}{\lambda z^\text{eff}_x} \left(x - \frac{\lambda z^\text{eff}_x}{2\pi} \phi_{,x}(\mathbf{x})\right)^2 
-    &= \frac{i \pi}{\lambda z^\text{eff}_x} \left(x - \frac{\lambda z^\text{eff}_x}{2\pi} (\phi_{10} + \phi_{20}x) \right)^2 \\
-    &= \frac{i \lambda z^\text{eff}_x}{4\pi} \left( \phi_{10} + (\phi_{20} -  \frac{2\pi}{\lambda z_x^\text{eff}})x\right)^2\\
-    &= \frac{i \lambda z^\text{eff}_x}{4\pi} \left( \phi_{10} + \frac{2\pi}{\lambda z_2}x\right)^2 
-     = \frac{i \pi z^\text{eff}_x}{\lambda z_2^2} \left( x + \frac{\lambda z_2}{2\pi}\phi_{10} \right)^2 \quad \text{where}\\
-    z^\text{eff}_x = \frac{z_2}{1+\frac{\lambda z_2}{2\pi}\phi_{20}} \quad &\text{and} \quad 
-    \phi_{20} -  \frac{2\pi}{\lambda z_x^\text{eff}} = \phi_{20} -  \frac{2\pi}{\lambda }\left(\frac{1}{z_2}+\frac{\lambda }{2\pi}\phi_{20}\right) = \frac{2\pi}{\lambda z_2} \\
+    \Phi(\mathbf{x}) &= \frac{\pi x^2}{\lambda (z+z_x)} +  \frac{\pi y^2}{\lambda (z+z_y)} 
     \end{align}
 
 Now we can take the Fourier transform and evaluate the effective transfer function of the imaging system:
@@ -114,11 +100,8 @@ Now we can take the Fourier transform and evaluate the effective transfer functi
 .. math::
     
     \begin{align}
-    \text{TF}(\mathbf{q}) &= e^{-i\pi\lambda q'^2} 
-                          e^{ i \lambda z_2 (\phi_{10} q_x + \phi_{01} q_y)} \quad \text{where}\\
-    M_x &= \frac{z_2}{z_x^\text{eff}}, 
-    \quad M_y = \frac{z_2}{z_y^\text{eff}} \quad \text{and} \quad 
-    q'^2 = z^\text{eff}_x (M_x q_x)^2 + z^\text{eff}_y (M_y q_y)^2
+    \text{TF}(\mathbf{q}) &= e^{-i\pi \lambda z q^2} e^{-i\pi \lambda z^2 \left(\frac{q_x^2}{z_x} + \frac{q_y^2}{z_y}\right)}\\
+                          &= e^{-i\pi \lambda z \left((1+\frac{z}{z_x})q_x^2 + (1+\frac{z}{z_y})q_y^2\right)} 
     \end{align}
 
 OK, so what do our Thon rings look like?
@@ -126,19 +109,27 @@ OK, so what do our Thon rings look like?
 .. math::
     
     \begin{align}
-       \text{TF}^*(-\mathbf{q}) - \text{TF}(\mathbf{q}) &= 2i\sin(\pi \lambda q'^2) e^{ i \lambda z_2 (\phi_{10} q_x + \phi_{01} q_y)}\\
-       \text{TF}^*(-\mathbf{q}) + \text{TF}(\mathbf{q}) &= 2\cos(\pi \lambda q'^2) e^{ i \lambda z_2 (\phi_{10} q_x + \phi_{01} q_y)}\\
+       \text{TF}^*(-\mathbf{q}) - \text{TF}(\mathbf{q}) &= 2i\sin(\pi \lambda z q'^2)  \\
+       \text{TF}^*(-\mathbf{q}) + \text{TF}(\mathbf{q}) &= 2\cos(\pi \lambda z q'^2)    \\
+       q'^2 &= (1+\frac{z}{z_x})q_x^2 + (1+\frac{z}{z_y})q_y^2
     \end{align}
 
-which yeilds:
+OK, so what do our Thon rings look like?
 
 .. math::
     
     \begin{align}
-       \big| \hat{I}(\mathbf{q})\big|^2 = \frac{4\pi}{\lambda}\big| \hat{t}(\mathbf{q})\big|^2 \left(\delta_\lambda  \sin(\pi \lambda q'^2) + 
-       \beta_\lambda   \cos(\pi \lambda q'^2)
-       \right)
+       \hat{I}(\mathbf{q}) &\approx -\frac{4\pi}{\lambda}\hat{t}(q)\left[ 
+       \delta_\lambda \sin(\pi \lambda z q'^2) 
+       +\beta_\lambda \cos(\pi \lambda z q'^2) 
+       \right]  \quad \text{for } \mathbf{q} \neq 0 \text{, and} \\
+       \big| \hat{I}(\mathbf{q}) \big|^2 &\approx \frac{8\pi^2}{\lambda^2}|\hat{t}(q)|^2\left[ 
+       \delta_\lambda \sin(\pi \lambda z q'^2) 
+       +\beta_\lambda \cos(\pi \lambda z q'^2) 
+       \right]^2  \quad \text{for } \mathbf{q} \neq 0 
     \end{align}
+
+it makes sence that, appart from :math:`\hat{t}(q)`, :math:`\hat{I}(\textbf{q})` is real valued since TF is centrosymmetric.
 
 
 Fitting
@@ -165,7 +156,7 @@ Now we fit a and b in the following profile:
 .. math::
     
     \begin{align}
-       f_n &= \sin(c n^2) + d\cos(c n^2)
+       f_n &= (\sin(c n^2) + d\cos(c n^2))^2
     \end{align}
 
 Now we return to the physics: given scale_fs, a and b we would like to determine:
