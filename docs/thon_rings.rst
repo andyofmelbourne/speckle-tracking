@@ -159,14 +159,14 @@ Now we fit a and b in the following profile:
        f_n &= (\sin(c n^2) + d\cos(c n^2))^2
     \end{align}
 
-Now we return to the physics: given scale_fs, a and b we would like to determine:
+Now we return to the physics: given scale_fs, c and d we would like to determine:
 
 .. math::
     
     \begin{align}
-       &z_1, z_2, \delta z \quad \text{where}\\
-       &\phi_{20} = \frac{2\pi}{\lambda (z_1 + \delta z)} \quad \text{and} \quad
-       \phi_{02} = \frac{2\pi}{\lambda (z_1 - \delta z)}
+       &z, z_x, z_y \quad \text{where}\\
+       &z = \text{sample to detector distance and} \\
+       &z_x, z_y = \text{are the x and y focus to sample distances} 
     \end{align}
 
 With the results in the above sections we have that:
@@ -174,30 +174,27 @@ With the results in the above sections we have that:
 .. math::
     
     \begin{align}
-       \text{scale_fs} &= \left(\frac{N M_{fs} \Delta_{ss}}{M M_{ss} \Delta_{fs}}\right)^2 \frac{z_{fs}^\text{eff}}{z_{ss}^\text{eff}} && \\
-         z_{ss}^\text{eff} &= \left( \frac{1}{z_2} + \frac{1}{z_1 + \delta z} \right)^{-1} &
-         z_{fs}^\text{eff} &= \left( \frac{1}{z_2} + \frac{1}{z_1 - \delta z} \right)^{-1} \\
-         z &= z_1 + z_2 &
-         d &= \frac{\beta_\lambda}{\delta_\lambda} \\
-         c &= \pi \lambda z_{ss}^\text{eff} \left(\frac{M_{ss}}{N\Delta_{ss}}\right)^2 
+       \text{scale_fs} &= \sqrt{\frac{1+z/z_x}{1+z/z_y}} \times \frac{N \Delta u_y}{M \Delta u_x} && \\
+         c &= \frac{\pi \lambda z}{(N\Delta u_y)^2} \left(1 + \frac{z}{z_y}\right) & d &= \frac{\beta_\lambda}{\delta_\lambda} \\
+         z_t &= z + \frac{1}{2}(z_x + z_y) &&
     \end{align}
+
+where :math:`z_t` is the (average) focus to detector distance, 
+:math:`\Delta u_x` and :math:`\Delta u_y` are the pixel dimensions along x and y respectively, 
+N and M are the number of pixels along the slow and fast scan axes 
+and it is assumed that x is parallel to the fast scan axis and y is parallel to the slow scan axis.
 
 So we have:
 
 .. math::
     
     \begin{align}
-        z_2^2 / z^\text{eff}_{ss} &= \frac{z_2(z+\delta z)}{z-z_2+\delta z} = \frac{(N \Delta_{ss})^2}{\pi \lambda} c = a\\ 
-        z_2^2 / z^\text{eff}_{fs} &= \frac{z_2(z-\delta z)}{z-z_2-\delta z} = \frac{(M \Delta_{fs})^2}{\pi \lambda} c \times \text{scale_fs} = b
+        \delta z &= \frac{- a \pm \sqrt{a^2 + z_t^2(a/b-1)^2}}{a/b-1}  & z_1 &= \frac{\delta z(a-b) + 2 z_t^2}{a+b+2z_t} \text{ where} \\
+        z_x      &= z_1 - \delta z  & z_y &= z_1 + \delta z \;,\\
+        a &= \frac{c (\text{scale_fs}M\Delta u_x)^2}{\pi \lambda} & b &= \frac{ c (N\Delta u_y)^2}{\pi \lambda} \;,\\
     \end{align}
 
-This has the solution:
+and :math:`\delta z>0` if :math:`\text{scale_fs} \times M \Delta u_x / (N \Delta u_y) > 1`.
 
-.. math::
-    
-    \begin{align}
-        z_1      &= \frac{2z^2 - ab + \sqrt{a^2b^2 + z^2(a-b)^2}}{a + b + 2z} \\
-        \delta z &= \frac{ab - \sqrt{a^2b^2 + z^2(a-b)^2}}{a - b}
-    \end{align}
-
-
+.. image:: images/siemens_thon_fit.png
+   :width: 200

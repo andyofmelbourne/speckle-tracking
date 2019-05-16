@@ -133,15 +133,20 @@ def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centr
     ###########################
     
     # solve for z1 and dz
-    a = (thon.shape[0] * x_pixel_size)**2 * c / (np.pi * wav)
-    b = (thon.shape[1] * y_pixel_size)**2 * c / (np.pi * wav) * scale_fs
-
-    z1 = (-a*b + 2*z**2 + np.sqrt(a**2*b**2 + a**2*z**2 - 2*a*b*z**2 + b**2*z**2))/(a + b + 2*z)
-    dz = (a*b - np.sqrt(a**2*b**2 + a**2*z**2 - 2*a*b*z**2 + b**2*z**2))/(a - b)
-
+    a    = (thon.shape[1] * y_pixel_size * scale_fs)**2 * c / (np.pi * wav) 
+    b    = (thon.shape[0] * x_pixel_size)**2            * c / (np.pi * wav) 
+    aonb = (thon.shape[1] * y_pixel_size * scale_fs / (thon.shape[0] * x_pixel_size))**2            
+    
+    sqr = np.sqrt(a**2 + z**2 * (aonb-1)**2)
+    if aonb < 1 :
+        sqr *= -1
+        
+    dz = (-a + sqr)/(aonb-1)
+    z1 = ((a-b) * dz + 2 * z**2) / (a+b+2*z)
+    
     # calculate thon rings
     thon_calc = calculate_thon(z, z1, dz, x_pixel_size, y_pixel_size, thon.shape, wav, bd)
-
+    
     # overlay with forward calculation for display
     thon = make_thon(data, mask, W, roi, sig=None, centre=centre)
     thon_dis = np.log(thon)**0.2
@@ -249,7 +254,7 @@ def fit_theta_scale(im, mask):
     t, d    = ts[ti], ds[di]
     im_sym, r_vals, im_rav = forward(t, d)
     res = {'error_map': error, 'im_sym': im_sym, 'r_vals': r_vals, 'im_rav': im_rav}
-    return t, d, res
+    return t, np.sqrt(d), res
 
 def radial_symetry(background, rs, mask=None):
     ########### Find the radial average
@@ -305,15 +310,10 @@ def fit_sincos(f, r):
     return a, b, res
 
 def calculate_thon(z, z1, dz, x_pixel_size, y_pixel_size, shape, wav, bd):
-    z2 = z-z1
-    z_ss = 1/(1/z2 + 1/(z1+dz))
-    z_fs = 1/(1/z2 + 1/(z1-dz))
-    M_ss = z2 / z_ss
-    M_fs = z2 / z_fs
-    i = M_ss * np.fft.fftfreq(shape[0], x_pixel_size)
-    j = M_fs * np.fft.fftfreq(shape[1], y_pixel_size)
+    i = np.sqrt((z-dz)/(z1+dz)) * np.fft.fftfreq(shape[0], x_pixel_size)
+    j = np.sqrt((z-dz)/(z1-dz)) * np.fft.fftfreq(shape[1], y_pixel_size)
     i, j = np.meshgrid(i, j, indexing='ij')
     
-    q2 = np.pi * wav * (z_ss * i**2 + z_fs * j**2)
+    q2 = np.pi * wav * z * (i**2 + j**2)
     thon = (np.sin(q2) + bd * np.cos(q2))**2
     return thon
