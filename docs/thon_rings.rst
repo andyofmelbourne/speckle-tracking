@@ -114,7 +114,7 @@ OK, so what do our Thon rings look like?
        q'^2 &= (1+\frac{z}{z_x})q_x^2 + (1+\frac{z}{z_y})q_y^2
     \end{align}
 
-OK, so what do our Thon rings look like?
+and therefore
 
 .. math::
     
@@ -197,4 +197,6 @@ So we have:
 and :math:`\delta z>0` if :math:`\text{scale_fs} \times M \Delta u_x / (N \Delta u_y) > 1`.
 
 .. image:: images/siemens_thon_fit.png
-   :width: 200
+   :width: 400
+
+

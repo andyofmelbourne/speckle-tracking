@@ -76,35 +76,38 @@ def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centr
 
     res : dict
         Contains diagnostic information:
-        res['thon_display'] shows the thon rings and the fit rings in one 
-        quadrant of the array.
+        
+        res['thon_display'] : array_like, float
+            shows the thon rings and the fit rings in one 
+            quadrant of the array.
+
+        res['bd'] : float
+            The ratio of the real to the imaginary part of the refractive index, 
+            :math:`\beta_\lambda / \delta_\lambda`
     
     Notes
     -----
-    This routine fits the following function to the power spectrum:
-    
+    This routine fits the following function to the modulus of the power spectrum:
+     
     .. math::
-
-        f(q_{ss}, q_{fs}) = p(q) \left( \delta_\lambda \sin(\pi\lambda u^2) + 
-                                    \beta_\lambda \cos(\pi\lambda u^2) \right)
+    
+        f(q_{ss}, q_{fs}) = p(q) | \delta_\lambda \sin(\pi\lambda z_2 q'^2) + 
+                                    \beta_\lambda \cos(\pi\lambda z_2 q'^2) |
     
     where :math:`p(q)` is a q dependent profile that depends on the details of the 
-    object, :math:`\lambda` is the wavelength and u is given by:
+    object, :math:`\lambda` is the wavelength and q' is given by:
     
     .. math::
         
-        u(q_{ss}, q_{fs}) = z_{ss}^\text{eff} (M_{ss} q_{ss})^2 + 
-                            z_y^\text{eff} (M_{fs} q_{fs})^2 
+        q'^2 = (1+\frac{z_2}{z_{ss}})q_{ss}^2 + (1+\frac{z_2}{z_{fs}})q_{fs}^2
     
-    .. math::
-        z_{ss}^\text{eff} &= \left( \frac{1}{z_2} + \frac{1}{z_1+\delta z} \right)^{-1} &
-        z_{fs}^\text{eff} &= \left( \frac{1}{z_2} + \frac{1}{z_1-\delta z} \right)^{-1} \\
-        M_{ss} &= z_2  / z_{ss}^\text{eff} & 
-        M_{fs} &= z_2  / z_{fs}^\text{eff}
-
     subject to:
     
-    .. math:: z = z_1 + z_2
+    .. math:: z = \frac{1}{2}(z_{ss} + z_{fs}) + z_2
+    
+    where :math:`z_{ss}` and :math:`z_{fs}` are the distance between the 
+    focal plane and the sample along the slow and fast scan axes respectively
+    and :math:`z_2` is the distance between the sample and the detector.
     """
 
     if verbose : print('fitting the defocus and astigmatism:\n')
@@ -153,7 +156,7 @@ def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centr
     thon_dis = (thon_dis-thon_dis.min())/(thon_dis-thon_dis.min()).max()
     thon_dis[:thon.shape[0]//2, :thon.shape[1]//2] = thon_calc[:thon.shape[0]//2, :thon.shape[1]//2]
     thon_dis = np.fft.fftshift(thon_dis)
-    return z1, dz, {'thon_display': thon_dis}
+    return z1, dz, {'thon_display': thon_dis, 'bd':bd}
 
 
 def make_thon(data, mask, W, roi=None, sig=None, centre=None):
