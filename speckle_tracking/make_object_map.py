@@ -28,6 +28,9 @@ def make_object_map(data, mask, W, dij_n, pixel_map, verbose=True, minimum_overl
             = W[i, j] I^\infty[&\text{ij}_\text{map}[0, i, j] - \Delta ij[n, 0] + n_0,\\
                                &\text{ij}_\text{map}[1, i, j] - \Delta ij[n, 1] + m_0]
     
+    verbose : bool, optional
+        print what I'm doing.
+    
     minimum_overlap : float or None, optional
         Default is None. If float then the the object will be set to -1 
         where the number of data points contributing to that value is less
@@ -40,8 +43,17 @@ def make_object_map(data, mask, W, dij_n, pixel_map, verbose=True, minimum_overl
         
         .. math::
 
-            I^\infty[i, j] &= 
+            I_0[i, j] &= 
             \frac{\sum_n M[u_n, v_n] W[u_n, v_n] I^{z_1}_\phi[n, u_n, v_n]}{\sum_n M[u_n, v_n] W[u_n, v_n]^2 } \\
+        
+        where: 
+        
+        .. math::
+
+            \begin{align}
+            u_n[i,j] &= \text{ij}_\text{map}[0, i, j] - \Delta ij[n, 0] + n_0 \\
+            u_n[i,j] &= \text{ij}_\text{map}[0, i, j] - \Delta ij[n, 0] + n_0 \\
+            \end{align}
         
         see Notes for more.
     
@@ -50,41 +62,34 @@ def make_object_map(data, mask, W, dij_n, pixel_map, verbose=True, minimum_overl
             
         .. math::
             
-            \text{ij}_\text{map}[0, i, j] - \Delta ij[n, 0] + n_0 \ge 0 
-            \quad\text{for all} i,j
+            \text{ij}_\text{map}[0, i, j] - \Delta ij[n, 0] + n_0 \ge -0.5
+            \quad\text{for all } i,j
 
     m0 : float
         Fast scan offset to the pixel mapping such that:
             
         .. math::
             
-            \text{ij}_\text{map}[1, i, j] - \Delta ij[n, 1] + m_0 \ge 0 
-            \quad\text{for all} i,j
-    
-    verbose : bool, optional
-        print what I'm doing.
+            \text{ij}_\text{map}[1, i, j] - \Delta ij[n, 1] + m_0 \ge -0.5
+            \quad\text{for all } i,j
+        
+        -0.5 is chosen rather than 0 because integer coordinates are defined 
+        at the centre of the physical pixel locations.
     
     Notes
     -----
     .. math::
         
-        I^{z_1}_{\phi, n}(\mathbf{x})
-        = W(\mathbf{x})I^\infty(x- \frac{\lambda \mathbf{z}_\text{eff}}{2\pi} \circ \nabla \phi(x)-\Delta x_n, z_\text{eff})
+        I_{\phi, n}(\mathbf{x})
+        = W(\mathbf{x})I_0(\mathbf{x} - \frac{\lambda z}{2\pi} \nabla \Phi(x)-\Delta x_n, \bar{z}_\Phi)
     
     :math:`M, W` are the mask and whitefield arrays respectively. 
-    U and V are given by:
+    U and V are the pixel dimensions of :math:`I_0` given by:
      
     .. math::
         
         U &= \text{max}(\text{ij}_\text{map}[0, i, j]) - \text{min}(\Delta ij_n[0]) + n_0 \\
         V &= \text{max}(\text{ij}_\text{map}[1, i, j]) - \text{min}(\Delta ij_n[1]) + m_0
-    
-    n0, m0 are given by:
-    
-    .. math::
-        
-        n_0 &= \text{max}_{i,j\in M}(\Delta ij[n, 0] - \text{ij}_\text{map}[0, i, j]) + 0.5  \\
-        m_0 &= \text{max}_{i,j\in M}(\Delta ij[n, 1] - \text{ij}_\text{map}[1, i, j]) + 0.5  
     """
     if verbose : print('Building the object map:\n')
     
@@ -92,7 +97,7 @@ def make_object_map(data, mask, W, dij_n, pixel_map, verbose=True, minimum_overl
     ij     = np.array([pixel_map[0][mask], pixel_map[1][mask]])
     
     # choose the offset so that ij - dij_n + n0 > -0.5
-    # for all masked pixels
+    # for all unmasked pixels
     n0, m0 = -np.min(ij[0]) + np.max(dij_n[:, 0]), -np.min(ij[1]) + np.max(dij_n[:, 1])
     n0, m0 = n0-0.5, m0-0.5
     
@@ -125,3 +130,8 @@ def make_object_map(data, mask, W, dij_n, pixel_map, verbose=True, minimum_overl
         I[m] = -1
     
     return I, n0, m0
+
+def bilinear_interpolation(im, ss, fs):
+    """
+    """
+    pass

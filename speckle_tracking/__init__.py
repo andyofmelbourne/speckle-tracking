@@ -12,3 +12,4 @@ from .make_object_map import make_object_map
 from .update_pixel_map import update_pixel_map
 from .update_pixel_map import make_projection_images
 from .docstring_glossary import docstring_glossary
+from .calc_error import calc_error

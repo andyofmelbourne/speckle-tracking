@@ -104,12 +104,15 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3
     Notes
     -----
     The following error metric is minimised with respect to :math:`\text{ij}_\text{map}[0, i, j]`:
+
     .. math:: 
     
+        \begin{align}
         \varepsilon[i, j] = 
             \sum_n \bigg(I^{z_1}_{\phi}[n, i, j]
             - W[i, j] I^\infty[&\text{ij}_\text{map}[0, i, j] - \Delta ij[n, 0] + n_0,\\
                                &\text{ij}_\text{map}[1, i, j] - \Delta ij[n, 1] + m_0]\bigg)^2
+        \end{align}
     """
     if verbose : print('Updating the pixel mapping using the object map:\n')
     out, res  = update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window)
