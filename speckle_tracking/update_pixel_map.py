@@ -1,4 +1,5 @@
 import numpy as np
+import tqdm
 
 def make_projection_images(mask, W, O, pixel_map, n0, m0, dij_n):
     out = -np.ones((len(dij_n),) + W.shape, dtype=np.float) 
@@ -114,7 +115,7 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3
                                &\text{ij}_\text{map}[1, i, j] - \Delta ij[n, 1] + m_0]\bigg)^2
         \end{align}
     """
-    if verbose : print('Updating the pixel mapping using the object map:\n')
+    #if verbose : print('Updating the pixel mapping using the object map:\n')
     out, res  = update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window)
     
     if quadratic_refinement :
@@ -370,20 +371,20 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, search_w
     kernelsource = os.path.join(here, 'update_pixel_map.cl')
     kernelsource = open(kernelsource).read()
     program     = cl.Program(context, kernelsource).build()
-    update_pixel_map_cl = program.update_pixel_map_old
+    update_pixel_map_cl = program.update_pixel_map_old_subpixel
     
     update_pixel_map_cl.set_scalar_arg_dtypes(
             [None, None, None, None, None, None, None, None,
              np.float32, np.float32, np.int32, np.int32, 
              np.int32, np.int32, np.int32, np.int32, np.int32,
-             np.int32, np.int32])
+             np.int32, np.int32, np.int32])
     
     # Get the max work group size for the kernel test on our device
     max_comp = device.max_compute_units
     max_size = update_pixel_map_cl.get_work_group_info(
                        cl.kernel_work_group_info.WORK_GROUP_SIZE, device)
-    print('maximum workgroup size:', max_size)
-    print('maximum compute units :', max_comp)
+    #print('maximum workgroup size:', max_size)
+    #print('maximum compute units :', max_comp)
     
     if type(search_window) is int :
         s_ss = search_window
@@ -409,23 +410,21 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, search_w
     err_map      = np.zeros(W.shape, dtype=np.float32)
     pixel_mapout = pixel_map.astype(np.float32)
     
-    import time
-    d0 = time.time()
-    update_pixel_map_cl(queue, W.shape, (1, 1), 
-          cl.SVM(Win), 
-          cl.SVM(data), 
-          localmem, 
-          cl.SVM(err_map), 
-          cl.SVM(Oin), 
-          cl.SVM(pixel_mapout), 
-          cl.SVM(dij_nin), 
-          cl.SVM(maskin),
-          n0, m0, 
-          data.shape[0], data.shape[1], data.shape[2], 
-          O.shape[0], O.shape[1], ss_min, ss_max, fs_min, fs_max)
+    for i in tqdm.trange(W.shape[0], desc='updating pixel map'):
+        update_pixel_map_cl(queue, (1, W.shape[1]), (1, 1), 
+              cl.SVM(Win), 
+              cl.SVM(data), 
+              localmem, 
+              cl.SVM(err_map), 
+              cl.SVM(Oin), 
+              cl.SVM(pixel_mapout), 
+              cl.SVM(dij_nin), 
+              cl.SVM(maskin),
+              n0, m0, 
+              data.shape[0], data.shape[1], data.shape[2], 
+              O.shape[0], O.shape[1], ss_min, ss_max, fs_min, fs_max, i)
      
-    queue.finish()
-    print('calculation took:', time.time()-d0, 's')
+        queue.finish()
     
     return pixel_mapout, {'error_map': err_map}
 

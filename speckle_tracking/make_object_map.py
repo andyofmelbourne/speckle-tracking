@@ -1,6 +1,7 @@
 import numpy as np
+import tqdm
 
-def make_object_map(data, mask, W, dij_n, pixel_map, verbose=True, minimum_overlap=None):
+def make_object_map(data, mask, W, dij_n, pixel_map, subpixel=False, verbose=True, minimum_overlap=None):
     r"""
     Parameters
     ----------
@@ -27,6 +28,9 @@ def make_object_map(data, mask, W, dij_n, pixel_map, verbose=True, minimum_overl
             I^{z_1}_{\phi}[n, i, j]
             = W[i, j] I^\infty[&\text{ij}_\text{map}[0, i, j] - \Delta ij[n, 0] + n_0,\\
                                &\text{ij}_\text{map}[1, i, j] - \Delta ij[n, 1] + m_0]
+
+    subpixel : bool, optional
+        If True then use bilinear subpixel interpolation non-integer pixel mappings.
     
     verbose : bool, optional
         print what I'm doing.
@@ -91,8 +95,6 @@ def make_object_map(data, mask, W, dij_n, pixel_map, verbose=True, minimum_overl
         U &= \text{max}(\text{ij}_\text{map}[0, i, j]) - \text{min}(\Delta ij_n[0]) + n_0 \\
         V &= \text{max}(\text{ij}_\text{map}[1, i, j]) - \text{min}(\Delta ij_n[1]) + m_0
     """
-    if verbose : print('Building the object map:\n')
-    
     # mask the pixel mapping
     ij     = np.array([pixel_map[0][mask], pixel_map[1][mask]])
     
@@ -108,17 +110,27 @@ def make_object_map(data, mask, W, dij_n, pixel_map, verbose=True, minimum_overl
     overlap = np.zeros(shape, dtype=np.float)
     WW      = W**2
     
-    for n in range(data.shape[0]):
-        # define the coordinate mapping and round to int
-        ss = np.rint((ij[0] - dij_n[n, 0] + n0)).astype(np.int)
-        fs = np.rint((ij[1] - dij_n[n, 1] + m0)).astype(np.int)
-        #
-        I[      ss, fs] += (W*data[n])[mask]
-        overlap[ss, fs] += WW[mask]
+    if subpixel :
+        for n in tqdm.trange(data.shape[0], desc='building object map'):
+            # define the coordinate mapping
+            ss = pixel_map[0] - dij_n[n, 0] + n0
+            fs = pixel_map[1] - dij_n[n, 1] + m0
+            
+            I = bilinear_interpolation_array_inverse(
+                                           I, W*data[n], ss, fs, invalid = mask)
+            
+            overlap = bilinear_interpolation_array_inverse(
+                                           overlap, WW, ss, fs, invalid = mask)
         
-        #I[      i + nm0[0]-dij_nr[n, 0], j + nm0[1]-dij_nr[n, 1]] += (mask*W*data[n])[ij[0], ij[1]]
-        #overlap[i + nm0[0]-dij_nr[n, 0], j + nm0[1]-dij_nr[n, 1]] += (mask*W**2     )[ij[0], ij[1]]
-    
+    else :
+        for n in tqdm.trange(data.shape[0], desc='building object map'):
+            # define the coordinate mapping and round to int
+            ss = np.rint((ij[0] - dij_n[n, 0] + n0)).astype(np.int)
+            fs = np.rint((ij[1] - dij_n[n, 1] + m0)).astype(np.int)
+            #
+            I[      ss, fs] += (W*data[n])[mask]
+            overlap[ss, fs] += WW[mask]
+            
     overlap[overlap<1e-2] = -1
     m = (overlap > 0)
     
@@ -131,7 +143,43 @@ def make_object_map(data, mask, W, dij_n, pixel_map, verbose=True, minimum_overl
     
     return I, n0, m0
 
-def bilinear_interpolation(im, ss, fs):
+def bilinear_interpolation_array_inverse(out, array, ss, fs, invalid=-1):
     """
+    See https://en.wikipedia.org/wiki/Bilinear_interpolation
+    
+    out[ss[i, j], fs[i, j]] += array[i, j]
     """
-    pass
+    s0, s1 = np.floor(ss).astype(np.uint32), np.ceil(ss).astype(np.uint32)
+    f0, f1 = np.floor(fs).astype(np.uint32), np.ceil(fs).astype(np.uint32)
+    
+    # check out of bounds or invalid pixels
+    m = (ss > 0) * (ss <= (out.shape[0]-1)) * (fs > 0) * (fs <= (out.shape[1]-1))
+    
+    if type(invalid) is np.ndarray :
+        m = m * invalid
+    else :
+        m = m * (array!=invalid)
+    
+    s0[~m] = 0
+    s1[~m] = 0
+    f0[~m] = 0
+    f1[~m] = 0
+    
+    # careful with edges
+    s1[(s1==s0)*(s0==0)] += 1
+    s0[(s1==s0)*(s0!=0)] -= 1
+    f1[(f1==f0)*(f0==0)] += 1
+    f0[(f1==f0)*(f0!=0)] -= 1
+    
+    # make the weighting function
+    w00 = (s1-ss)*(f1-fs)*array
+    w01 = (s1-ss)*(fs-f0)*array
+    w10 = (ss-s0)*(f1-fs)*array
+    w11 = (ss-s0)*(fs-f0)*array
+    
+    out[s0[m],f0[m]] += w00[m]
+    out[s1[m],f0[m]] += w10[m]
+    out[s0[m],f1[m]] += w01[m]
+    out[s1[m],f1[m]] += w11[m]
+    
+    return out  

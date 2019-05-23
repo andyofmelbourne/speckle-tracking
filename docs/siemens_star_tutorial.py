@@ -67,24 +67,30 @@ pixel_map, pixel_map_inv, dxy = st.make_pixel_map(
 
 dij_n = st.make_pixel_translations(translations, basis, dxy[0], dxy[1])
 
-O, n0, m0 = st.make_object_map(data, mask, W, dij_n, pixel_map)
-error_total, error_frame, error_pixel = st.calc_error(data, mask, W, dij_n, O, pixel_map, n0, m0)
+O, n0, m0 = st.make_object_map(data, mask, W, dij_n, pixel_map, subpixel=True)
+error_total, error_frame, error_pixel = st.calc_error(data, mask, W, dij_n, O, pixel_map, n0, m0, subpixel=True)
 
 Os = [O.copy()]
 error_totals = [error_total]
 error_frames = [error_frame.copy()]
 error_pixels = [error_pixel.copy()]
 
-for i in range(3):
+sw = 20
+filter = 1.
+for i in range(4):
+    #if i == 3 :
+    #    sw = 40
+    #    filter = 1.
+    
     # update pixel map
     pixel_map, res = st.update_pixel_map(
                         data, mask, W, O, pixel_map,
-                        n0, m0, dij_n, search_window=20)
+                        n0, m0, dij_n, search_window=sw, filter=filter)
     
     # update object map
     O, n0, m0 = st.make_object_map(
-                   data, mask, W, dij_n, pixel_map)
-    error_total, error_frame, error_pixel = st.calc_error(data, mask, W, dij_n, O, pixel_map, n0, m0)
+                   data, mask, W, dij_n, pixel_map, subpixel=True)
+    error_total, error_frame, error_pixel = st.calc_error(data, mask, W, dij_n, O, pixel_map, n0, m0, subpixel=True)
     
     Os.append(O.copy())
     error_totals.append(error_total)
