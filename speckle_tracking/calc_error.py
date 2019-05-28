@@ -93,6 +93,9 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
     error_pixel = np.zeros(data.shape[1:])
     norm        = np.zeros(data.shape[1:])
 
+    sig = np.std(data, axis=0)
+    sig[sig <= 0] = 1
+    
     for n in tqdm.trange(data.shape[0], desc='calculating errors'):
         if subpixel: 
             # define the coordinate mapping and round to int
@@ -112,7 +115,7 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
         d  = data[n][mask]
         m  = (I0>0)*(d>0)
         
-        error_map = m*(I0 - d)**2
+        error_map = m*(I0 - d)**2 / sig[mask]
         tot       = np.sum(error_map)
         
         error_total       += tot

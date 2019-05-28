@@ -21,7 +21,7 @@ def make_projection_images(mask, W, O, pixel_map, n0, m0, dij_n):
     
     return out 
 
-def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3, quadratic_refinement=False, filter=1., verbose=True):
+def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3, subpixel=False, quadratic_refinement=False, filter=1., verbose=True):
     r"""
     Update the pixel_map by minimising an error metric within the search_window.
     
@@ -79,6 +79,9 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3
         The pixel mapping will be updated in a square area of side length "search_window". 
         If "search_window" is a length 2 sequence (e.g. [8,12]) then the search area will
         be rectangular with [ss_range, fs_range]. This value/s are in pixel units.
+
+    subpixel : bool, optional
+        If True then bilinear interpolation is used to evaluate subpixel locations.
     
     quadratic_refinement : bool, optional
         If true then a 2D quadratic will be fit to the error metric around the local minima
@@ -116,13 +119,13 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3
         \end{align}
     """
     #if verbose : print('Updating the pixel mapping using the object map:\n')
-    out, res  = update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window)
+    out, res  = update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel, search_window)
     
     if quadratic_refinement :
         out, res2 = quadratic_refinement_opencl(data, mask, W, O, out, n0, m0, dij_n)
         res.update(res2)
     
-    if filter is not None :
+    if (filter is not None) and (filter > 0):
         from scipy.ndimage.filters import gaussian_filter
         out[0] = gaussian_filter(mask * out[0], filter, mode = 'constant')
         out[1] = gaussian_filter(mask * out[1], filter, mode = 'constant')
@@ -347,7 +350,7 @@ def update_pixel_map_opencl_old(data, mask, W, O, pixel_map, n0, m0, dij_n, sear
     return out, {'error_map': mask*err_min, 'pixel_shift': pixel_shift, 'err_quad': err_quad}
 
 
-def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=20):
+def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel=False, search_window=20):
     # demand that the data is float32 to avoid excess mem. usage
     assert(data.dtype == np.float32)
     
@@ -371,7 +374,10 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, search_w
     kernelsource = os.path.join(here, 'update_pixel_map.cl')
     kernelsource = open(kernelsource).read()
     program     = cl.Program(context, kernelsource).build()
-    update_pixel_map_cl = program.update_pixel_map_old_subpixel
+    if subpixel:
+        update_pixel_map_cl = program.update_pixel_map_old_subpixel
+    else :
+        update_pixel_map_cl = program.update_pixel_map_old
     
     update_pixel_map_cl.set_scalar_arg_dtypes(
             [None, None, None, None, None, None, None, None,

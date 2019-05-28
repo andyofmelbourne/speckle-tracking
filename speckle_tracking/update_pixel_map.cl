@@ -77,10 +77,11 @@ __kernel void update_pixel_map_old(
     const    int    ss_min,
     const    int    ss_max,
     const    int    fs_min,
-    const    int    fs_max
+    const    int    fs_max,
+    const    int    i
     )
 {                                                       
-    int i = get_group_id(0);
+    //int i = get_group_id(0);
     int j = get_group_id(1);
 
     // printf("%i %i %i %i\n", ss_min, ss_max, fs_min, fs_max);
