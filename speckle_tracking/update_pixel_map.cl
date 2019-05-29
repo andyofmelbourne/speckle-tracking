@@ -67,6 +67,7 @@ __kernel void update_pixel_map_old(
     __global float  *pixel_map,
     __global float  *dij_n,
     __global int    *mask,
+    __global int    *js,
     const    float    n0,
     const    float    m0,
     const    int    N,
@@ -83,6 +84,7 @@ __kernel void update_pixel_map_old(
 {                                                       
     //int i = get_group_id(0);
     int j = get_group_id(1);
+    j = js[j];
 
     // printf("%i %i %i %i\n", ss_min, ss_max, fs_min, fs_max);
     

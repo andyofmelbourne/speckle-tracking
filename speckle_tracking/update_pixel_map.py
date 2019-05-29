@@ -21,7 +21,7 @@ def make_projection_images(mask, W, O, pixel_map, n0, m0, dij_n):
     
     return out 
 
-def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3, subpixel=False, quadratic_refinement=False, filter=1., verbose=True):
+def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3, grid=None, roi=None, subpixel=False, quadratic_refinement=False, filter=1., verbose=True):
     r"""
     Update the pixel_map by minimising an error metric within the search_window.
     
@@ -119,7 +119,11 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3
         \end{align}
     """
     #if verbose : print('Updating the pixel mapping using the object map:\n')
-    out, res  = update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel, search_window)
+    out, res  = update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, subpixel, search_window, grid)
+
+    # if the update is on a sparse grid, then interpolate
+    if grid is not None :
+        pass 
     
     if quadratic_refinement :
         out, res2 = quadratic_refinement_opencl(data, mask, W, O, out, n0, m0, dij_n)
@@ -350,9 +354,12 @@ def update_pixel_map_opencl_old(data, mask, W, O, pixel_map, n0, m0, dij_n, sear
     return out, {'error_map': mask*err_min, 'pixel_shift': pixel_shift, 'err_quad': err_quad}
 
 
-def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel=False, search_window=20):
+def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi=None, subpixel=False, search_window=20, grid=None):
     # demand that the data is float32 to avoid excess mem. usage
     assert(data.dtype == np.float32)
+
+    if roi is None :
+        roi = [0, mask.shape[0], 0, mask.shape[1]]
     
     import os
     import pyopencl as cl
@@ -380,7 +387,7 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
         update_pixel_map_cl = program.update_pixel_map_old
     
     update_pixel_map_cl.set_scalar_arg_dtypes(
-            [None, None, None, None, None, None, None, None,
+            [None, None, None, None, None, None, None, None, None,
              np.float32, np.float32, np.int32, np.int32, 
              np.int32, np.int32, np.int32, np.int32, np.int32,
              np.int32, np.int32, np.int32])
@@ -397,6 +404,11 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
         s_fs = search_window
     else :
         s_ss, s_fs = search_window
+
+    if grid is None :
+        grid = [roi[1]-roi[0], roi[3]-roi[2]]
+    ss = np.round(np.linspace(roi[0], roi[1]-1, grid[0])).astype(np.int32)
+    fs = np.round(np.linspace(roi[2], roi[3]-1, grid[1])).astype(np.int32)
     
     # allocate local memory and dtype conversion
     ############################################
@@ -416,8 +428,8 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
     err_map      = np.zeros(W.shape, dtype=np.float32)
     pixel_mapout = pixel_map.astype(np.float32)
     
-    for i in tqdm.trange(W.shape[0], desc='updating pixel map'):
-        update_pixel_map_cl(queue, (1, W.shape[1]), (1, 1), 
+    for i in tqdm.trange(ss.shape[0], desc='updating pixel map'):
+        update_pixel_map_cl(queue, (1, fs.shape[0]), (1, 1), 
               cl.SVM(Win), 
               cl.SVM(data), 
               localmem, 
@@ -426,13 +438,18 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
               cl.SVM(pixel_mapout), 
               cl.SVM(dij_nin), 
               cl.SVM(maskin),
+              cl.SVM(fs),
               n0, m0, 
               data.shape[0], data.shape[1], data.shape[2], 
-              O.shape[0], O.shape[1], ss_min, ss_max, fs_min, fs_max, i)
+              O.shape[0], O.shape[1], ss_min, ss_max, fs_min, fs_max, ss[i])
      
         queue.finish()
     
-    return pixel_mapout, {'error_map': err_map}
+    ss, fs = np.meshgrid(ss, fs, indexing='ij')
+    out = np.zeros((2,) + ss.shape, dtype=pixel_map.dtype)
+    out[0] = pixel_mapout[0][ss, fs]
+    out[1] = pixel_mapout[1][ss, fs]
+    return out, ss, fs, {'error_map': err_map}
 
 
 def quadratic_refinement_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n):
