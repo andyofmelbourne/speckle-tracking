@@ -92,9 +92,9 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
     error_frame = np.zeros(data.shape[0])
     error_pixel = np.zeros(data.shape[1:])
     norm        = np.zeros(data.shape[1:])
-
-    sig = np.std(data, axis=0)
-    sig[sig <= 0] = 1
+    
+    #sig = np.std(data, axis=0)
+    #sig[sig <= 0] = 1
     
     for n in tqdm.trange(data.shape[0], desc='calculating errors'):
         if subpixel: 
@@ -115,7 +115,8 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
         d  = data[n][mask]
         m  = (I0>0)*(d>0)
         
-        error_map = m*(I0 - d)**2 / sig[mask]
+        #error_map = m*(I0 - d)**2 / sig[mask]
+        error_map = m*(I0 - d)**2
         tot       = np.sum(error_map)
         
         error_total       += tot
@@ -126,6 +127,207 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
     m = norm>0
     error_pixel[m] = error_pixel[m] / norm[m]
     return error_total, error_frame, error_pixel
+
+def make_pixel_map_err(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, search_window=20, grid=[20, 20]):
+    # demand that the data is float32 to avoid excess mem. usage
+    assert(data.dtype == np.float32)
+    
+    import time
+    t0 = time.time()
+    ##################################################################
+    # OpenCL crap
+    ##################################################################
+    import os
+    import pyopencl as cl
+    ## Step #1. Obtain an OpenCL platform.
+    # with a cpu device
+    for p in cl.get_platforms():
+        devices = p.get_devices(cl.device_type.CPU)
+        if len(devices) > 0:
+            platform = p
+            device   = devices[0]
+            break
+    
+    ## Step #3. Create a context for the selected device.
+    context = cl.Context([device])
+    queue   = cl.CommandQueue(context)
+    
+    # load and compile the update_pixel_map opencl code
+    here = os.path.split(os.path.abspath(__file__))[0]
+    kernelsource = os.path.join(here, 'update_pixel_map.cl')
+    kernelsource = open(kernelsource).read()
+    program     = cl.Program(context, kernelsource).build()
+    make_error_map_subpixel = program.make_error_map_subpixel
+
+    make_error_map_subpixel.set_scalar_arg_dtypes(
+            [None, None, None, None, None, None, None, None, None,
+             np.float32, np.float32, 
+             np.int32, np.int32, np.int32, np.int32, 
+             np.int32, np.int32, np.int32, np.int32, 
+             np.int32, np.int32])
+    
+    # Get the max work group size for the kernel test on our device
+    max_comp = device.max_compute_units
+    max_size = make_error_map_subpixel.get_work_group_info(
+                       cl.kernel_work_group_info.WORK_GROUP_SIZE, device)
+    #print('maximum workgroup size:', max_size)
+    #print('maximum compute units :', max_comp)
+    
+    # allocate local memory and dtype conversion
+    localmem = cl.LocalMemory(np.dtype(np.float32).itemsize * data.shape[0])
+    
+    # inputs:
+    Win         = W.astype(np.float32)
+    pixel_mapin = pixel_map.astype(np.float32)
+    Oin         = O.astype(np.float32)
+    dij_nin     = dij_n.astype(np.float32)
+    maskin      = mask.astype(np.int32)
+    
+    # outputs:
+    err_map      = np.zeros((grid[0]*grid[1], search_window**2), dtype=np.float32)
+    pixel_mapout = pixel_map.astype(np.float32)
+    ##################################################################
+    
+    if type(search_window) is int :
+        s_ss = search_window
+        s_fs = search_window
+    else :
+        s_ss, s_fs = search_window
+    
+    ss_min, ss_max = (-(s_ss-1)//2, (s_ss+1)//2) 
+    fs_min, fs_max = (-(s_fs-1)//2, (s_fs+1)//2) 
+    
+    # list the pixels for which to calculate the error grid
+    ijs = []
+    for i in np.linspace(roi[0], roi[1], grid[0]):
+        for j in np.linspace(roi[2], roi[3], grid[1]):
+            ijs.append([round(i), round(j)])
+               
+    ijs = np.array(ijs).astype(np.int32)
+    
+    for i in tqdm.trange(1, desc='calculating pixel map shift errors'):
+        make_error_map_subpixel(queue, (1, ijs.shape[0]), (1, 1), 
+              cl.SVM(Win), 
+              cl.SVM(data), 
+              localmem, 
+              cl.SVM(err_map), 
+              cl.SVM(Oin), 
+              cl.SVM(pixel_mapout), 
+              cl.SVM(dij_nin), 
+              cl.SVM(maskin),
+              cl.SVM(ijs),
+              n0, m0, ijs.shape[0],
+              data.shape[0], data.shape[1], data.shape[2], 
+              O.shape[0], O.shape[1], ss_min, ss_max, fs_min, fs_max)
+         
+        queue.finish()
+    t1 = time.time()
+    t = t1-t0
+    
+    res = make_pixel_map_err_report(ijs, err_map, mask, search_window, roi, t)
+    
+    return ijs, err_map, res
+
+def make_pixel_map_err_report(ijs, err_map, mask, search_window, roi, t):
+    """
+    Should inform the user what the next call to update_pixel_map should be.
+    
+    We need: 
+        suggested grid, 
+        suggested window size (I guess this is really a measure of uncertainty)
+    """
+    # remove masked pixels
+    m = mask[ijs[:, 0], ijs[:, 1]]
+    
+    # report on error land scape:
+    # find the average distance between starting point and global min
+    ijs_min    = np.argmin(err_map, axis=1)
+    i0, j0     = search_window//2, search_window//2
+    isol, jsol = np.unravel_index(ijs_min, (search_window, search_window))
+    dist       = np.sqrt((i0-isol)**2 + (j0-jsol)**2)
+    errs       = np.array([err_map[i, ijs_min[i]] for i in range(err_map.shape[0])])
+    med_errs   = np.median(err_map, axis=1)
+    with np.errstate(invalid='ignore'):
+        rat        = errs / med_errs
+    rat_mask = ~np.isnan(rat)
+    
+    # distance shift / distance pixel
+    con = []
+    for i in range(ijs[m].shape[0]):
+        for j in range(i):
+            shift_diff = np.sqrt( (isol[m][i] - isol[m][j])**2 + (jsol[m][i]- jsol[m][j])**2)
+            pixel_dist = np.sqrt( (ijs[m][i][0] - ijs[m][j][0])**2 + (ijs[m][i][1] - ijs[m][j][1])**2)
+            con.append( shift_diff / pixel_dist)
+    con = np.array(con)
+    
+    print('-----------------------------------------------------------------')
+    print('Report on pixel map error landscape: median +- standard deviation')
+    print('-----------------------------------------------------------------')
+    print('pixel map shift amount                :',np.median(dist[m]), '+-', np.std(dist[m]))
+    print('global minimum error                  :',np.median(errs[m]), '+-', np.std(errs[m]))
+    print('median error level                    :',np.median(med_errs[m]), '+-',  np.std(med_errs[m]))
+    print('minimum error / median err            :',np.median(rat[rat_mask]), '+-',  np.std(rat[rat_mask]))
+    print('pixel map shift / physical pixel dist :',np.median(con), '+-',  np.std(con))
+    # 
+    # remove outliers
+    err_thresh = np.median(errs[m])       + 2*np.std(errs[m])
+    rat_thresh = np.median(rat[rat_mask]) + 2*np.std(rat[rat_mask])
+    rat[~rat_mask] = 2*rat_thresh
+    m = mask[ijs[:, 0], ijs[:, 1]] * (errs < err_thresh) * (rat < rat_thresh)
+    print('suggested error threshold             :',err_thresh)
+    print('suggested ratio threshold             :',rat_thresh)
+    
+    # recalculate
+    rat = errs[m] / med_errs[m]
+    con = []
+    con_ss = []
+    con_fs = []
+    for i in range(ijs[m].shape[0]):
+        for j in range(i):
+            shift_diff_ss = (isol[m][i] - isol[m][j])**2 
+            shift_diff_fs = (jsol[m][i] - jsol[m][j])**2 
+            pixel_dist = (ijs[m][i][0] - ijs[m][j][0])**2 + (ijs[m][i][1] - ijs[m][j][1])**2 
+            con.append( np.sqrt( (shift_diff_ss + shift_diff_fs) / (pixel_dist + pixel_dist) ))
+            con_ss.append( np.sqrt( shift_diff_ss / pixel_dist))
+            con_fs.append( np.sqrt( shift_diff_fs / pixel_dist))
+    con = np.array(con)
+    con_ss = np.array(con_ss)
+    con_fs = np.array(con_fs)
+    
+    print('-----------------------------------------------------------------')
+    print('After outlier removal (error threshold and ratio threshold)')
+    print('-----------------------------------------------------------------')
+    print('pixel map shift amount                :',np.median(dist[m]), '+-', np.std(dist[m]))
+    print('global minimum error                  :',np.median(errs[m]), '+-', np.std(errs[m]))
+    print('median error level                    :',np.median(med_errs[m]), '+-',  np.std(med_errs[m]))
+    print('minimum error / median err            :',np.median(rat), '+-',  np.std(rat))
+    print('pixel map shift / physical pixel dist :',np.median(con), '+-',  np.std(con))
+    
+    dist_ss = np.sqrt((i0-isol)**2)
+    dist_fs = np.sqrt((j0-jsol)**2)
+    # choose window size:
+    sug_search_window = [int(round(4*(np.median(dist_ss[m]) + 2*np.std(dist_ss[m])))), 
+                         int(round(4*(np.median(dist_fs[m]) + 2*np.std(dist_fs[m]))))]
+    
+    # choose sampling grid:
+    # the tolerable number of pixels between samples is 
+    # the number of pixels before con * pixel dist > search_window // 2
+    # where search_window is the next smaller search window used for interpolation
+    sw_next = 4
+    pixel_dist_ss = (sw_next // 2) / (np.median(con_ss) + 2*np.median(con_ss))
+    pixel_dist_fs = (sw_next // 2) / (np.median(con_fs) + 2*np.median(con_fs))
+    
+    grid = [int(round((roi[1]-roi[0])) / pixel_dist_ss), int(round((roi[3]-roi[2]) / pixel_dist_fs))]
+    
+    # estimated time
+    sec_per_elem = t / (search_window**2 * ijs.shape[0])
+    
+    res = {'search_window': sug_search_window, 'grid': grid, 'error_threshold': err_thresh}
+    print('\n')
+    print('suggested search window         :', res['search_window'])
+    print('suggested sampling grid         :', res['grid'])
+    print('estimated calculation time (min):', round(sec_per_elem * sug_search_window[0]*sug_search_window[1] * grid[0] * grid[1] / 60.,1))
+    return res
 
 def bilinear_interpolation_array(array, ss, fs, fill = -1, invalid=-1):
     """
@@ -138,7 +340,7 @@ def bilinear_interpolation_array(array, ss, fs, fill = -1, invalid=-1):
     
     # check out of bounds
     m = (ss > 0) * (ss <= (array.shape[0]-1)) * (fs > 0) * (fs <= (array.shape[1]-1))
-
+    
     s0[~m] = 0
     s1[~m] = 0
     f0[~m] = 0

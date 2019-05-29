@@ -301,3 +301,97 @@ __kernel void update_pixel_map_old_subpixel(
     }
 }
 
+// return the error map for a subset of pixels
+// ijs[i, 0] = ss pixel
+// ijs[i, 1] = fs pixel
+// ijs.shape = (II, 2)
+// out[i, ss_shift, fs_shift] = error at pixel ss, fs for ss_shift, fs_shift
+// out.shape = (II, ss_max-ss_min+1, fs_max-fs_min+1)
+__kernel void make_error_map_subpixel(
+    __global float  *W,
+    __global float  *data,
+    __local  float  *data2,
+    __global float  *out,
+    __global float  *O,
+    __global float  *pixel_map,
+    __global float  *dij_n,
+    __global int    *mask,
+    __global int    *ijs,
+    const    float    n0,
+    const    float    m0,
+    const    int    II,
+    const    int    N,
+    const    int    I,
+    const    int    J,
+    const    int    U,
+    const    int    V,
+    const    int    ss_min,
+    const    int    ss_max,
+    const    int    fs_min,
+    const    int    fs_max
+    )
+{                                                       
+    //int ii = get_group_id(0);
+    int jj = get_group_id(1);
+    
+    int i, j;
+    
+    // ijs.shape = (II, 2)
+    // jj : 0 --> 2*II
+    i = ijs[2*jj + 0];
+    j = ijs[2*jj + 1];
+    
+    // printf("%i %i %i %i\n", ss_min, ss_max, fs_min, fs_max);
+    
+    // loop 
+    int n, l, o; 
+    float ss, fs, ot;
+    float err  = 0.;
+    float norm = 0.;
+    float t;
+    int di, dj;
+    
+    l = ss_max - ss_min;
+    o = fs_max - fs_min;
+    
+    for (n = 0; n < N; n++){ 
+       data2[n] = data[I*J*n + i*J + j];
+    }
+
+    if(mask[i*J + j]==1){
+       for (di = ss_min; di < ss_max; di++){ 
+       for (dj = fs_min; dj < fs_max; dj++){ 
+           err  = 0.;
+           norm = 0.;
+           for (n = 0; n < N; n++)
+           { 
+               ss = pixel_map[0   + i*J + j] + di - dij_n[n*2 + 0] + n0;
+               fs = pixel_map[I*J + i*J + j] + dj - dij_n[n*2 + 1] + m0;
+               
+               // evaluate O using bilinear interpolation 
+               ot = bilinear_interpolation(O, ss, fs, V, U);
+               if(ot >= 0)
+               {
+                   t     = data2[n] - W[i*J + j] * ot;
+                   err  += t*t;
+                   //
+                   t     = data2[n] - W[i*J + j];
+                   norm += t*t;
+               }
+           }
+           
+           if(norm > 0)
+           {
+               err /= norm;
+               out[jj*l*o + o*(di-ss_min) + dj-fs_min] = err;
+           }
+           else 
+           {
+               out[jj*l*o + o*(di-ss_min) + dj-fs_min] = -1.;
+           }
+           
+           
+       }}
+      
+    }
+}
