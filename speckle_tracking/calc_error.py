@@ -199,8 +199,8 @@ def make_pixel_map_err(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, search_w
     
     # list the pixels for which to calculate the error grid
     ijs = []
-    for i in np.linspace(roi[0], roi[1], grid[0]):
-        for j in np.linspace(roi[2], roi[3], grid[1]):
+    for i in np.linspace(roi[0], roi[1]-1, grid[0]):
+        for j in np.linspace(roi[2], roi[3]-1, grid[1]):
             ijs.append([round(i), round(j)])
                
     ijs = np.array(ijs).astype(np.int32)

@@ -70,6 +70,7 @@ __kernel void update_pixel_map_old(
     __global int    *js,
     const    float    n0,
     const    float    m0,
+    const    float  subsample,
     const    int    N,
     const    int    I,
     const    int    J,
@@ -100,8 +101,8 @@ __kernel void update_pixel_map_old(
     }
     
     if(mask[i*J + j]==1){
-        for (di = ss_min; di <= ss_max; di++){ 
-        for (dj = fs_min; dj <= fs_max; dj++){ 
+        for (di = ss_min; di < ss_max; di++){ 
+        for (dj = fs_min; dj < fs_max; dj++){ 
             err  = 0.;
             norm = 0.;
             for (n = 0; n < N; n++)
@@ -228,8 +229,10 @@ __kernel void update_pixel_map_old_subpixel(
     __global float  *pixel_map,
     __global float  *dij_n,
     __global int    *mask,
+    __global int    *js,
     const    float    n0,
     const    float    m0,
+    const    float  subsample,
     const    int    N,
     const    int    I,
     const    int    J,
@@ -244,6 +247,7 @@ __kernel void update_pixel_map_old_subpixel(
 {                                                       
     //int i = get_group_id(0);
     int j = get_group_id(1);
+    j = js[j];
 
     // printf("%i %i %i %i\n", ss_min, ss_max, fs_min, fs_max);
     
@@ -253,15 +257,15 @@ __kernel void update_pixel_map_old_subpixel(
     float err  = 0.;
     float norm = 0.;
     float t, err_min = FLT_MAX;
-    int i_min, j_min, di, dj;
+    float i_min, j_min, di, dj;
     
     for (n = 0; n < N; n++){ 
         data2[n] = data[I*J*n + i*J + j];
     }
     
     if(mask[i*J + j]==1){
-        for (di = ss_min; di <= ss_max; di++){ 
-        for (dj = fs_min; dj <= fs_max; dj++){ 
+        for (di = ss_min; di < ss_max; di+=1./subsample){ 
+        for (dj = fs_min; dj < fs_max; dj+=1./subsample){ 
             err  = 0.;
             norm = 0.;
             for (n = 0; n < N; n++)

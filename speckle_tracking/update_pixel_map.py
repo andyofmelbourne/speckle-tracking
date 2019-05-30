@@ -21,7 +21,10 @@ def make_projection_images(mask, W, O, pixel_map, n0, m0, dij_n):
     
     return out 
 
-def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3, grid=None, roi=None, subpixel=False, quadratic_refinement=False, filter=1., verbose=True):
+def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, 
+                     search_window=None, grid=None, roi=None, 
+                     subpixel=False, subsample=1., quadratic_refinement=False, 
+                     filter=None, verbose=True, guess=False):
     r"""
     Update the pixel_map by minimising an error metric within the search_window.
     
@@ -118,16 +121,50 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3
                                &\text{ij}_\text{map}[1, i, j] - \Delta ij[n, 1] + m_0]\bigg)^2
         \end{align}
     """
-    #if verbose : print('Updating the pixel mapping using the object map:\n')
-    pm, ss, fs, res  = update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, subpixel, search_window, grid)
+    # any parameter that the user specifies should be enforced
+    # We should have "None" mean: please guess it for me
+    if roi is None :
+        roi = [0, W.shape[0], 0, W.shape[1]]
+    
+    if guess :
+        # then estimate suitable parameters with a large search window
+        # where 'large' is obviously = 100
+        from .calc_error import make_pixel_map_err
+        ijs, err_map, res = make_pixel_map_err(
+                            data, mask, W, O, pixel_map, n0, m0, 
+                            dij_n, roi, search_window=100, grid=[10, 10])
+        
+        # now do a coarse grid refinement
+        out, map_mask, res = update_pixel_map(
+                            data, mask, W, O, pixel_map,
+                            n0, m0, dij_n, roi=roi,
+                            search_window=res['search_window'], grid=res['grid'],
+                            subpixel=False, filter=None)
+         
+        # now do a fine subsample search
+        search_window = 3
+        grid = None
+        subsample = 10.
+        subpixel = True
+        filter = None
+        return update_pixel_map(
+                            data, map_mask, W, O, out,
+                            n0, m0, dij_n, roi=roi,
+                            search_window=search_window, grid=grid,
+                            subsample=subsample, subpixel=subpixel, filter=filter)
+
+    pm, ss, fs, res = update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, subpixel, subsample, search_window, grid)
     
     # if the update is on a sparse grid, then interpolate
     if grid is not None :
-        out = interpolate_pixel_map(pm, ss, fs, mask, grid, roi)
+        out, map_mask = interpolate_pixel_map(pm, ss, fs, mask, grid, roi)
     else :
         out = np.zeros_like(pixel_map)
         out[0][ss, fs] = pm[0]
         out[1][ss, fs] = pm[1]
+        
+        map_mask = np.zeros(mask.shape, dtype=np.bool)
+        map_mask[ss, fs] = mask[ss, fs]
     
     if quadratic_refinement :
         out, res2 = quadratic_refinement_opencl(data, mask, W, O, out, n0, m0, dij_n)
@@ -141,33 +178,24 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3
         norm[norm==0.] = 1.
         out = out / norm
     
-    return out, res
+    return out, map_mask, res
 
 def interpolate_pixel_map(pm, ss, fs, mask, grid, roi):
-    # fill masked pixels with gaussian filter
-    m = mask[ss, fs]
-    
-    from scipy.ndimage.filters import gaussian_filter
-    filter = 1.
-    pm[0][~m] = gaussian_filter(m * pm[0], filter, mode = 'constant')[~m]
-    pm[1][~m] = gaussian_filter(m * pm[1], filter, mode = 'constant')[~m]
-    norm   = gaussian_filter(m.astype(np.float), filter, mode = 'constant')
-    norm[norm==0.] = 1.
-    pm[0][~m] = pm[0][~m] / norm[~m]
-    pm[1][~m] = pm[1][~m] / norm[~m]
-    
     # now use bilinear interpolation
-    ss2 = np.linspace(0, grid[0], roi[1]-roi[0])
-    fs2 = np.linspace(0, grid[1], roi[3]-roi[2])
+    ss2 = np.linspace(0, grid[0]-1, roi[1]-roi[0])
+    fs2 = np.linspace(0, grid[1]-1, roi[3]-roi[2])
     ss2, fs2 = np.meshgrid(ss2, fs2, indexing='ij')
     
-    pm2_ss = bilinear_interpolation_array(pm[0], ss2, fs2)
-    pm2_fs = bilinear_interpolation_array(pm[1], ss2, fs2)
+    pm2_ss, mss = bilinear_interpolation_array(pm[0], mask[ss, fs], ss2, fs2, fill=0)
+    pm2_fs, mfs = bilinear_interpolation_array(pm[1], mask[ss, fs], ss2, fs2, fill=0)
     
-    pm = np.zeros((2,) + mask.shape, dtype=np.float)
+    pm       = np.zeros((2,) + mask.shape, dtype=np.float)
     pm[0][roi[0]:roi[1], roi[2]:roi[3]] = pm2_ss
     pm[1][roi[0]:roi[1], roi[2]:roi[3]] = pm2_fs
-    return pm
+    
+    map_mask = np.zeros(mask.shape, dtype=np.bool)
+    map_mask[roi[0]:roi[1], roi[2]:roi[3]] = mss*mfs
+    return pm, map_mask * mask
 
 def update_pixel_map_np(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3, window=0):
     r"""
@@ -384,13 +412,27 @@ def update_pixel_map_opencl_old(data, mask, W, O, pixel_map, n0, m0, dij_n, sear
     return out, {'error_map': mask*err_min, 'pixel_shift': pixel_shift, 'err_quad': err_quad}
 
 
-def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi=None, subpixel=False, search_window=20, grid=None):
+def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi=None, subpixel=False, subsample=1., search_window=20, grid=None):
     # demand that the data is float32 to avoid excess mem. usage
     assert(data.dtype == np.float32)
 
     if roi is None :
         roi = [0, mask.shape[0], 0, mask.shape[1]]
     
+    if type(search_window) is int :
+        s_ss = search_window
+        s_fs = search_window
+    else :
+        s_ss, s_fs = search_window
+
+    if grid is None :
+        grid = [roi[1]-roi[0], roi[3]-roi[2]]
+    ss = np.round(np.linspace(roi[0], roi[1]-1, grid[0])).astype(np.int32)
+    fs = np.round(np.linspace(roi[2], roi[3]-1, grid[1])).astype(np.int32)
+    
+    ##################################################################
+    # OpenCL crap
+    ##################################################################
     import os
     import pyopencl as cl
     ## Step #1. Obtain an OpenCL platform.
@@ -418,7 +460,7 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi=None
     
     update_pixel_map_cl.set_scalar_arg_dtypes(
             [None, None, None, None, None, None, None, None, None,
-             np.float32, np.float32, np.int32, np.int32, 
+             np.float32, np.float32, np.float32, np.int32, np.int32, 
              np.int32, np.int32, np.int32, np.int32, np.int32,
              np.int32, np.int32, np.int32])
     
@@ -428,17 +470,6 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi=None
                        cl.kernel_work_group_info.WORK_GROUP_SIZE, device)
     #print('maximum workgroup size:', max_size)
     #print('maximum compute units :', max_comp)
-    
-    if type(search_window) is int :
-        s_ss = search_window
-        s_fs = search_window
-    else :
-        s_ss, s_fs = search_window
-
-    if grid is None :
-        grid = [roi[1]-roi[0], roi[3]-roi[2]]
-    ss = np.round(np.linspace(roi[0], roi[1]-1, grid[0])).astype(np.int32)
-    fs = np.round(np.linspace(roi[2], roi[3]-1, grid[1])).astype(np.int32)
     
     # allocate local memory and dtype conversion
     ############################################
@@ -453,10 +484,13 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi=None
     
     ss_min, ss_max = (-(s_ss-1)//2, (s_ss+1)//2) 
     fs_min, fs_max = (-(s_fs-1)//2, (s_fs+1)//2) 
-
+    
     # outputs:
     err_map      = np.zeros(W.shape, dtype=np.float32)
     pixel_mapout = pixel_map.astype(np.float32)
+    ##################################################################
+    # End crap
+    ##################################################################
     
     for i in tqdm.trange(ss.shape[0], desc='updating pixel map'):
         update_pixel_map_cl(queue, (1, fs.shape[0]), (1, 1), 
@@ -469,12 +503,13 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi=None
               cl.SVM(dij_nin), 
               cl.SVM(maskin),
               cl.SVM(fs),
-              n0, m0, 
+              n0, m0, subsample,
               data.shape[0], data.shape[1], data.shape[2], 
               O.shape[0], O.shape[1], ss_min, ss_max, fs_min, fs_max, ss[i])
      
         queue.finish()
     
+    # only return filled values
     ss, fs = np.meshgrid(ss, fs, indexing='ij')
     out = np.zeros((2,) + ss.shape, dtype=pixel_map.dtype)
     out[0] = pixel_mapout[0][ss, fs]
@@ -596,17 +631,15 @@ def quadratic_refinement_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n):
     
     return out, {'pixel_shift': pixel_shift, 'err_quad': err_quad}
 
-def bilinear_interpolation_array(array, ss, fs, fill = -1, invalid=-1):
+def bilinear_interpolation_array(array, mask, ss, fs, fill = 0):
     """
     See https://en.wikipedia.org/wiki/Bilinear_interpolation
     """
-    out = np.zeros(ss.shape)
-    
     s0, s1 = np.floor(ss).astype(np.uint32), np.ceil(ss).astype(np.uint32)
     f0, f1 = np.floor(fs).astype(np.uint32), np.ceil(fs).astype(np.uint32)
     
     # check out of bounds
-    m = (ss > 0) * (ss <= (array.shape[0]-1)) * (fs > 0) * (fs <= (array.shape[1]-1))
+    m = (ss >= 0) * (ss <= (array.shape[0]-1)) * (fs >= 0) * (fs <= (array.shape[1]-1))
     
     s0[~m] = 0
     s1[~m] = 0
@@ -625,21 +658,14 @@ def bilinear_interpolation_array(array, ss, fs, fill = -1, invalid=-1):
     w10 = (ss-s0)*(f1-fs)
     w11 = (ss-s0)*(fs-f0)
     
-    # renormalise for invalid pixels
-    w00[array[s0,f0]==invalid] = 0.
-    w01[array[s0,f1]==invalid] = 0.
-    w10[array[s1,f0]==invalid] = 0.
-    w11[array[s1,f1]==invalid] = 0.
+    m = m * (mask[s0, f0]*mask[s1, f0]*mask[s0, f1]*mask[s1, f1])
     
-    # if all pixels are invalid then return fill
-    s = w00+w10+w01+w11
-    m = (s!=0)*m
-    
+    out    = fill * np.ones(ss.shape)
     out[m] = w00[m] * array[s0[m],f0[m]] \
            + w10[m] * array[s1[m],f0[m]] \
            + w01[m] * array[s0[m],f1[m]] \
            + w11[m] * array[s1[m],f1[m]]
     
-    out[m] /= s[m]
+    #out[m] /= s[m]
     out[~m] = fill
-    return out  
+    return out, m  
