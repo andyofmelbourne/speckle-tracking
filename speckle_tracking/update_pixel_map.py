@@ -119,11 +119,15 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3
         \end{align}
     """
     #if verbose : print('Updating the pixel mapping using the object map:\n')
-    out, res  = update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, subpixel, search_window, grid)
-
+    pm, ss, fs, res  = update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, subpixel, search_window, grid)
+    
     # if the update is on a sparse grid, then interpolate
     if grid is not None :
-        pass 
+        out = interpolate_pixel_map(pm, ss, fs, mask, grid, roi)
+    else :
+        out = np.zeros_like(pixel_map)
+        out[0][ss, fs] = pm[0]
+        out[1][ss, fs] = pm[1]
     
     if quadratic_refinement :
         out, res2 = quadratic_refinement_opencl(data, mask, W, O, out, n0, m0, dij_n)
@@ -138,6 +142,32 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3
         out = out / norm
     
     return out, res
+
+def interpolate_pixel_map(pm, ss, fs, mask, grid, roi):
+    # fill masked pixels with gaussian filter
+    m = mask[ss, fs]
+    
+    from scipy.ndimage.filters import gaussian_filter
+    filter = 1.
+    pm[0][~m] = gaussian_filter(m * pm[0], filter, mode = 'constant')[~m]
+    pm[1][~m] = gaussian_filter(m * pm[1], filter, mode = 'constant')[~m]
+    norm   = gaussian_filter(m.astype(np.float), filter, mode = 'constant')
+    norm[norm==0.] = 1.
+    pm[0][~m] = pm[0][~m] / norm[~m]
+    pm[1][~m] = pm[1][~m] / norm[~m]
+    
+    # now use bilinear interpolation
+    ss2 = np.linspace(0, grid[0], roi[1]-roi[0])
+    fs2 = np.linspace(0, grid[1], roi[3]-roi[2])
+    ss2, fs2 = np.meshgrid(ss2, fs2, indexing='ij')
+    
+    pm2_ss = bilinear_interpolation_array(pm[0], ss2, fs2)
+    pm2_fs = bilinear_interpolation_array(pm[1], ss2, fs2)
+    
+    pm = np.zeros((2,) + mask.shape, dtype=np.float)
+    pm[0][roi[0]:roi[1], roi[2]:roi[3]] = pm2_ss
+    pm[1][roi[0]:roi[1], roi[2]:roi[3]] = pm2_fs
+    return pm
 
 def update_pixel_map_np(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3, window=0):
     r"""
@@ -565,3 +595,51 @@ def quadratic_refinement_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n):
     print('calculation took:', time.time()-d0, 's')
     
     return out, {'pixel_shift': pixel_shift, 'err_quad': err_quad}
+
+def bilinear_interpolation_array(array, ss, fs, fill = -1, invalid=-1):
+    """
+    See https://en.wikipedia.org/wiki/Bilinear_interpolation
+    """
+    out = np.zeros(ss.shape)
+    
+    s0, s1 = np.floor(ss).astype(np.uint32), np.ceil(ss).astype(np.uint32)
+    f0, f1 = np.floor(fs).astype(np.uint32), np.ceil(fs).astype(np.uint32)
+    
+    # check out of bounds
+    m = (ss > 0) * (ss <= (array.shape[0]-1)) * (fs > 0) * (fs <= (array.shape[1]-1))
+    
+    s0[~m] = 0
+    s1[~m] = 0
+    f0[~m] = 0
+    f1[~m] = 0
+    
+    # careful with edges
+    s1[(s1==s0)*(s0==0)] += 1
+    s0[(s1==s0)*(s0!=0)] -= 1
+    f1[(f1==f0)*(f0==0)] += 1
+    f0[(f1==f0)*(f0!=0)] -= 1
+    
+    # make the weighting function
+    w00 = (s1-ss)*(f1-fs)
+    w01 = (s1-ss)*(fs-f0)
+    w10 = (ss-s0)*(f1-fs)
+    w11 = (ss-s0)*(fs-f0)
+    
+    # renormalise for invalid pixels
+    w00[array[s0,f0]==invalid] = 0.
+    w01[array[s0,f1]==invalid] = 0.
+    w10[array[s1,f0]==invalid] = 0.
+    w11[array[s1,f1]==invalid] = 0.
+    
+    # if all pixels are invalid then return fill
+    s = w00+w10+w01+w11
+    m = (s!=0)*m
+    
+    out[m] = w00[m] * array[s0[m],f0[m]] \
+           + w10[m] * array[s1[m],f0[m]] \
+           + w01[m] * array[s0[m],f1[m]] \
+           + w11[m] * array[s1[m],f1[m]]
+    
+    out[m] /= s[m]
+    out[~m] = fill
+    return out  
