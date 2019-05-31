@@ -7,66 +7,7 @@ __kernel void update_pixel_map(
     __global float  *pixel_map,
     __global float  *dij_n,
     __global int    *mask,
-    const    float    n0,
-    const    float    m0,
-    const    int    N,
-    const    int    I,
-    const    int    J,
-    const    int    U,
-    const    int    V,
-    const    int    di,
-    const    int    dj
-    )
-{                                                       
-    int i = get_group_id(0);
-    int j = get_group_id(1);
-    
-    // printf("%i %i %i %i\n", ss_min, ss_max, fs_min, fs_max);
-    
-    // loop 
-    int n, ss, fs;
-    float err  = 0.;
-    float norm = 0.;
-    float t;
-    
-    for (n = 0; n < N; n++){ 
-        data2[n] = data[I*J*n + i*J + j];
-    }
-    
-    if(mask[i*J + j]==1){
-            err  = 0.;
-            norm = 0.;
-            for (n = 0; n < N; n++)
-            { 
-                ss = rint( pixel_map[0   + i*J + j] + di - dij_n[n*2 + 0] + n0 );
-                fs = rint( pixel_map[I*J + i*J + j] + dj - dij_n[n*2 + 1] + m0 );
-                
-                if((ss >=0) && (ss < U) && (fs >= 0) && (fs < V) && (O[ss*V + fs]>0))
-                {
-                    t     = data2[n] - W[i*J + j] * O[ss*V + fs];
-                    err  += t*t;
-                    //
-                    t     = data2[n] - W[i*J + j];
-                    norm += t*t;
-                }
-            }
-            
-            if(norm > 0)
-            {
-                out[i*J + j] = err / norm;
-            }
-    }
-}
-
-__kernel void update_pixel_map_old(
-    __global float  *W,
-    __global float  *data,
-    __local  float  *data2,
-    __global float  *out,
-    __global float  *O,
-    __global float  *pixel_map,
-    __global float  *dij_n,
-    __global int    *mask,
+    __global int    *is,
     __global int    *js,
     const    float    n0,
     const    float    m0,
@@ -79,14 +20,14 @@ __kernel void update_pixel_map_old(
     const    int    ss_min,
     const    int    ss_max,
     const    int    fs_min,
-    const    int    fs_max,
-    const    int    i
+    const    int    fs_max
     )
 {                                                       
-    //int i = get_group_id(0);
-    int j = get_group_id(1);
+    int i, j;
+    j = get_group_id(1);
+    i = is[j];
     j = js[j];
-
+    
     // printf("%i %i %i %i\n", ss_min, ss_max, fs_min, fs_max);
     
     // loop 
@@ -220,7 +161,7 @@ float bilinear_interpolation(
     }
 }
 
-__kernel void update_pixel_map_old_subpixel(
+__kernel void update_pixel_map_subpixel(
     __global float  *W,
     __global float  *data,
     __local  float  *data2,
@@ -229,6 +170,7 @@ __kernel void update_pixel_map_old_subpixel(
     __global float  *pixel_map,
     __global float  *dij_n,
     __global int    *mask,
+    __global int    *is,
     __global int    *js,
     const    float    n0,
     const    float    m0,
@@ -241,12 +183,13 @@ __kernel void update_pixel_map_old_subpixel(
     const    int    ss_min,
     const    int    ss_max,
     const    int    fs_min,
-    const    int    fs_max,
-    const    int    i
+    const    int    fs_max
     )
 {                                                       
     //int i = get_group_id(0);
-    int j = get_group_id(1);
+    int i, j;
+    j = get_group_id(1);
+    i = is[j];
     j = js[j];
 
     // printf("%i %i %i %i\n", ss_min, ss_max, fs_min, fs_max);

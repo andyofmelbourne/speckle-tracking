@@ -23,7 +23,7 @@ def make_projection_images(mask, W, O, pixel_map, n0, m0, dij_n):
 
 def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, 
                      search_window=None, grid=None, roi=None, 
-                     subpixel=False, subsample=1., quadratic_refinement=False, 
+                     subpixel=False, subsample=1., 
                      filter=None, verbose=True, guess=False):
     r"""
     Update the pixel_map by minimising an error metric within the search_window.
@@ -86,11 +86,6 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
     subpixel : bool, optional
         If True then bilinear interpolation is used to evaluate subpixel locations.
     
-    quadratic_refinement : bool, optional
-        If true then a 2D quadratic will be fit to the error metric around the local minima
-        the location of the minima of this quadratic will be used to get sub-pixel precision
-        for "pixel_map".
-    
     filter : None or float, optional
         If float then apply a gaussian filter to the pixel_maps, ignoring masked pixels. 
         The "filter" is equal to the sigma of the Gaussian in pixel units.
@@ -127,48 +122,26 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
         roi = [0, W.shape[0], 0, W.shape[1]]
     
     if guess :
-        # then estimate suitable parameters with a large search window
-        # where 'large' is obviously = 100
-        from .calc_error import make_pixel_map_err
-        ijs, err_map, res = make_pixel_map_err(
-                            data, mask, W, O, pixel_map, n0, m0, 
-                            dij_n, roi, search_window=100, grid=[10, 10])
-        
-        # now do a coarse grid refinement
-        out, map_mask, res = update_pixel_map(
-                            data, mask, W, O, pixel_map,
-                            n0, m0, dij_n, roi=roi,
-                            search_window=res['search_window'], grid=res['grid'],
-                            subpixel=False, filter=None)
-         
-        # now do a fine subsample search
-        search_window = 3
-        grid = None
-        subsample = 5.
-        subpixel = True
-        filter = None
-        return update_pixel_map(
-                            data, map_mask, W, O, out,
-                            n0, m0, dij_n, roi=roi,
-                            search_window=search_window, grid=grid,
-                            subsample=subsample, subpixel=subpixel, filter=filter)
+        return guess_update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, roi)
+    
+    if grid is None :
+        grid = [roi[1]-roi[0], roi[3]-roi[2]]
 
-    pm, ss, fs, res = update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, subpixel, subsample, search_window, grid)
+    if type(search_window) is int :
+        search_window = [search_window, search_window]
+    
+    ss_grid = np.linspace(roi[0], roi[1]-1, grid[0])
+    fs_grid = np.linspace(roi[2], roi[3]-1, grid[1])
+    ss_grid, fs_grid = np.meshgrid(ss_grid, fs_grid, indexing='ij')
+    
+    out, res = update_pixel_map_opencl(
+               data, mask, W, O, pixel_map, n0, m0, 
+               dij_n, roi, subpixel, subsample, 
+               search_window, ss_grid.ravel(), fs_grid.ravel())
     
     # if the update is on a sparse grid, then interpolate
-    if grid is not None :
-        out, map_mask = interpolate_pixel_map(pm, ss, fs, mask, grid, roi)
-    else :
-        out = np.zeros_like(pixel_map)
-        out[0][ss, fs] = pm[0]
-        out[1][ss, fs] = pm[1]
-        
-        map_mask = np.zeros(mask.shape, dtype=np.bool)
-        map_mask[ss, fs] = mask[ss, fs]
-    
-    if quadratic_refinement :
-        out, res2 = quadratic_refinement_opencl(data, mask, W, O, out, n0, m0, dij_n)
-        res.update(res2)
+    out, map_mask = interpolate_pixel_map(
+                    out.reshape((2,) + ss_grid.shape), ss_grid, fs_grid, mask, grid, roi)
     
     if (filter is not None) and (filter > 0):
         from scipy.ndimage.filters import gaussian_filter
@@ -179,6 +152,63 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
         out = out / norm
     
     return out, map_mask, res
+
+def guess_update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, roi):
+        # then estimate suitable parameters with a large search window
+        # where 'large' is obviously = 100
+        from .calc_error import make_pixel_map_err
+        ijs, err_map, res = make_pixel_map_err(
+                            data, mask, W, O, pixel_map, n0, m0, 
+                            dij_n, roi, search_window=100, grid=[10, 10])
+        
+        grid          = res['grid']
+        search_window = res['search_window']
+        
+        # now do a coarse grid refinement
+        ss_grid = np.round(np.linspace(roi[0], roi[1]-1, grid[0])).astype(np.int32)
+        fs_grid = np.round(np.linspace(roi[2], roi[3]-1, grid[1])).astype(np.int32)
+        ss_grid, fs_grid = np.meshgrid(ss_grid, fs_grid, indexing='ij')
+        ss, fs = ss_grid.ravel(), fs_grid.ravel()
+        
+        # unfortunately some of these pixels will be masked, which screws
+        # everything up... so cheat a little and find the nearest pixel 
+        # that is not masked
+        print('replacing bad pixels in search grid...')
+        u, v = np.indices(mask.shape)
+        u = u[roi[0]:roi[1], roi[2]:roi[3]].ravel()
+        v = v[roi[0]:roi[1], roi[2]:roi[3]].ravel()
+        
+        for i in range(ss.shape[0]):
+            if not mask[ss[i], fs[i]] :
+                dist = (ss[i]-u)**2 + (fs[i]-v)**2
+                j    = np.argsort(dist)
+                k    = np.argmax(mask.ravel()[j])
+                ss[i], fs[i] = u[k], v[k]
+        
+        out, res = update_pixel_map_opencl(
+                            data, mask, W, O, pixel_map,
+                            n0, m0, dij_n, roi, False, 1.,
+                            search_window, ss, fs)
+        
+        print(out.shape, ss.shape, fs.shape, grid)
+        out = out.reshape((2, grid[0], grid[1]))
+         
+        # interpolate onto detector grid
+        out, map_mask = interpolate_pixel_map(out, ss_grid, fs_grid, np.ones_like(mask), grid, roi)
+        
+        # now do a fine subsample search
+        search_window = [3, 3]
+        grid = None
+        subsample = 5.
+        subpixel = True
+        filter = None
+        
+        out2, res = update_pixel_map_opencl(data, mask, W, O, out,
+                                           n0, m0, dij_n, roi, subpixel, subsample,
+                                           search_window, u, v)
+        out[0][u, v] = out2[0]
+        out[1][u, v] = out2[1]
+        return out, mask, res
 
 def interpolate_pixel_map(pm, ss, fs, mask, grid, roi):
     # now use bilinear interpolation
@@ -244,191 +274,10 @@ def update_pixel_map_np(data, mask, W, O, pixel_map, n0, m0, dij_n, search_windo
     ij_out[1] += shifts[j]
     return ij_out, errors, overlaps
 
-def update_pixel_map_opencl_old(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=3):
-    from scipy.ndimage.filters import gaussian_filter
-    
+
+def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, subpixel, subsample, search_window, ss, fs):
     # demand that the data is float32 to avoid excess mem. usage
     assert(data.dtype == np.float32)
-    
-    import os
-    import pyopencl as cl
-    ## Step #1. Obtain an OpenCL platform.
-    # with a cpu device
-    for p in cl.get_platforms():
-        devices = p.get_devices(cl.device_type.CPU)
-        if len(devices) > 0:
-            platform = p
-            device   = devices[0]
-            break
-    
-    ## Step #3. Create a context for the selected device.
-    context = cl.Context([device])
-    queue   = cl.CommandQueue(context)
-    
-    # load and compile the update_pixel_map opencl code
-    here = os.path.split(os.path.abspath(__file__))[0]
-    kernelsource = os.path.join(here, 'update_pixel_map.cl')
-    kernelsource = open(kernelsource).read()
-    program     = cl.Program(context, kernelsource).build()
-    update_pixel_map_cl = program.update_pixel_map
-    
-    update_pixel_map_cl.set_scalar_arg_dtypes(
-                        8*[None] + 2*[np.float32] + 7*[np.int32])
-    
-    # Get the max work group size for the kernel test on our device
-    max_comp = device.max_compute_units
-    max_size = update_pixel_map_cl.get_work_group_info(
-                       cl.kernel_work_group_info.WORK_GROUP_SIZE, device)
-    print('maximum workgroup size:', max_size)
-    print('maximum compute units :', max_comp)
-    
-    # allocate local memory and dtype conversion
-    ############################################
-    localmem = cl.LocalMemory(np.dtype(np.float32).itemsize * data.shape[0])
-    
-    # inputs:
-    Win         = W.astype(np.float32)
-    pixel_mapin = pixel_map.astype(np.float32)
-    Oin         = O.astype(np.float32)
-    dij_nin     = dij_n.astype(np.float32)
-    maskin      = mask.astype(np.int32)
-    
-    if type(search_window) is int :
-        s_ss = search_window
-        s_fs = search_window
-    else :
-        s_ss, s_fs = search_window
-    
-    ss_min, ss_max = (-(s_ss-1)//2, (s_ss+1)//2) 
-    fs_min, fs_max = (-(s_fs-1)//2, (s_fs+1)//2) 
-    
-    # outputs:
-    err_map      = np.empty(W.shape, dtype=np.float32)
-    err_min      = np.empty(W.shape, dtype=np.float32)
-    err_min.fill(np.finfo(np.float32).max)
-    pixel_shift  = np.zeros(pixel_map.shape, dtype=np.float32)
-    
-    import time
-    d0 = time.time()
-    
-    for ss_shift in range(ss_min, ss_max, 1):
-        for fs_shift in range(fs_min, fs_max, 1):
-            err_map.fill(np.finfo(np.float32).max)
-            print(ss_shift, fs_shift)
-            update_pixel_map_cl( queue, W.shape, (1, 1), 
-                  cl.SVM(Win), 
-                  cl.SVM(data), 
-                  localmem, 
-                  cl.SVM(err_map), 
-                  cl.SVM(Oin), 
-                  cl.SVM(pixel_mapin), 
-                  cl.SVM(dij_nin), 
-                  cl.SVM(maskin),
-                  n0, m0, 
-                  data.shape[0], data.shape[1], data.shape[2], 
-                  O.shape[0], O.shape[1], ss_shift, fs_shift)
-            queue.finish()
-             
-            # apply a window smoothing operation to the error map
-            m = (err_map < np.finfo(np.float32).max)
-            err_map = gaussian_filter(m * err_map, 4., mode = 'constant').astype(np.float32)
-            norm    = gaussian_filter(m, 4., mode = 'constant').astype(np.float32)
-            norm[norm==0.] = 1.
-            err_map = err_map / norm
-            
-            # update good pixels where err_map < err_min
-            m = m * (err_map<err_min)
-            err_min[m] = err_map[m]
-            pixel_shift[0][m] = ss_shift
-            pixel_shift[1][m] = fs_shift
-    
-    out = pixel_map + pixel_shift
-    pixel_mapin += pixel_shift
-    
-    # qudratic fit refinement
-    pixel_shift.fill(0.)
-    err_quad = np.empty((9,) + W.shape, dtype=np.float32)
-    
-    A = []
-    print('\nquadratic refinement:')
-    print('---------------------')
-    for ss_shift in [-1, 0, 1]:
-        for fs_shift in [-1, 0, 1]:
-            A.append([ss_shift**2, fs_shift**2, ss_shift, fs_shift, ss_shift*fs_shift, 1])
-            print(ss_shift, fs_shift)
-            update_pixel_map_cl( queue, W.shape, (1, 1), 
-                  cl.SVM(Win), 
-                  cl.SVM(data), 
-                  localmem, 
-                  cl.SVM(err_map), 
-                  cl.SVM(Oin), 
-                  cl.SVM(pixel_mapin), 
-                  cl.SVM(dij_nin), 
-                  cl.SVM(maskin),
-                  n0, m0, 
-                  data.shape[0], data.shape[1], data.shape[2], 
-                  O.shape[0], O.shape[1], ss_shift, fs_shift)
-            queue.finish()
-             
-            # apply a window smoothing operation to the error map
-            m = (err_map < np.finfo(np.float32).max)
-            err_map = gaussian_filter(m * err_map, 4., mode = 'constant').astype(np.float32)
-            norm    = gaussian_filter(m, 4., mode = 'constant').astype(np.float32)
-            norm[norm==0.] = 1.
-            err_map = err_map / norm
-            
-            err_quad[3*(ss_shift+1) + fs_shift+1, :, :] = err_map
-
-    # now we have 9 equations and 6 unknowns
-    # c_20 x^2 + c_02 y^2 + c_10 x + c_01 y + c_11 x y + c_00 = err_i
-    B = np.linalg.pinv(A)
-    C = np.dot(B, np.transpose(err_quad, (1, 0, 2)))
-    
-    # minima is defined by
-    # 2 c_20 x +   c_11 y = -c_10
-    #   c_11 x + 2 c_02 y = -c_01
-    # where C = [c_20, c_02, c_10, c_01, c_11, c_00]
-    #           [   0,    1,    2,    3,    4,    5]
-    # [x y] = [[2c_02 -c_11], [-c_11, 2c_20]] . [-c_10 -c_01] / (2c_20 * 2c_02 - c_11**2)
-    # x     = (-2c_02 c_10 + c_11   c_01) / det
-    # y     = (  c_11 c_10 - 2 c_20 c_01) / det
-    det  = 2*C[0] * 2*C[1] - C[4]**2
-    
-    # make sure all sampled shifts have a valid error
-    m    = np.all(err_quad<np.finfo(np.float32).max, axis=0)
-    # make sure the determinant is non zero
-    m    = m * (det != 0)
-    pixel_shift[0][m] = (-2*C[1] * C[2] +   C[4] * C[3])[m] / det[m]
-    pixel_shift[1][m] = (   C[4] * C[2] - 2*C[0] * C[3])[m] / det[m]
-
-    # now only update pixels for which (x**2 + y**2) < 3**2
-    m = m * (np.sum(pixel_shift**2, axis=0) < 9)
-    
-    #out[0][m] = out[0][m] + pixel_shift[0][m]
-    #out[1][m] = out[1][m] + pixel_shift[1][m]
-      
-    print('calculation took:', time.time()-d0, 's')
-    
-    return out, {'error_map': mask*err_min, 'pixel_shift': pixel_shift, 'err_quad': err_quad}
-
-
-def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi=None, subpixel=False, subsample=1., search_window=20, grid=None):
-    # demand that the data is float32 to avoid excess mem. usage
-    assert(data.dtype == np.float32)
-
-    if roi is None :
-        roi = [0, mask.shape[0], 0, mask.shape[1]]
-    
-    if type(search_window) is int :
-        s_ss = search_window
-        s_fs = search_window
-    else :
-        s_ss, s_fs = search_window
-
-    if grid is None :
-        grid = [roi[1]-roi[0], roi[3]-roi[2]]
-    ss = np.round(np.linspace(roi[0], roi[1]-1, grid[0])).astype(np.int32)
-    fs = np.round(np.linspace(roi[2], roi[3]-1, grid[1])).astype(np.int32)
     
     ##################################################################
     # OpenCL crap
@@ -453,16 +302,17 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi=None
     kernelsource = os.path.join(here, 'update_pixel_map.cl')
     kernelsource = open(kernelsource).read()
     program     = cl.Program(context, kernelsource).build()
+    
     if subpixel:
-        update_pixel_map_cl = program.update_pixel_map_old_subpixel
+        update_pixel_map_cl = program.update_pixel_map_subpixel
     else :
-        update_pixel_map_cl = program.update_pixel_map_old
+        update_pixel_map_cl = program.update_pixel_map
     
     update_pixel_map_cl.set_scalar_arg_dtypes(
-            [None, None, None, None, None, None, None, None, None,
+            [None, None, None, None, None, None, None, None, None, None,
              np.float32, np.float32, np.float32, np.int32, np.int32, 
              np.int32, np.int32, np.int32, np.int32, np.int32,
-             np.int32, np.int32, np.int32])
+             np.int32, np.int32])
     
     # Get the max work group size for the kernel test on our device
     max_comp = device.max_compute_units
@@ -481,9 +331,11 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi=None
     Oin         = O.astype(np.float32)
     dij_nin     = dij_n.astype(np.float32)
     maskin      = mask.astype(np.int32)
+    ss          = ss.ravel().astype(np.int32)
+    fs          = fs.ravel().astype(np.int32)
     
-    ss_min, ss_max = (-(s_ss-1)//2, (s_ss+1)//2) 
-    fs_min, fs_max = (-(s_fs-1)//2, (s_fs+1)//2) 
+    ss_min, ss_max = (-(search_window[0]-1)//2, (search_window[0]+1)//2) 
+    fs_min, fs_max = (-(search_window[1]-1)//2, (search_window[1]+1)//2) 
     
     # outputs:
     err_map      = np.zeros(W.shape, dtype=np.float32)
@@ -492,8 +344,11 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi=None
     # End crap
     ##################################################################
     
-    for i in tqdm.trange(ss.shape[0], desc='updating pixel map'):
-        update_pixel_map_cl(queue, (1, fs.shape[0]), (1, 1), 
+    step = min(100, ss.shape[0])
+    for i in tqdm.tqdm(np.arange(ss.shape[0])[::step], desc='updating pixel map'):
+        ssi = ss[i:i+step:]
+        fsi = fs[i:i+step:]
+        update_pixel_map_cl(queue, (1, fsi.shape[0]), (1, 1), 
               cl.SVM(Win), 
               cl.SVM(data), 
               localmem, 
@@ -502,134 +357,19 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, roi=None
               cl.SVM(pixel_mapout), 
               cl.SVM(dij_nin), 
               cl.SVM(maskin),
-              cl.SVM(fs),
+              cl.SVM(ssi),
+              cl.SVM(fsi),
               n0, m0, subsample,
               data.shape[0], data.shape[1], data.shape[2], 
-              O.shape[0], O.shape[1], ss_min, ss_max, fs_min, fs_max, ss[i])
-     
+              O.shape[0], O.shape[1], ss_min, ss_max, fs_min, fs_max)
         queue.finish()
     
     # only return filled values
-    ss, fs = np.meshgrid(ss, fs, indexing='ij')
     out = np.zeros((2,) + ss.shape, dtype=pixel_map.dtype)
     out[0] = pixel_mapout[0][ss, fs]
     out[1] = pixel_mapout[1][ss, fs]
-    return out, ss, fs, {'error_map': err_map}
+    return out, {'error_map': err_map}
 
-
-def quadratic_refinement_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n):
-    # demand that the data is float32 to avoid excess mem. usage
-    assert(data.dtype == np.float32)
-    
-    import os
-    import pyopencl as cl
-    ## Step #1. Obtain an OpenCL platform.
-    # with a cpu device
-    for p in cl.get_platforms():
-        devices = p.get_devices(cl.device_type.CPU)
-        if len(devices) > 0:
-            platform = p
-            device   = devices[0]
-            break
-    
-    ## Step #3. Create a context for the selected device.
-    context = cl.Context([device])
-    queue   = cl.CommandQueue(context)
-    
-    # load and compile the update_pixel_map opencl code
-    here = os.path.split(os.path.abspath(__file__))[0]
-    kernelsource = os.path.join(here, 'update_pixel_map.cl')
-    kernelsource = open(kernelsource).read()
-    program     = cl.Program(context, kernelsource).build()
-    update_pixel_map_cl = program.update_pixel_map
-    
-    update_pixel_map_cl.set_scalar_arg_dtypes(
-                        8*[None] + 2*[np.float32] + 7*[np.int32])
-    
-    # Get the max work group size for the kernel test on our device
-    max_comp = device.max_compute_units
-    max_size = update_pixel_map_cl.get_work_group_info(
-                       cl.kernel_work_group_info.WORK_GROUP_SIZE, device)
-    print('maximum workgroup size:', max_size)
-    print('maximum compute units :', max_comp)
-    
-    # allocate local memory and dtype conversion
-    ############################################
-    localmem = cl.LocalMemory(np.dtype(np.float32).itemsize * data.shape[0])
-    
-    # inputs:
-    Win         = W.astype(np.float32)
-    pixel_mapin = pixel_map.astype(np.float32)
-    Oin         = O.astype(np.float32)
-    dij_nin     = dij_n.astype(np.float32)
-    maskin      = mask.astype(np.int32)
-    
-    # outputs:
-    err_map      = np.empty(W.shape, dtype=np.float32)
-    pixel_shift  = np.zeros(pixel_map.shape, dtype=np.float32)
-    err_quad     = np.empty((9,) + W.shape, dtype=np.float32)
-    out          = pixel_map.copy()
-    
-    import time
-    d0 = time.time()
-    
-    # qudratic fit refinement
-    pixel_shift.fill(0.)
-    
-    A = []
-    print('\nquadratic refinement:')
-    print('---------------------')
-    for ss_shift in [-1, 0, 1]:
-        for fs_shift in [-1, 0, 1]:
-            A.append([ss_shift**2, fs_shift**2, ss_shift, fs_shift, ss_shift*fs_shift, 1])
-            print(ss_shift, fs_shift)
-            update_pixel_map_cl( queue, W.shape, (1, 1), 
-                  cl.SVM(Win), 
-                  cl.SVM(data), 
-                  localmem, 
-                  cl.SVM(err_map), 
-                  cl.SVM(Oin), 
-                  cl.SVM(pixel_mapin), 
-                  cl.SVM(dij_nin), 
-                  cl.SVM(maskin),
-                  n0, m0, 
-                  data.shape[0], data.shape[1], data.shape[2], 
-                  O.shape[0], O.shape[1], ss_shift, fs_shift)
-            queue.finish()
-            
-            err_quad[3*(ss_shift+1) + fs_shift+1, :, :] = err_map
-    
-    # now we have 9 equations and 6 unknowns
-    # c_20 x^2 + c_02 y^2 + c_10 x + c_01 y + c_11 x y + c_00 = err_i
-    B = np.linalg.pinv(A)
-    C = np.dot(B, np.transpose(err_quad, (1, 0, 2)))
-    
-    # minima is defined by
-    # 2 c_20 x +   c_11 y = -c_10
-    #   c_11 x + 2 c_02 y = -c_01
-    # where C = [c_20, c_02, c_10, c_01, c_11, c_00]
-    #           [   0,    1,    2,    3,    4,    5]
-    # [x y] = [[2c_02 -c_11], [-c_11, 2c_20]] . [-c_10 -c_01] / (2c_20 * 2c_02 - c_11**2)
-    # x     = (-2c_02 c_10 + c_11   c_01) / det
-    # y     = (  c_11 c_10 - 2 c_20 c_01) / det
-    det  = 2*C[0] * 2*C[1] - C[4]**2
-    
-    # make sure all sampled shifts have a valid error
-    m    = np.all(err_quad<np.finfo(np.float32).max, axis=0)
-    # make sure the determinant is non zero
-    m    = m * (det != 0)
-    pixel_shift[0][m] = (-2*C[1] * C[2] +   C[4] * C[3])[m] / det[m]
-    pixel_shift[1][m] = (   C[4] * C[2] - 2*C[0] * C[3])[m] / det[m]
-    
-    # now only update pixels for which (x**2 + y**2) < 3**2
-    m = m * (np.sum(pixel_shift**2, axis=0) < 9)
-    
-    out[0][m] = out[0][m] + pixel_shift[0][m]
-    out[1][m] = out[1][m] + pixel_shift[1][m]
-      
-    print('calculation took:', time.time()-d0, 's')
-    
-    return out, {'pixel_shift': pixel_shift, 'err_quad': err_quad}
 
 def bilinear_interpolation_array(array, mask, ss, fs, fill = 0):
     """
