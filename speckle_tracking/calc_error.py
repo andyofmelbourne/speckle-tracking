@@ -317,7 +317,7 @@ def make_pixel_map_err_report(ijs, err_map, mask, search_window, roi, t):
     pixel_dist_ss = (sw_next // 2) / (np.median(con_ss) + 2*np.median(con_ss))
     pixel_dist_fs = (sw_next // 2) / (np.median(con_fs) + 2*np.median(con_fs))
     
-    grid = [int(round((roi[1]-roi[0])) / pixel_dist_ss), int(round((roi[3]-roi[2]) / pixel_dist_fs))]
+    grid = [2*int(round((roi[1]-roi[0])) / pixel_dist_ss), 2*int(round((roi[3]-roi[2]) / pixel_dist_fs))]
     
     # estimated time
     sec_per_elem = t / (search_window**2 * ijs.shape[0])

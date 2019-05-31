@@ -144,7 +144,7 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
         # now do a fine subsample search
         search_window = 3
         grid = None
-        subsample = 10.
+        subsample = 5.
         subpixel = True
         filter = None
         return update_pixel_map(
