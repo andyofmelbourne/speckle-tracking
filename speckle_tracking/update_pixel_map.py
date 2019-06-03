@@ -175,14 +175,16 @@ def guess_update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, roi):
         # that is not masked
         print('replacing bad pixels in search grid...')
         u, v = np.indices(mask.shape)
-        u = u[roi[0]:roi[1], roi[2]:roi[3]].ravel()
-        v = v[roi[0]:roi[1], roi[2]:roi[3]].ravel()
+        u = u.ravel()
+        v = v.ravel()
+        #u = u[roi[0]:roi[1], roi[2]:roi[3]].ravel()
+        #v = v[roi[0]:roi[1], roi[2]:roi[3]].ravel()
         
         for i in range(ss.shape[0]):
             if not mask[ss[i], fs[i]] :
                 dist = (ss[i]-u)**2 + (fs[i]-v)**2
                 j    = np.argsort(dist)
-                k    = np.argmax(mask.ravel()[j])
+                k    = j[np.argmax(mask.ravel()[j])]
                 ss[i], fs[i] = u[k], v[k]
         
         out, res = update_pixel_map_opencl(
@@ -190,7 +192,6 @@ def guess_update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, roi):
                             n0, m0, dij_n, roi, False, 1.,
                             search_window, ss, fs)
         
-        print(out.shape, ss.shape, fs.shape, grid)
         out = out.reshape((2, grid[0], grid[1]))
          
         # interpolate onto detector grid
@@ -201,7 +202,6 @@ def guess_update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, roi):
         grid = None
         subsample = 5.
         subpixel = True
-        filter = None
         
         out2, res = update_pixel_map_opencl(data, mask, W, O, out,
                                            n0, m0, dij_n, roi, subpixel, subsample,

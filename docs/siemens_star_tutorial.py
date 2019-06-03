@@ -60,39 +60,32 @@ f.close()
 
 dz = defocus - defocus_fs
 
-pixel_map, pixel_map_inv, dxy = st.make_pixel_map(
+pm0, pixel_map_inv, dxy = st.make_pixel_map(
                                    z, defocus, dz, roi,
                                    x_pixel_size, y_pixel_size,
                                    W.shape)
 
 dij_n = st.make_pixel_translations(translations, basis, dxy[0], dxy[1])
 
-O, n0, m0 = st.make_object_map(data, mask, W, dij_n, pixel_map, subpixel=True)
-error_total, error_frame, error_pixel = st.calc_error(data, mask, W, dij_n, O, pixel_map, n0, m0, subpixel=True)
+O, n0, m0 = st.make_object_map(data, mask, W, dij_n, pm0, subpixel=False)
 
-Os = [O.copy()]
-error_totals = [error_total]
-error_frames = [error_frame.copy()]
-error_pixels = [error_pixel.copy()]
+pixel_map, map_mask, res = st.update_pixel_map(data, mask, W, O, pm0, n0, m0, dij_n, 
+                           roi=roi, guess=True)
 
-sw = 20
-filter = 1.
-for i in range(4):
-    #if i == 3 :
-    #    sw = 40
-    #    filter = 1.
-    
-    # update pixel map
-    pixel_map, res = st.update_pixel_map(
-                        data, mask, W, O, pixel_map,
-                        n0, m0, dij_n, search_window=sw, filter=filter)
-    
-    # update object map
-    O, n0, m0 = st.make_object_map(
-                   data, mask, W, dij_n, pixel_map, subpixel=True)
-    error_total, error_frame, error_pixel = st.calc_error(data, mask, W, dij_n, O, pixel_map, n0, m0, subpixel=True)
-    
-    Os.append(O.copy())
-    error_totals.append(error_total)
-    error_frames.append(error_frame.copy())
-    error_pixels.append(error_pixel.copy())
+O, n0, m0 = st.make_object_map(data, map_mask, W, dij_n, pixel_map, subpixel=True)
+
+error_total, error_frame, error_pixel = st.calc_error(
+                                        data, map_mask, W, dij_n, O, 
+                                        pixel_map, n0, m0, subpixel=True)
+
+write = {'object_map': O, 'n0': n0, 'm0': m0, 
+         'pixel_map': pixel_map, 
+         'map_mask': map_mask, 'error_pixel': error_pixel}
+
+f = h5py.File('siemens_star.cxi')
+for k in write.keys():
+    key = output_group+k
+    if key in f :
+        del f[key]
+    f[key] = write[k]
+f.close()
