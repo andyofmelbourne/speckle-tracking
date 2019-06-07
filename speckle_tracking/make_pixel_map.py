@@ -149,7 +149,7 @@ def make_pixel_map(z, z1, dz, roi, x_pixel_size, y_pixel_size, shape, dx=None, d
     ii, jj = np.meshgrid(i_map, j_map, indexing='ij')
     pixel_map = np.array([ii, jj])
     
-    i, j = np.arange(int(i_map[roi[1]])), np.arange(int(j_map[roi[3]]))
+    i, j = np.arange(int(i_map[roi[1]-1])), np.arange(int(j_map[roi[3]-1]))
     i_map  = (dx * Mss) * i / x_pixel_size  + roi[0]
     j_map  = (dy * Mfs) * j / y_pixel_size  + roi[2]
     ii, jj = np.meshgrid(i_map, j_map, indexing='ij')

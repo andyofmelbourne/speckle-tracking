@@ -144,71 +144,77 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
                     out.reshape((2,) + ss_grid.shape), ss_grid, fs_grid, mask, grid, roi)
     
     if (filter is not None) and (filter > 0):
-        from scipy.ndimage.filters import gaussian_filter
-        out[0] = gaussian_filter(mask * out[0], filter, mode = 'constant')
-        out[1] = gaussian_filter(mask * out[1], filter, mode = 'constant')
-        norm   = gaussian_filter(mask.astype(np.float), filter, mode = 'constant')
-        norm[norm==0.] = 1.
-        out = out / norm
+        out = filter_pixel_map(out, mask, filter)
     
     return out, map_mask, res
 
+def filter_pixel_map(pm, mask, sig): 
+    out = np.zeros_like(pm)
+    
+    from scipy.ndimage.filters import gaussian_filter
+    out[0] = gaussian_filter(mask * pm[0], sig, mode = 'constant')
+    out[1] = gaussian_filter(mask * pm[1], sig, mode = 'constant')
+    norm   = gaussian_filter(mask.astype(np.float), sig, mode = 'constant')
+    norm[norm==0.] = 1.
+    out = out / norm
+    return out
+
 def guess_update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, roi):
-        # then estimate suitable parameters with a large search window
-        # where 'large' is obviously = 100
-        from .calc_error import make_pixel_map_err
-        ijs, err_map, res = make_pixel_map_err(
-                            data, mask, W, O, pixel_map, n0, m0, 
-                            dij_n, roi, search_window=100, grid=[10, 10])
-        
-        grid          = res['grid']
-        search_window = res['search_window']
-        
-        # now do a coarse grid refinement
-        ss_grid = np.round(np.linspace(roi[0], roi[1]-1, grid[0])).astype(np.int32)
-        fs_grid = np.round(np.linspace(roi[2], roi[3]-1, grid[1])).astype(np.int32)
-        ss_grid, fs_grid = np.meshgrid(ss_grid, fs_grid, indexing='ij')
-        ss, fs = ss_grid.ravel(), fs_grid.ravel()
-        
-        # unfortunately some of these pixels will be masked, which screws
-        # everything up... so cheat a little and find the nearest pixel 
-        # that is not masked
-        print('replacing bad pixels in search grid...')
-        u, v = np.indices(mask.shape)
-        u = u.ravel()
-        v = v.ravel()
-        #u = u[roi[0]:roi[1], roi[2]:roi[3]].ravel()
-        #v = v[roi[0]:roi[1], roi[2]:roi[3]].ravel()
-        
-        for i in range(ss.shape[0]):
-            if not mask[ss[i], fs[i]] :
-                dist = (ss[i]-u)**2 + (fs[i]-v)**2
-                j    = np.argsort(dist)
-                k    = j[np.argmax(mask.ravel()[j])]
-                ss[i], fs[i] = u[k], v[k]
-        
-        out, res = update_pixel_map_opencl(
-                            data, mask, W, O, pixel_map,
-                            n0, m0, dij_n, roi, False, 1.,
-                            search_window, ss, fs)
-        
-        out = out.reshape((2, grid[0], grid[1]))
-         
-        # interpolate onto detector grid
-        out, map_mask = interpolate_pixel_map(out, ss_grid, fs_grid, np.ones_like(mask), grid, roi)
-        
-        # now do a fine subsample search
-        search_window = [3, 3]
-        grid = None
-        subsample = 5.
-        subpixel = True
-        
-        out2, res = update_pixel_map_opencl(data, mask, W, O, out,
-                                           n0, m0, dij_n, roi, subpixel, subsample,
-                                           search_window, u, v)
-        out[0][u, v] = out2[0]
-        out[1][u, v] = out2[1]
-        return out, mask, res
+    # then estimate suitable parameters with a large search window
+    # where 'large' is obviously = 100
+    from .calc_error import make_pixel_map_err
+    ijs, err_map, res = make_pixel_map_err(
+                        data, mask, W, O, pixel_map, n0, m0, 
+                        dij_n, roi, search_window=100, grid=[10, 10])
+    
+    grid          = res['grid']
+    search_window = res['search_window']
+    
+    # now do a coarse grid refinement
+    ss_grid = np.round(np.linspace(roi[0], roi[1]-1, grid[0])).astype(np.int32)
+    fs_grid = np.round(np.linspace(roi[2], roi[3]-1, grid[1])).astype(np.int32)
+    ss_grid, fs_grid = np.meshgrid(ss_grid, fs_grid, indexing='ij')
+    ss, fs = ss_grid.ravel(), fs_grid.ravel()
+    
+    # unfortunately some of these pixels will be masked, which screws
+    # everything up... so cheat a little and find the nearest pixel 
+    # that is not masked
+    print('replacing bad pixels in search grid...')
+    u, v = np.indices(mask.shape)
+    u = u.ravel()
+    v = v.ravel()
+    #u = u[roi[0]:roi[1], roi[2]:roi[3]].ravel()
+    #v = v[roi[0]:roi[1], roi[2]:roi[3]].ravel()
+    
+    for i in range(ss.shape[0]):
+        if not mask[ss[i], fs[i]] :
+            dist = (ss[i]-u)**2 + (fs[i]-v)**2
+            j    = np.argsort(dist)
+            k    = j[np.argmax(mask.ravel()[j])]
+            ss[i], fs[i] = u[k], v[k]
+    
+    out, res = update_pixel_map_opencl(
+                        data, mask, W, O, pixel_map,
+                        n0, m0, dij_n, roi, False, 1.,
+                        search_window, ss, fs)
+    
+    out = out.reshape((2, grid[0], grid[1]))
+     
+    # interpolate onto detector grid
+    out, map_mask = interpolate_pixel_map(out, ss_grid, fs_grid, np.ones_like(mask), grid, roi)
+    
+    # now do a fine subsample search
+    search_window = [3, 3]
+    grid = None
+    subsample = 5.
+    subpixel = True
+    
+    out2, res = update_pixel_map_opencl(data, mask, W, O, out,
+                                       n0, m0, dij_n, roi, subpixel, subsample,
+                                       search_window, u, v)
+    out[0][u, v] = out2[0]
+    out[1][u, v] = out2[1]
+    return out, mask, res
 
 def interpolate_pixel_map(pm, ss, fs, mask, grid, roi):
     # now use bilinear interpolation

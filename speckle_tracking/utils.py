@@ -47,3 +47,84 @@ def radial_symetry(background, rs, mask=None):
     ########### Make a large background filled with the radial average
     #background = r_av[rs].reshape(background.shape)
     return r_av
+
+def diff_inv_2d(da, a0=None, axis=0):
+    shape        = list(da.shape)
+    shape[axis] += 1
+    out          = np.zeros(tuple(shape), dtype=float)
+    if a0 is None :
+        if axis == 0 :
+            a0 = np.zeros((shape[1],))
+        else :
+            a0 = np.zeros((shape[0],))
+        
+    if axis == 0 :
+        out[0,  :] = a0
+        out[1:, :] = da
+    elif axis == 1 :
+        out[:,  0] = a0
+        out[:, 1:] = da
+    return np.cumsum(out, axis=axis)
+
+def P(g, df, mask, axis):
+    """
+    h(x, y) = cumsum(f) = f(x, y) + c(y)
+    er = sum [g-h]^2
+       = sum_ij [g_ij - f_ij - c_j]^2
+    er_gk = sum_i -2 [g_ik - f_ik - c_k] = 0
+    therefore c_j = sum_i [g_ik - f_ik] / I
+    """
+    df2 = df.copy()
+    #df2[~mask] = np.diff(g, axis=axis)[~mask]
+    df2[~mask] = 0.
+    if axis == 0 :
+        h  = diff_inv_2d(df2, a0 = g[:,0], axis=0)
+        #h += np.mean(g-h, axis=0)
+        # the masked region of g should remain untouched
+        h[1:, :][~mask] = g[1:, :][~mask]
+        # now we have to adjust the mean level of each 
+        # segment (between masked pixels) to that of g
+        # this could take a while... should be opencl
+        for i in range(h.shape[0]):
+            for j in range(h.shape[1]):
+
+
+                    
+    elif axis == 1 :
+        h = diff_inv_2d(df2, a0 = None, axis=1)
+        h = (h.T + np.mean(g-h, axis=1)).T
+    return h
+
+def integrate(dss, dfs, mask, tol=1e-10, maxiter=1000):
+    s = dss.shape
+    dfx = np.zeros((s[0], s[1]+1), dtype=float)
+    dfy = np.zeros((s[0]+1, s[1]), dtype=float)
+    mx  = np.zeros(dfx.shape, dtype=np.bool)
+    my  = np.zeros(dfy.shape, dtype=np.bool)
+    mx[:, :-1] = mask
+    my[:-1, :] = mask
+    dfx[:, :-1] = dss
+    dfy[:-1, :] = dfs
+    norm = np.sum(dss**2 + dfs**2)
+    
+    f = np.zeros((s[0]+1, s[1]+1), dtype=float)
+    er  = np.sqrt((np.sum((mask*(dss-np.diff(f, axis=0)[:,:-1]))[:-1,:]**2) + np.sum((mask*(dfs-np.diff(f, axis=1)[:-1,:] )**2))[:,:-1])/norm)
+    print(-1, er)
+    for i in range(maxiter):
+        fx = P(f, dfx, mx, 0)
+        fy = P(f, dfy, my, 1)
+        #fy = fx.copy()
+        f = (fx + fy)/2.
+        #fx = P(f, dfx, mx, 0)
+        #fy = P(fx, dfy, my, 1)
+        #f = fy.copy()
+        er  = np.sqrt((np.sum((mask*(dss-np.diff(f, axis=0)[:,:-1]))[:-1,:]**2) + np.sum((mask*(dfs-np.diff(f, axis=1)[:-1,:] )**2))[:,:-1])/norm)
+        er2 = np.sqrt(np.sum(mask*(fx-fy)[:-1,:-1]**2)/norm)
+        er3 = (np.median(mx*(np.diff(fx, axis=0)-dfx)**2), np.median(my*(np.diff(fy, axis=1)-dfy)**2))
+        er4 = (np.sum(mask*(f-fx)[:-1,:-1]**2), np.sum(mask*(f-fy)[:-1,:-1]**2))
+        #er2 = np.sqrt(np.sum(mask*(fx-fy)[:-1,:-1]**2)/norm)
+        #er3 = (np.sqrt(np.sum(mask*(dss-np.diff(f, axis=0)[:,:-1])**2)/norm),  np.sum(np.sqrt(mask*(dfs-np.diff(f, axis=1)[:-1,:] )**2)/norm))
+        print(i, er2, er3, er4, er)
+        if er < tol :
+            break
+    return f
