@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.ndimage import filters 
 from scipy.stats import pearsonr
+import tqdm
 
 def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centre=None, sig=10, edge_pix=5, window=30, rad_range=None, verbose=True):
     r"""Find the focus to sample distance by fitting Thon rings to power spectrum.
@@ -110,7 +111,7 @@ def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centr
     and :math:`z_2` is the distance between the sample and the detector.
     """
 
-    if verbose : print('fitting the defocus and astigmatism:\n')
+    if verbose : print('fitting the defocus and astigmatism')
     # generate the thon rings
     # offset centre to avoid panel edges
     thon = make_thon(data, mask, W, roi, sig=sig, centre=centre)
@@ -151,12 +152,18 @@ def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centr
     thon_calc = calculate_thon(z, z1, dz, x_pixel_size, y_pixel_size, thon.shape, wav, bd)
     
     # overlay with forward calculation for display
-    thon = make_thon(data, mask, W, roi, sig=None, centre=centre)
+    #thon = make_thon(data, mask, W, roi, sig=None, centre=centre)
     thon_dis = np.log(thon)**0.2
     thon_dis = (thon_dis-thon_dis.min())/(thon_dis-thon_dis.min()).max()
     thon_dis[:thon.shape[0]//2, :thon.shape[1]//2] = thon_calc[:thon.shape[0]//2, :thon.shape[1]//2]
     thon_dis = np.fft.fftshift(thon_dis)
-    return z1, dz, {'thon_display': thon_dis, 'bd':bd}
+    
+
+    if verbose : 
+        print('defocus                 : {:.2e}'.format(z1))
+        print('defocus (fast scan axis): {:.2e}'.format(z1+dz))
+        print('defocus (slow scan axis): {:.2e}'.format(z1-dz))
+    return z1, {'thon_display': thon_dis, 'bd':bd, 'defocus_fs': z1-dz, 'defocus_ss': z1+dz, 'astigmatism': dz}
 
 
 def make_thon(data, mask, W, roi=None, sig=None, centre=None):
@@ -170,7 +177,7 @@ def make_thon(data, mask, W, roi=None, sig=None, centre=None):
     reg = mk_2dgaus(data.shape[1:], sig, centre)
     
     thon = np.zeros(data.shape[1:], dtype=np.float)
-    for i in range(data.shape[0]):
+    for i in tqdm.trange(data.shape[0], desc='generating Thon rings from data'):
         # mask data and fill masked pixels
         temp = mask * data[i] / W
         temp[mask==False] = 1.
@@ -249,7 +256,7 @@ def fit_theta_scale(im, mask):
     
     error = np.empty(ts.shape + ds.shape, dtype=np.float)
     error.fill(np.inf)
-    for ti, t in enumerate(ts) :
+    for ti, t in tqdm.tqdm(enumerate(ts), total = len(ts), desc='fitting astigmatism') :
         for di, d in enumerate(ds) :
             error[ti, di] = fun(t, d)
     
@@ -302,7 +309,8 @@ def fit_sincos(f, r):
     
     error = np.empty(a_s.shape + b_s.shape, dtype=np.float)
     error.fill(np.inf)
-    for ai, a in enumerate(a_s) :
+    import tqdm
+    for ai, a in tqdm.tqdm(enumerate(a_s), total = len(a_s), desc='fitting sin cos profile') :
         for bi, b in enumerate(b_s) :
             error[ai, bi] = fun(a, b)
             #print(ai, bi, error[ai, bi])

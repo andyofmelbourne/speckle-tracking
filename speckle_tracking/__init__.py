@@ -11,6 +11,7 @@ from .make_pixel_translations import make_pixel_translations
 from .make_object_map import make_object_map
 from .update_pixel_map import update_pixel_map
 from .update_pixel_map import make_projection_images
+from .integrate_pixel_map import integrate_pixel_map
 from .docstring_glossary import docstring_glossary
 from .calc_error import calc_error
 from .calc_error import make_pixel_map_err

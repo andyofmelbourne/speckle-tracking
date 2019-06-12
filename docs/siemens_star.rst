@@ -47,7 +47,7 @@ Make the mask
         # extract data
         f = h5py.File('siemens_star.cxi', 'r')
 
-        data  = f['/entry_1/data_1/data'][()]
+        data  = f['/entry_1/data_1/data'][()].astype(np.float32)
         basis = f['/entry_1/instrument_1/detector_1/basis_vectors'][()]
         z     = f['/entry_1/instrument_1/detector_1/distance'][()]
         x_pixel_size = f['/entry_1/instrument_1/detector_1/x_pixel_size'][()]

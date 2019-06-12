@@ -19,8 +19,6 @@ def guess_roi(W, verbose=True):
         interesting data in a frame will be in the region:
         frame[roi[0]:roi[1], roi[2]:roi[3]]
     """
-    if verbose : print('guessing the region of interest:\n')
-    
     roi = [0, 0, 0, 0]
     
     # left ss intercept
@@ -46,6 +44,7 @@ def guess_roi(W, verbose=True):
     y = np.cumsum(np.sum(W, axis=0)[::-1])
     p = np.polyfit(x, y, 2)
     roi[3] = W.shape[1] - int(round(-p[2]/p[1])) 
-
+    
+    if verbose : print('guessing the region of interest:', roi)
     return roi
 

@@ -1,26 +1,6 @@
 import numpy as np
 import tqdm
 
-def make_projection_images(mask, W, O, pixel_map, n0, m0, dij_n):
-    out = -np.ones((len(dij_n),) + W.shape, dtype=np.float) 
-    t   = np.zeros((np.sum(mask),), dtype=np.float)
-    
-    # mask the pixel mapping
-    ij     = np.array([pixel_map[0][mask], pixel_map[1][mask]])
-        
-    for n in range(out.shape[0]):
-        ss = np.rint(ij[0] - dij_n[n, 0] + n0).astype(np.int)
-        fs = np.rint(ij[1] - dij_n[n, 1] + m0).astype(np.int)
-        
-        m2 = (ss>0)*(ss<O.shape[0])*(fs>0)*(fs<O.shape[1])
-        t       = W[mask] 
-        t[m2]  *= O[ss[m2], fs[m2]]
-        t[~m2]  = -1
-        
-        out[n][mask] = t
-    
-    return out 
-
 def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, 
                      search_window=None, grid=None, roi=None, 
                      subpixel=False, subsample=1., 
@@ -121,7 +101,7 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
     if roi is None :
         roi = [0, W.shape[0], 0, W.shape[1]]
     
-    if guess :
+    if guess or search_window is None :
         return guess_update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, roi)
     
     if grid is None :
@@ -146,7 +126,29 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
     if (filter is not None) and (filter > 0):
         out = filter_pixel_map(out, mask, filter)
     
-    return out, map_mask, res
+    res['map_mask'] = map_mask
+    return out, res
+
+
+def make_projection_images(mask, W, O, pixel_map, n0, m0, dij_n):
+    out = -np.ones((len(dij_n),) + W.shape, dtype=np.float) 
+    t   = np.zeros((np.sum(mask),), dtype=np.float)
+    
+    # mask the pixel mapping
+    ij     = np.array([pixel_map[0][mask], pixel_map[1][mask]])
+        
+    for n in range(out.shape[0]):
+        ss = np.rint(ij[0] - dij_n[n, 0] + n0).astype(np.int)
+        fs = np.rint(ij[1] - dij_n[n, 1] + m0).astype(np.int)
+        
+        m2 = (ss>0)*(ss<O.shape[0])*(fs>0)*(fs<O.shape[1])
+        t       = W[mask] 
+        t[m2]  *= O[ss[m2], fs[m2]]
+        t[~m2]  = -1
+        
+        out[n][mask] = t
+    
+    return out 
 
 def filter_pixel_map(pm, mask, sig): 
     out = np.zeros_like(pm)
@@ -214,7 +216,8 @@ def guess_update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, roi):
                                        search_window, u, v)
     out[0][u, v] = out2[0]
     out[1][u, v] = out2[1]
-    return out, mask, res
+    res['map_mask'] = mask
+    return out, res
 
 def interpolate_pixel_map(pm, ss, fs, mask, grid, roi):
     # now use bilinear interpolation
