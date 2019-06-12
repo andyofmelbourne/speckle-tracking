@@ -48,83 +48,221 @@ def radial_symetry(background, rs, mask=None):
     #background = r_av[rs].reshape(background.shape)
     return r_av
 
-def diff_inv_2d(da, a0=None, axis=0):
-    shape        = list(da.shape)
-    shape[axis] += 1
-    out          = np.zeros(tuple(shape), dtype=float)
-    if a0 is None :
-        if axis == 0 :
-            a0 = np.zeros((shape[1],))
-        else :
-            a0 = np.zeros((shape[0],))
-        
-    if axis == 0 :
-        out[0,  :] = a0
-        out[1:, :] = da
-    elif axis == 1 :
-        out[:,  0] = a0
-        out[:, 1:] = da
-    return np.cumsum(out, axis=axis)
+def integrate(dss, dfs, mask, maxiter=3000):
+    def grad_ss(p):
+        return p[1:, :] - p[:-1, :]
 
-def P(g, df, mask, axis):
-    """
-    h(x, y) = cumsum(f) = f(x, y) + c(y)
-    er = sum [g-h]^2
-       = sum_ij [g_ij - f_ij - c_j]^2
-    er_gk = sum_i -2 [g_ik - f_ik - c_k] = 0
-    therefore c_j = sum_i [g_ik - f_ik] / I
-    """
-    df2 = df.copy()
-    #df2[~mask] = np.diff(g, axis=axis)[~mask]
-    df2[~mask] = 0.
-    if axis == 0 :
-        h  = diff_inv_2d(df2, a0 = g[:,0], axis=0)
-        #h += np.mean(g-h, axis=0)
-        # the masked region of g should remain untouched
-        h[1:, :][~mask] = g[1:, :][~mask]
-        # now we have to adjust the mean level of each 
-        # segment (between masked pixels) to that of g
-        # this could take a while... should be opencl
-        for i in range(h.shape[0]):
-            for j in range(h.shape[1]):
+    def grad_fs(p):
+        return p[:, 1:] - p[:, :-1]
 
+    def f(x):
+        return np.sum( mask * (grad_ss(x)[:,:-1]-dss)**2 ) + np.sum( mask * (grad_fs(x)[:-1,:]-dfs)**2 )
 
-                    
-    elif axis == 1 :
-        h = diff_inv_2d(df2, a0 = None, axis=1)
-        h = (h.T + np.mean(g-h, axis=1)).T
-    return h
+    def df(x):
+        out = np.zeros_like(x)
+        #
+        # outi,j       = [xi,j       - xi-1,j      - dssi-1,j ] mi-1,j
+        out[1:, :-1]  += (x[1:, :-1] - x[:-1, :-1] - dss[:, :])*mask
+        #
+        # outi,j       = [xi+1,j     - xi,j        - dssi,j   ] mi,j
+        out[:-1, :-1] -= (x[1:, :-1] - x[:-1, :-1] - dss[:, :])*mask
+        #
+        # outi,j       = [xi,j       - xi,j-1      - dssi,j-1 ] mi,j-1
+        out[:-1, 1:]  += (x[:-1, 1:] - x[:-1, :-1] - dfs[:, :])*mask
+        #
+        # outi,j       = [xi,j+1       - xi,j      - dssi,j   ] mi,j
+        out[:-1, :-1] -= (x[:-1, 1:] - x[:-1, :-1] - dfs[:, :])*mask
+        return 2*out 
 
-def integrate(dss, dfs, mask, tol=1e-10, maxiter=1000):
-    s = dss.shape
-    dfx = np.zeros((s[0], s[1]+1), dtype=float)
-    dfy = np.zeros((s[0]+1, s[1]), dtype=float)
-    mx  = np.zeros(dfx.shape, dtype=np.bool)
-    my  = np.zeros(dfy.shape, dtype=np.bool)
-    mx[:, :-1] = mask
-    my[:-1, :] = mask
-    dfx[:, :-1] = dss
-    dfy[:-1, :] = dfs
-    norm = np.sum(dss**2 + dfs**2)
+    def dfd(x, d):
+        out = 0.
+        #
+        # out += di,j di,j mi-1,j 
+        #
+        # out -= di,j di-1,j mi-1,j
+        #
+        # out -= di,j di+1,j mi,j
+        #
+        # out += di,j di,j mi,j
+        #
+        # out += di,j di,j mi,j-1
+        #
+        # out -= di,j di,j-1 mi,j-1
+        #
+        # out -= di,j di,j+1 mi,j
+        #
+        # out += di,j di,j mi,j
+        out = 2*np.sum((
+                    d[1:,:-1]  * d[1:,:-1]  -  d[1:,:-1]  * d[:-1,:-1] \
+                   -d[:-1,:-1] * d[1:,:-1]  +  d[:-1,:-1] * d[:-1,:-1] \
+                   +d[:-1,1:]  * d[:-1,1:]  -  d[:-1,1:]  * d[:-1,:-1] \
+                   -d[:-1,:-1] * d[:-1,1:]  +  d[:-1,:-1] * d[:-1,:-1]
+                    )*mask)
+        return out
     
-    f = np.zeros((s[0]+1, s[1]+1), dtype=float)
-    er  = np.sqrt((np.sum((mask*(dss-np.diff(f, axis=0)[:,:-1]))[:-1,:]**2) + np.sum((mask*(dfs-np.diff(f, axis=1)[:-1,:] )**2))[:,:-1])/norm)
-    print(-1, er)
-    for i in range(maxiter):
-        fx = P(f, dfx, mx, 0)
-        fy = P(f, dfy, my, 1)
-        #fy = fx.copy()
-        f = (fx + fy)/2.
-        #fx = P(f, dfx, mx, 0)
-        #fy = P(fx, dfy, my, 1)
-        #f = fy.copy()
-        er  = np.sqrt((np.sum((mask*(dss-np.diff(f, axis=0)[:,:-1]))[:-1,:]**2) + np.sum((mask*(dfs-np.diff(f, axis=1)[:-1,:] )**2))[:,:-1])/norm)
-        er2 = np.sqrt(np.sum(mask*(fx-fy)[:-1,:-1]**2)/norm)
-        er3 = (np.median(mx*(np.diff(fx, axis=0)-dfx)**2), np.median(my*(np.diff(fy, axis=1)-dfy)**2))
-        er4 = (np.sum(mask*(f-fx)[:-1,:-1]**2), np.sum(mask*(f-fy)[:-1,:-1]**2))
-        #er2 = np.sqrt(np.sum(mask*(fx-fy)[:-1,:-1]**2)/norm)
-        #er3 = (np.sqrt(np.sum(mask*(dss-np.diff(f, axis=0)[:,:-1])**2)/norm),  np.sum(np.sqrt(mask*(dfs-np.diff(f, axis=1)[:-1,:] )**2)/norm))
-        print(i, er2, er3, er4, er)
-        if er < tol :
-            break
-    return f
+    #assert(np.allclose(df(phi), 0*phi))
+    
+    fd = lambda x, d : np.sum( d * df(x))
+    
+    tx = np.zeros((dss.shape[0]+1, dss.shape[1]+1), dtype=float)
+    ty = np.zeros((dss.shape[0]+1, dss.shape[1]+1), dtype=float)
+    
+    tx[1:,:-1]  = np.cumsum(dss, axis=0)
+    tx  = tx - tx[tx.shape[0]//2, :]
+    ty[1:,:-1]  = np.cumsum(dfs, axis=1)
+    ty  = (ty.T - ty[:, ty.shape[1]//2]).T
+    
+    x0 = (tx + ty) / 2.
+    
+    cgls = Cgls(x0, f, df, fd, dfd=dfd, imax=maxiter)
+    phase = cgls.cgls()
+
+    dss_forw = grad_ss(phase)[:,:-1] 
+    dfs_forw = grad_fs(phase)[:-1,:] 
+    
+    return phase[:-1, :-1], {'dss_forward': dss_forw,
+                             'dfs_forward': dfs_forw,
+                             'dss_residual': dss_forw-dss,
+                             'dfs_residual': dfs_forw-dfs,
+                             'cgls_errors': cgls.errors}
+
+def line_search_newton_raphson(x, d, fd, dfd, iters = 1, tol=1.0e-10):
+    """Finds the minimum of the the function f along the direction of d by using a second order Taylor series expansion of f.
+
+    f(x + alpha * d) ~ f(x) + alpha * f'(x) . d + alpha^2 / 2 * dT . f''(x) . d
+    therefore alpha = - fd / dfd 
+    #
+    fd  is a function that evaluates f'(x) . d
+    dfd is a function that evaluates dT . f''(x) . d
+    #
+    returns x2, status
+    #
+    status is True if dfd is > tol and False otherwise.
+    if status is False then the local curvature is negative and the 
+    minimum along the line is infinitely far away.
+    Algorithm from Eq. (57) of painless-conjugate-gradient.pdf
+    """
+    for i in range(iters):
+        fd_i  = fd(x, d)
+        dfd_i = dfd(x, d)
+        if dfd_i < tol :
+            return x, False
+        #
+        alpha = - fd_i / dfd_i 
+        #
+        x = x + alpha * d
+    return x, True
+
+class Cgls(object):
+    """Minimise the function f using the nonlinear cgls algorithm.
+    
+    """
+
+    def __init__(self, x0, f, df, fd, dfd = None, imax = 10**5, e_tol = 1.0e-10):
+        self.f     = f
+        self.df    = df
+        self.fd    = fd
+        self.iters = 0
+        self.imax  = imax
+        self.e_tol = e_tol
+        self.errors = []
+        self.x     = x0
+        if dfd is not None :
+            self.dfd         = dfd
+            self.line_search = lambda x, d: line_search_newton_raphson(x, d, self.fd, self.dfd, iters = 1, tol=1.0e-10)
+        else :
+            self.dfd         = None
+            self.line_search = lambda x, d: line_search_secant(x, d, self.fd, iters = 20, sigma = 1.0, tol=1.0e-10)
+        #
+        #self.cgls = self.cgls_Ploak_Ribiere
+        self.cgls = self.cgls_Flecher_Reeves
+
+    def cgls_Flecher_Reeves(self, iterations = None):
+        """
+        All of the vectors are 'selfed' so that the iterations may continue 
+        when called again."""
+        if self.iters == 0 :
+            self.r         = - self.df(self.x)
+            self.d         = self.r.copy()
+            self.delta_new = np.sum(self.r**2)
+            self.delta_0   = self.delta_new.copy()
+        # 
+        if iterations == None :
+            iterations = self.imax
+        #
+        import tqdm
+        t = tqdm.trange(iterations, desc='cgls err:')
+        for i in t:
+            #
+            # perform a line search of f along d
+            self.x, status = self.line_search(self.x, self.d)
+            if status is False :
+                print('Warning: line search failed!', t1, t2)
+            # 
+            self.r         = - self.df(self.x)
+            delta_old      = self.delta_new
+            self.delta_new = np.sum(self.r**2)
+            #
+            # Fletcher-Reeves formula
+            beta           = self.delta_new / delta_old
+            #
+            self.d         = self.r + beta * self.d
+            #
+            # reset the algorithm 
+            if (self.iters % 50 == 0) or (status == False) :
+                self.d = self.r
+            #
+            # calculate the error
+            self.errors.append(self.f(self.x))
+            self.iters = self.iters + 1
+            if self.iters > self.imax or (self.errors[-1] < self.e_tol):
+                break
+            t.set_description("cgls err: {:.2e}".format(self.errors[-1]))
+        #
+        #
+        return self.x
+
+    def cgls_Ploak_Ribiere(self, iterations = None):
+        """
+        All of the vectors are 'selfed' so that the iterations may continue 
+        when called again."""
+        if self.iters == 0 :
+            self.r         = - self.df(self.x)
+            self.r_old     = self.r.copy()
+            self.d         = self.r.copy()
+            self.delta_new = np.sum(self.r**2)
+            self.delta_0   = self.delta_new.copy()
+        # 
+        if iterations == None :
+            iterations = self.imax
+        #
+        for i in range(iterations):
+            #
+            # perform a line search of f along d
+            self.x, status = self.line_search(self.x, self.d)
+            # 
+            self.r         = - self.df(self.x)
+            delta_old      = self.delta_new
+            delta_mid      = np.sum(self.r * self.r_old)
+            self.r_old     = self.r.copy()
+            self.delta_new = np.sum(self.r**2)
+            #
+            # Polak-Ribiere formula
+            beta           = (self.delta_new - delta_mid)/ delta_old
+            #
+            self.d         = self.r + beta * self.d
+            #
+            # reset the algorithm 
+            if (self.iters % 50 == 0) or (status == False) or beta <= 0.0 :
+                self.d = self.r
+            else :
+                self.d = self.r + beta * self.d
+            #
+            # calculate the error
+            self.errors.append(self.f(self.x))
+            self.iters = self.iters + 1
+            if self.iters > self.imax or (self.errors[-1] < self.e_tol):
+                break
+        #
+        #
+        return self.x
