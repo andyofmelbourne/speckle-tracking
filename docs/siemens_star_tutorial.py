@@ -3,11 +3,6 @@ import h5py
 import numpy as np
 og = 'speckle_tracking/'
 
-
-import speckle_tracking as st
-import h5py
-import numpy
-
 # extract data
 f = h5py.File('siemens_star.cxi', 'r')
 
@@ -32,7 +27,7 @@ dz, res = st.fit_defocus(
              x_pixel_size, y_pixel_size,
              z, wav, mask, W, roi)
 
-u, uinv, dxy = st.make_pixel_map(
+u0, uinv, dxy = st.make_pixel_map(
                   z, dz, res['astigmatism'], 
                   roi, x_pixel_size, y_pixel_size,
                   W.shape)
@@ -42,33 +37,56 @@ dij_n = st.make_pixel_translations(
            basis, dxy[0], dxy[1])
 
 O, n0, m0 = st.make_object_map(
-               data, mask, W, dij_n, u)
+               data, mask, W, dij_n, u0)
 
-u, res = st.update_pixel_map(
-            data, mask, W, O, u,
-            n0, m0, dij_n)
+#u, res = st.update_pixel_map(
+#            data, mask, W, O, u,
+#            n0, m0, dij_n)
 
-#phase, res = st.integrate_pixel_map(u, W, wav, z-dz)
+ss, fs = np.indices(u.shape[1:])
+
+u, res = st.update_pixel_map_opencl(
+         data, mask, W, O, u0,
+         n0, m0, dij_n, False, 1.,
+         [68,55], ss.ravel(), fs.ravel())
+
+u = u.reshape((2,) + W.shape)
+
+phase, res = st.integrate_pixel_map(u, W, wav, z-dz)
+
+O, n0, m0 = st.make_object_map(
+               data, mask, W, 
+               dij_n, u, subpixel=True)
 
 e_total, e_frame, e_pixel = st.calc_error(
                                data, mask, W, dij_n, O, 
-                               u, n0, m0)
+                               u, n0, m0, subpixel=True)
 
-"""
 write = {'object_map': O, 
          'n0': n0, 'm0': m0, 
-         'pixel_map': pixel_map, 
-         'phase': pixel_map, 
-         'error_pixel': error_pixel}
+         'pixel_map': u, 
+         'phase': phase, 
+         'error_pixel': e_pixel,
+         'error_total': e_total,
+         'error_frame': e_frame}
 
 f = h5py.File('siemens_star.cxi')
 for k in write.keys():
-    key = output_group+k
+    key = og+k
     if key in f :
         del f[key]
     f[key] = write[k]
 f.close()
 
+
+#read = {}
+#f = h5py.File('siemens_star.cxi', 'r')
+#for k in write.keys():
+#    key = og+k
+#    read[key] = f[key][()]
+#f.close()
+
+"""
 # extract data
 f = h5py.File('siemens_star.cxi', 'r')
 
@@ -154,7 +172,7 @@ error_total, error_frame, error_pixel = st.calc_error(
 from speckle_tracking.update_pixel_map import update_pixel_map_opencl
 u, v = np.where(error_pixel/W**2 > 0.04)
 out, res = update_pixel_map_opencl(data, mask, W, O, pixel_map,
-                                          n0, m0, dij_n, roi, False, 1.,
+                                          n0, m0, dij_n, False, 1.,
                                           [100, 100], u, v)
 pixel_map[0][u, v] = out[0]
 pixel_map[1][u, v] = out[1]

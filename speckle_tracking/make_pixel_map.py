@@ -155,4 +155,6 @@ def make_pixel_map(z, z1, dz, roi, x_pixel_size, y_pixel_size, shape, dx=None, d
     ii, jj = np.meshgrid(i_map, j_map, indexing='ij')
     pixel_map_inv = np.array([ii, jj]) 
     
+    if verbose: 
+        print('Reference map (image map) pixel size {:.2e} x {:.2e} m^2'.format(dx, dy))
     return pixel_map, pixel_map_inv, (dx, dy)
