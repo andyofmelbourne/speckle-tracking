@@ -48,7 +48,7 @@ u, res = st.update_pixel_map(
             data, mask, W, O, u,
             n0, m0, dij_n)
 
-phase, res = st.integrate_pixel_map(u, W, wav, z-dz)
+#phase, res = st.integrate_pixel_map(u, W, wav, z-dz)
 
 e_total, e_frame, e_pixel = st.calc_error(
                                data, mask, W, dij_n, O, 

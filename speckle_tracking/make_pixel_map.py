@@ -134,10 +134,10 @@ def make_pixel_map(z, z1, dz, roi, x_pixel_size, y_pixel_size, shape, dx=None, d
     detector roi, and :math:`n_0, m_0` so that :math:`\text{ij}_\text{map}>0` for all
     pixels in the roi.
     """
-    if verbose: 
-        print('making the pixel mapping using defocus and astigmatism\n')
-            
     Mss, Mfs = (z + dz)/(z1 + dz), (z - dz)/(z1 - dz)
+    
+    if verbose: 
+        print('making the pixel mapping using defocus and astigmatism')
     
     if dx is None or dy is None :
         dx = dy = min(x_pixel_size / Mss, y_pixel_size / Mfs)
