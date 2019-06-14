@@ -371,10 +371,10 @@ __kernel void pixel_map_err(
     // printf("%i %i %i %i\n", ss_min, ss_max, fs_min, fs_max);
     
     // loop 
-    int n, ss, fs;
+    int n;
     float err  = 0.;
     float norm = 0.;
-    float t;
+    float t, ot, ss, fs;
     
     for (n = 0; n < N; n++){ 
         data2[n] = data[I*J*n + i*J + j];
@@ -385,17 +385,28 @@ __kernel void pixel_map_err(
             norm = 0.;
             for (n = 0; n < N; n++)
             { 
-                ss = rint( pixel_map[0   + i*J + j] + di - dij_n[n*2 + 0] + n0 );
-                fs = rint( pixel_map[I*J + i*J + j] + dj - dij_n[n*2 + 1] + m0 );
-                
-                if((ss >=0) && (ss < U) && (fs >= 0) && (fs < V) && (O[ss*V + fs]>0))
+                ss = pixel_map[0   + i*J + j] + di - dij_n[n*2 + 0] + n0;
+                fs = pixel_map[I*J + i*J + j] + dj - dij_n[n*2 + 1] + m0;
+
+                // evaluate O using bilinear interpolation 
+                ot = bilinear_interpolation(O, ss, fs, V, U);
+                if(ot >= 0)
                 {
-                    t     = data2[n] - W[i*J + j] * O[ss*V + fs];
+                    t     = data2[n] - W[i*J + j] * ot;
                     err  += t*t;
                     //
                     t     = data2[n] - W[i*J + j];
                     norm += t*t;
                 }
+                
+                //if((ss >=0) && (ss < U) && (fs >= 0) && (fs < V) && (O[ss*V + fs]>0))
+                //{
+                //    t     = data2[n] - W[i*J + j] * O[ss*V + fs];
+                //    err  += t*t;
+                    //
+                //    t     = data2[n] - W[i*J + j];
+                //    norm += t*t;
+                //}
             }
             
             if(norm > 0)
@@ -403,4 +414,54 @@ __kernel void pixel_map_err(
                 out[i*J + j] = err / norm;
             }
     }
+}
+
+
+__kernel void translations_err(
+    __global float  *W,
+    __global float  *data,
+    __global float  *O,
+    __global float  *pixel_map,
+    __global float  *dij_n,
+    __global int    *mask,
+    __global int    *ns,
+    __global float  *out,
+    const    float    n0,
+    const    float    m0,
+    const    int    I,
+    const    int    J,
+    const    int    U,
+    const    int    V,
+    const    int    di,
+    const    int    dj
+    )
+{                                                       
+    int n = get_group_id(0);
+    n = ns[n];
+    
+    
+    // loop 
+    int i, j;
+    float err  = 0.;
+    float norm  = 0.;
+    float t, ot, ss, fs;
+    
+    for (i = 0; i < I; i++){ 
+    for (j = 0; j < J; j++){ 
+    if(mask[i*J + j]==1){
+        ss = pixel_map[0   + i*J + j] - di - dij_n[n*2 + 0] + n0;
+        fs = pixel_map[I*J + i*J + j] - dj - dij_n[n*2 + 1] + m0;
+        
+        // evaluate O using bilinear interpolation 
+        ot = bilinear_interpolation(O, ss, fs, V, U);
+        if(ot >= 0)
+        {
+            t     = data[I*J*n + i*J + j] - W[i*J + j] * ot;
+            err  += t*t;
+            //
+            t     = data[I*J*n + i*J + j] - W[i*J + j];
+            norm += t*t;
+        }
+    }}}
+    out[n] = err/norm;
 }

@@ -9,9 +9,11 @@ from .fit_thon_rings import fit_thon_rings
 from .make_pixel_map import make_pixel_map
 from .make_pixel_translations import make_pixel_translations
 from .make_object_map import make_object_map
+from .update_translations import update_translations
 from .update_pixel_map import update_pixel_map
 from .update_pixel_map import update_pixel_map_opencl
 from .update_pixel_map import make_projection_images
+from .update_pixel_map import quadratic_refinement_opencl
 from .integrate_pixel_map import integrate_pixel_map
 from .docstring_glossary import docstring_glossary
 from .calc_error import calc_error

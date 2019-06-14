@@ -491,7 +491,7 @@ def quadratic_refinement_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n):
       
     print('calculation took:', time.time()-d0, 's')
     
-return out, {'pixel_shift': pixel_shift, 'err_quad': err_quad}
+    return out, {'pixel_shift': pixel_shift, 'err_quad': err_quad}
 
 def bilinear_interpolation_array(array, mask, ss, fs, fill = 0):
     """

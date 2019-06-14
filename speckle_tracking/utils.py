@@ -197,7 +197,7 @@ class Cgls(object):
             # perform a line search of f along d
             self.x, status = self.line_search(self.x, self.d)
             if status is False :
-                print('Warning: line search failed!', t1, t2)
+                print('Warning: line search failed!')
             # 
             self.r         = - self.df(self.x)
             delta_old      = self.delta_new
@@ -209,7 +209,7 @@ class Cgls(object):
             self.d         = self.r + beta * self.d
             #
             # reset the algorithm 
-            if (self.iters % 50 == 0) or (status == False) :
+            if (self.iters % 10000 == 0) or (status == False) :
                 self.d = self.r
             #
             # calculate the error
