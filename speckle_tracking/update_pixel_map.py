@@ -4,6 +4,9 @@ import tqdm
 def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, 
                      search_window=None, grid=None, roi=None, 
                      subpixel=False, subsample=1., 
+                     interpolate = False, fill_bad_pix=True,
+                     quadratic_refinement = True,
+                     integrate = False, clip = None, 
                      filter=None, verbose=True, guess=False):
     r"""
     Update the pixel_map by minimising an error metric within the search_window.
@@ -101,32 +104,66 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
     if roi is None :
         roi = [0, W.shape[0], 0, W.shape[1]]
     
-    if guess or search_window is None :
-        return guess_update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, roi)
+    # define search_window 
+    if search_window is None :
+        from .calc_error import make_pixel_map_err
+        ijs, err_map, res = make_pixel_map_err(
+                            data, mask, W, O, pixel_map, n0, m0, 
+                            dij_n, roi, search_window=100, grid=[10, 10])
+        
+        search_window = res['search_window']
     
+    elif type(search_window) is int :
+        search_window = [search_window, search_window]
+    
+    # define grid
     if grid is None :
         grid = [roi[1]-roi[0], roi[3]-roi[2]]
-
-    if type(search_window) is int :
-        search_window = [search_window, search_window]
     
     ss_grid = np.linspace(roi[0], roi[1]-1, grid[0])
     fs_grid = np.linspace(roi[2], roi[3]-1, grid[1])
     ss_grid, fs_grid = np.meshgrid(ss_grid, fs_grid, indexing='ij')
     
-    out, res = update_pixel_map_opencl(
+    # grid search of pixel shifts
+    u, res = update_pixel_map_opencl(
                data, mask, W, O, pixel_map, n0, m0, 
                dij_n, subpixel, subsample, 
                search_window, ss_grid.ravel(), fs_grid.ravel())
     
     # if the update is on a sparse grid, then interpolate
-    out, map_mask = interpolate_pixel_map(
-                    out.reshape((2,) + ss_grid.shape), ss_grid, fs_grid, mask, grid, roi)
+    if interpolate :
+        out, map_mask = interpolate_pixel_map(
+                        out.reshape((2,) + ss_grid.shape), ss_grid, fs_grid, mask, grid, roi)
+    else :
+        out = pixel_map.copy()
+        ss, fs = np.rint(ss_grid).astype(np.int), np.rint(fs_grid).astype(np.int)
+        out[0][ss, fs] = u[0].reshape(ss_grid.shape)
+        out[1][ss, fs] = u[1].reshape(ss_grid.shape)
+
+    if quadratic_refinement :
+        out, res = quadratic_refinement_opencl(data, mask, W, O, out, n0, m0, dij_n)
+
+    if fill_bad_pix :
+        out[0] = fill_bad(out[0], mask, 4.)
+        out[1] = fill_bad(out[1], mask, 4.)
+
+    if integrate :
+        from .utils import integrate
+        u0 = np.array(np.indices(W.shape))
+        phase_pix, res = integrate(
+                         out[0]-u0[0], out[1]-u0[1], 
+                         W**0.5, maxiter=2000)
+        
+        if clip is not None :
+            out[0] = u0[0] + np.clip(res['dss_forward'], clip[0], clip[1])
+            out[1] = u0[1] + np.clip(res['dfs_forward'], clip[0], clip[1])
+        else :
+            out[0] = u0[0] + res['dss_forward']
+            out[1] = u0[1] + res['dfs_forward']
     
     if (filter is not None) and (filter > 0):
         out = filter_pixel_map(out, mask, filter)
     
-    res['map_mask'] = map_mask
     return out, res
 
 
@@ -531,3 +568,14 @@ def bilinear_interpolation_array(array, mask, ss, fs, fill = 0):
     #out[m] /= s[m]
     out[~m] = fill
     return out, m  
+
+def fill_bad(pm, mask, sig): 
+    out = np.zeros_like(pm)
+    
+    from scipy.ndimage.filters import gaussian_filter
+    out   = gaussian_filter(mask * pm, sig, mode = 'constant', truncate=20.)
+    norm  = gaussian_filter(mask.astype(np.float), sig, mode = 'constant', truncate=20.)
+    norm[norm==0.] = 1.
+    out2 = pm.copy()
+    out2[~mask] = out[~mask] / norm[~mask]
+    return out2

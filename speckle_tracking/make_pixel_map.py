@@ -134,6 +134,9 @@ def make_pixel_map(z, z1, dz, roi, x_pixel_size, y_pixel_size, shape, dx=None, d
     detector roi, and :math:`n_0, m_0` so that :math:`\text{ij}_\text{map}>0` for all
     pixels in the roi.
     """
+    if roi is None :
+        roi = [0, shape[0], 0, shape[1]]
+    
     Mss, Mfs = (z + dz)/(z1 + dz), (z - dz)/(z1 - dz)
     
     if verbose: 
