@@ -30,8 +30,18 @@ def make_whitefield(data, mask, verbose=True):
     
     mask2  = mask.copy()
     mask2 *= (whitefield != 0) 
-
+    
     # fill masked pixels whith neighbouring values
-    whitefield[~mask2] = scipy.signal.medfilt(mask2*whitefield, 5)[~mask2]
-    whitefield[whitefield==0] = 1.
+    whitefield = fill_bad(whitefield, mask2, 4.)
     return whitefield
+
+def fill_bad(pm, mask, sig): 
+    out = np.zeros_like(pm)
+    
+    from scipy.ndimage.filters import gaussian_filter
+    out   = gaussian_filter(mask * pm, sig, mode = 'constant', truncate=20.)
+    norm  = gaussian_filter(mask.astype(np.float), sig, mode = 'constant', truncate=20.)
+    norm[norm==0.] = 1.
+    out2 = pm.copy()
+    out2[~mask] = out[~mask] / norm[~mask]
+    return out2

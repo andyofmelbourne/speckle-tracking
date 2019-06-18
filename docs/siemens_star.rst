@@ -73,10 +73,10 @@ Define the ROI
 Determine the defocus
     Now let's refine the focus to sample distance :py:func:`~speckle_tracking.fit_defocus`:: 
         
-        defocus, dz, res = st.fit_defocus(
-                              data, 
-                              x_pixel_size, y_pixel_size, 
-                              z, wav, mask, W, roi)
+        defocus, res = st.fit_defocus(
+                          data,
+                          x_pixel_size, y_pixel_size,
+                          z, wav, mask, W, roi)
         
 Generate the pixel mapping
     Now let us estimate the geometric distortions of each image from the defocus 
