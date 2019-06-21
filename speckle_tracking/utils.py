@@ -48,7 +48,14 @@ def radial_symetry(background, rs, mask=None):
     #background = r_av[rs].reshape(background.shape)
     return r_av
 
-def integrate(dss, dfs, mask, maxiter=3000, step=[1.,1.]):
+def integrate(dssin, dfsin, maskin, maxiter=3000, stepin=[1.,1.]):
+    # first rescale the problem so that values are ~1
+    scale = np.mean(np.array([dssin, dfsin]))
+    dss = dssin / scale
+    dfs = dfsin / scale
+    mask = maskin / np.mean(maskin)
+    step = [1, stepin[1]/stepin[0]]
+    
     def grad_ss(p):
         return (p[1:, :] - p[:-1, :])/step[0]
 
@@ -62,16 +69,16 @@ def integrate(dss, dfs, mask, maxiter=3000, step=[1.,1.]):
         out = np.zeros_like(x)
         #
         # outi,j       = [xi,j       - xi-1,j      - dssi-1,j ] mi-1,j
-        out[1:, :-1]  += ((x[1:, :-1] - x[:-1, :-1])/step[0] - dss[:, :])*mask
+        out[1:, :-1]  += ((x[1:, :-1] - x[:-1, :-1])/step[0]**2 - dss[:, :])*mask
         #
         # outi,j       = [xi+1,j     - xi,j        - dssi,j   ] mi,j
-        out[:-1, :-1] -= ((x[1:, :-1] - x[:-1, :-1])/step[0] - dss[:, :])*mask
+        out[:-1, :-1] -= ((x[1:, :-1] - x[:-1, :-1])/step[0]**2 - dss[:, :])*mask
         #
         # outi,j       = [xi,j       - xi,j-1      - dfsi,j-1 ] mi,j-1
-        out[:-1, 1:]  += ((x[:-1, 1:] - x[:-1, :-1])/step[1] - dfs[:, :])*mask
+        out[:-1, 1:]  += ((x[:-1, 1:] - x[:-1, :-1])/step[1]**2 - dfs[:, :])*mask
         #
         # outi,j       = [xi,j+1       - xi,j      - dfsi,j   ] mi,j
-        out[:-1, :-1] -= ((x[:-1, 1:] - x[:-1, :-1])/step[1] - dfs[:, :])*mask
+        out[:-1, :-1] -= ((x[:-1, 1:] - x[:-1, :-1])/step[1]**2 - dfs[:, :])*mask
         return 2*out 
 
     def dfd(x, d):
@@ -93,10 +100,10 @@ def integrate(dss, dfs, mask, maxiter=3000, step=[1.,1.]):
         #
         # out += di,j di,j mi,j
         out = 2*np.sum((
-                    d[1:,:-1]  * d[1:,:-1]/step[0]  -  d[1:,:-1]  * d[:-1,:-1]/step[0] \
-                   -d[:-1,:-1] * d[1:,:-1]/step[0]  +  d[:-1,:-1] * d[:-1,:-1]/step[0] \
-                   +d[:-1,1:]  * d[:-1,1:]/step[1]  -  d[:-1,1:]  * d[:-1,:-1]/step[1] \
-                   -d[:-1,:-1] * d[:-1,1:]/step[1]  +  d[:-1,:-1] * d[:-1,:-1]/step[1]
+                    d[1:,:-1]  * d[1:,:-1]/step[0]**2  -  d[1:,:-1]  * d[:-1,:-1]/step[0]**2 \
+                   -d[:-1,:-1] * d[1:,:-1]/step[0]**2  +  d[:-1,:-1] * d[:-1,:-1]/step[0]**2 \
+                   +d[:-1,1:]  * d[:-1,1:]/step[1]**2  -  d[:-1,1:]  * d[:-1,:-1]/step[1]**2 \
+                   -d[:-1,:-1] * d[:-1,1:]/step[1]**2  +  d[:-1,:-1] * d[:-1,:-1]/step[1]**2
                     )*mask)
         return out
     
@@ -107,18 +114,27 @@ def integrate(dss, dfs, mask, maxiter=3000, step=[1.,1.]):
     tx = np.zeros((dss.shape[0]+1, dss.shape[1]+1), dtype=float)
     ty = np.zeros((dss.shape[0]+1, dss.shape[1]+1), dtype=float)
     
-    tx[1:,:-1]  = np.cumsum(dss, axis=0)
+    tx[1:,:-1]  = step[0] * np.cumsum(dss, axis=0)
+    #tx[:, 0]  = tx[:, 1] 
+    #tx[:, -1] = tx[:, -2] 
     tx  = tx - tx[tx.shape[0]//2, :]
-    ty[1:,:-1]  = np.cumsum(dfs, axis=1)
+    ty[1:,:-1]  = step[1] * np.cumsum(dfs, axis=1)
+    #ty[:, 0]  = ty[:, 1] 
+    #ty[:, -1] = ty[:, -2] 
     ty  = (ty.T - ty[:, ty.shape[1]//2]).T
     
     x0 = (tx + ty) / 2.
+    x0[0, :]  = x0[1, :]
+    x0[:, -1] = x0[1, -2]
     
     cgls = Cgls(x0, f, df, fd, dfd=dfd, imax=maxiter)
-    phase = cgls.cgls()
 
-    dss_forw = grad_ss(phase)[:,:-1] 
-    dfs_forw = grad_fs(phase)[:-1,:] 
+    scale *= stepin[0]
+    
+    phase = scale * cgls.cgls()
+
+    dss_forw = grad_ss(phase)[:,:-1]/stepin[0] 
+    dfs_forw = grad_fs(phase)[:-1,:]/stepin[0]
     
     return phase[:-1, :-1], {'dss_forward': dss_forw,
                              'dfs_forward': dfs_forw,

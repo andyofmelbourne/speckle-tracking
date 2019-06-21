@@ -64,53 +64,6 @@ for i in range(10):
     Os.append(O.copy())
     dijs.append(dij_n.copy())
 
-#---------------------------
-# Convert to physical units
-#---------------------------
-# get angles 
-# O[ss]   = pixel_map[0 + i*J + j] - di - dij_n[n*2 + 0] + n0;
-
-# O[pixel_map[i, j] + n0] = I[i, j]
-# O[pixel_map[i, j] + n0] = O( dx (pixel_map[i, j] + n0) ) 
-#                         = I(i u)
-# I(x)   = O(x  - wav z / 2 pi grad(x))
-# I(i u) = O(iu - wav z / 2 pi grad(i u))
-# iu - wav z / 2 pi grad(i u) = dx (pixel_map[i, j] + n0)
-# iu - dx (pixel_map[i, j] + n0) = wav z / 2 pi grad(i u) 
-# theta(i u) = iu / z - dx (pixel_map[i, j] + n0) / z
-ij = np.array(np.indices(W.shape))
-theta = np.zeros_like(pixel_map)
-theta[0] = (ij[0] * x_pixel_size - dxy[0] * (pixel_map[0] + n0))/z
-theta[1] = (ij[1] * y_pixel_size - dxy[1] * (pixel_map[1] + m0))/z
-
-# remove tilt
-def variance_minimising_subtraction(f, g):
-    """
-    find min(f - a * g)|_a
-    """
-    fm = 0# np.mean(f)
-    gm = np.mean(g)
-    a = np.sum( (g - gm)*(f - fm) ) / np.sum( (g - gm)**2 )
-    return a
-
-# preferentialy remove tilts from the centre of the roi
-cx   = (roi[1]-roi[0])/2 + roi[0]
-cy   = (roi[3]-roi[2])/2 + roi[2]
-sig  = [(roi[1]-roi[0])/8., (roi[3]-roi[2])/8.]
-gaus = np.exp( -(ij[0]-cx)**2 / (2. * sig[0]**2) \
-               -(ij[1]-cy)**2 / (2. * sig[1]**2))
-
-# remove tilt and defocus
-#gaus = 1
-for i in range(10000):
-    theta[0] -= np.mean(gaus * theta[0])
-    theta[1] -= np.mean(gaus * theta[1])
-    a = variance_minimising_subtraction(gaus * theta, gaus * ij)
-    print(a)
-    theta -= a * ij
-
-# remove offset tilt defocus from phase
-# get propagation profile
 
 #---------------------------
 # Write
