@@ -48,12 +48,12 @@ def radial_symetry(background, rs, mask=None):
     #background = r_av[rs].reshape(background.shape)
     return r_av
 
-def integrate(dss, dfs, mask, maxiter=3000):
+def integrate(dss, dfs, mask, maxiter=3000, step=[1.,1.]):
     def grad_ss(p):
-        return p[1:, :] - p[:-1, :]
+        return (p[1:, :] - p[:-1, :])/step[0]
 
     def grad_fs(p):
-        return p[:, 1:] - p[:, :-1]
+        return (p[:, 1:] - p[:, :-1])/step[1]
 
     def f(x):
         return np.sum( mask * (grad_ss(x)[:,:-1]-dss)**2 ) + np.sum( mask * (grad_fs(x)[:-1,:]-dfs)**2 )
@@ -62,16 +62,16 @@ def integrate(dss, dfs, mask, maxiter=3000):
         out = np.zeros_like(x)
         #
         # outi,j       = [xi,j       - xi-1,j      - dssi-1,j ] mi-1,j
-        out[1:, :-1]  += (x[1:, :-1] - x[:-1, :-1] - dss[:, :])*mask
+        out[1:, :-1]  += ((x[1:, :-1] - x[:-1, :-1])/step[0] - dss[:, :])*mask
         #
         # outi,j       = [xi+1,j     - xi,j        - dssi,j   ] mi,j
-        out[:-1, :-1] -= (x[1:, :-1] - x[:-1, :-1] - dss[:, :])*mask
+        out[:-1, :-1] -= ((x[1:, :-1] - x[:-1, :-1])/step[0] - dss[:, :])*mask
         #
-        # outi,j       = [xi,j       - xi,j-1      - dssi,j-1 ] mi,j-1
-        out[:-1, 1:]  += (x[:-1, 1:] - x[:-1, :-1] - dfs[:, :])*mask
+        # outi,j       = [xi,j       - xi,j-1      - dfsi,j-1 ] mi,j-1
+        out[:-1, 1:]  += ((x[:-1, 1:] - x[:-1, :-1])/step[1] - dfs[:, :])*mask
         #
-        # outi,j       = [xi,j+1       - xi,j      - dssi,j   ] mi,j
-        out[:-1, :-1] -= (x[:-1, 1:] - x[:-1, :-1] - dfs[:, :])*mask
+        # outi,j       = [xi,j+1       - xi,j      - dfsi,j   ] mi,j
+        out[:-1, :-1] -= ((x[:-1, 1:] - x[:-1, :-1])/step[1] - dfs[:, :])*mask
         return 2*out 
 
     def dfd(x, d):
@@ -93,10 +93,10 @@ def integrate(dss, dfs, mask, maxiter=3000):
         #
         # out += di,j di,j mi,j
         out = 2*np.sum((
-                    d[1:,:-1]  * d[1:,:-1]  -  d[1:,:-1]  * d[:-1,:-1] \
-                   -d[:-1,:-1] * d[1:,:-1]  +  d[:-1,:-1] * d[:-1,:-1] \
-                   +d[:-1,1:]  * d[:-1,1:]  -  d[:-1,1:]  * d[:-1,:-1] \
-                   -d[:-1,:-1] * d[:-1,1:]  +  d[:-1,:-1] * d[:-1,:-1]
+                    d[1:,:-1]  * d[1:,:-1]/step[0]  -  d[1:,:-1]  * d[:-1,:-1]/step[0] \
+                   -d[:-1,:-1] * d[1:,:-1]/step[0]  +  d[:-1,:-1] * d[:-1,:-1]/step[0] \
+                   +d[:-1,1:]  * d[:-1,1:]/step[1]  -  d[:-1,1:]  * d[:-1,:-1]/step[1] \
+                   -d[:-1,:-1] * d[:-1,1:]/step[1]  +  d[:-1,:-1] * d[:-1,:-1]/step[1]
                     )*mask)
         return out
     
