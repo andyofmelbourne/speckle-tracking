@@ -91,7 +91,7 @@ def integrate_pixel_map(pixel_map, weight, wavelength, z, zr,
     phase_r = 2 * np.pi / wavelength * t
     
     # now form the global phase and angles
-    return phase_r, theta_r, {'pixel_map': np.array([res['dss_forward'], res['dfs_forward']])}
+    return phase_r, theta_r, {'angles_forward': np.array([res['dss_forward'], res['dfs_forward']])}
 
 def remove_grad_const(arrayin, weight, i, maxiter):
     # x = [c, d]
