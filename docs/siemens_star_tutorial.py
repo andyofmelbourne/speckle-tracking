@@ -1,7 +1,6 @@
 import speckle_tracking as st
 import h5py
 import numpy as np
-og = 'speckle_tracking/'
 
 # extract data
 f = h5py.File('siemens_star.cxi', 'r')
@@ -65,20 +64,23 @@ for i in range(10):
     dijs.append(dij_n.copy())
 
 
+phase, angles, res = st.integrate_pixel_map(pixel_map, W, wav, z-z1, z, x_pixel_size, y_pixel_size, dxy[0], dxy[1], False, maxiter=5000)
+
+propx, propy, dx, dy, dz = st.propagation_profile(phase, W, z, wav, x_pixel_size, y_pixel_size, 1, zs=[-1e-4, 1e-4, 1000], Nint=4)
+
 #---------------------------
 # Write
 #---------------------------
-write = {'object_map': O, 
-         'n0': n0, 'm0': m0, 
-         'pixel_map': pixel_map,
-         'pixel_translations': dij_n,
-         }
-
-with h5py.File('siemens_star.cxi') as f:
-    for k in write.keys():
-        key = og+k
-        if key in f :
-            del f[key]
-        f[key] = write[k]
-
-
+st.write_h5({
+    'object_map': O, 
+    'object_map_voxel_size': dxy, 
+    'n0': n0, 'm0': m0, 
+    'pixel_map': pixel_map, 
+    'pixel_translations': dij_n,
+    'propagation_profile_ss': propx, 
+    'propagation_profile_fs': propy, 
+    'propagation_profile_voxel_size': np.array([dx, dy, dz]),
+    'phase' : phase,
+    'angles' : angles,
+    'angles_forward' : res['angles_forward']
+    })

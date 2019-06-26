@@ -19,4 +19,3 @@ from .docstring_glossary import docstring_glossary
 from .calc_error import calc_error
 from .calc_error import make_pixel_map_err
 from .propagation_profile import propagation_profile
-from .propagation_profile import propagation_profile2
