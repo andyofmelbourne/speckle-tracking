@@ -186,7 +186,7 @@ def update_translations(data, mask, W, O, pixel_map, n0, m0, dij_n, search_windo
     m *= (ss_shift**2+fs_shift**2 < 9)
     out[m, 0] = ss_shift[m] + out[m, 0]
     out[m, 1] = fs_shift[m] + out[m, 1]
-    return out, {'errs_quad': errs_quad}
+    return out, {'error': err1, 'errs_quad': errs_quad}
 
 def calc_errs(data, mask, W, O, pixel_map, n0, m0, dij_n, ss, fs):
     # demand that the data is float32 to avoid excess mem. usage

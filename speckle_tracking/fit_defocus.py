@@ -1,13 +1,14 @@
 import numpy as np
 
 from .fit_thon_rings import fit_thon_rings
+from .fit_defocus_registration import fit_defocus_registration
 from .make_object_map import make_object_map
 from .make_pixel_map import make_pixel_map
 from .calc_error import calc_error
 from .make_pixel_translations import make_pixel_translations
 
 
-def fit_defocus(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, **kwargs):
+def fit_defocus(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, verbose=True, **kwargs):
     """Estimate the focus to sample distance.
     
     This routine uses speckle_tracking.fit_thon_rings to estimate the defocus.
@@ -75,7 +76,7 @@ def fit_defocus(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, **kwargs
         defocus1, res1 = fit_defocus_registration(
                                data, x_pixel_size, y_pixel_size, z, 
                                wav, mask, W, roi, kwargs['basis'], 
-                               kwargs['translations'], window=window)
+                               kwargs['translations'], window=100)
         
         # choose the one that gives the least error
         dij_n0 = make_pixel_translations(
@@ -93,11 +94,28 @@ def fit_defocus(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, **kwargs
         O1, n01, m01  = make_object_map(data, mask, W, dij_n1, u1)
         error1        = calc_error(data, mask, W, dij_n1, O1, u1, n01, m01)[0]
         print('Fit by registration error:', error1)
-
-        if error1 > error0 :
+        
+        if error1 < error0 :
             print('lower error for fit by registration')
             defocus = defocus1
             res     = res1
+    
+    z1 = defocus
+    dz = res['astigmatism']
+    Mss, Mfs = (z + dz)/(z1 + dz), (z - dz)/(z1 - dz)
+    
+    zb = (z-z1)/2. * (1/Mss + 1/Mfs)
+    zss = (z-z1) * (1/Mss)
+    zfs = (z-z1) * (1/Mfs)
+    
+    if verbose : 
+        print('defocus (focus-sample dist.): {:.2e}'.format(z1))
+        print('sample-detector dist.       : {:.2e}'.format(z-z1))
+        print('defocus (slow scan axis)    : {:.2e}'.format(z1+dz))
+        print('defocus (fast scan axis)    : {:.2e}'.format(z1-dz))
+        print('Magnification       : {:.2e} (ss) {:.2e} (fs) {:.2e} (av.)'.format(Mss, Mfs, (Mss+Mfs)/2.))
+        print('Effective pixel size: {:.2e}m (ss) {:.2e}m (fs) {:.2e}m (av.)'.format(x_pixel_size/Mss, y_pixel_size/Mfs, (x_pixel_size/Mss + y_pixel_size/Mfs)/2.))
+        print('Effective defocus   : {:.2e}m (ss) {:.2e}m (fs) {:.2e}m (av.)'.format(zss, zfs, zb))
     return defocus, res
 
 

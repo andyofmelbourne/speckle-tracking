@@ -1,7 +1,6 @@
 import numpy as np
 import tqdm
 
-def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centre=None, sig=10, edge_pix=5, window=30, rad_range=None, verbose=True):
 def fit_defocus_registration(
         data, x_pixel_size, y_pixel_size, z, 
         wav, mask, W, roi, basis, translations,
@@ -53,7 +52,7 @@ def fit_defocus_registration(
     dzx = dzs[-1]
     for k in tqdm.trange(len(dzs), desc='sweeping over fs defocus'):
         dzy = dzs[k]
-        O, overlap = make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size, dx_D, mask, data, m, i0, j0, window=100)
+        O, overlap = make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size, dx_D, mask, data, W, m, i0, j0, window=100)
         var.append(np.var(O[O>0]) * np.mean(overlap[O>0]))
     
     # quadratic correction # v = a i**2 + b i + c # vmax = v[-2b / a]
@@ -65,7 +64,7 @@ def fit_defocus_registration(
     var = []
     for k in tqdm.trange(len(dzs), desc='sweeping over ss defocus'):
         dzx = dzs[k]
-        O, overlap = make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size, dx_D, mask, data, m, i0, j0, window=100)
+        O, overlap = make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size, dx_D, mask, data, W, m, i0, j0, window=100)
         var.append(np.var(O[O>0]) * np.mean(overlap[O>0]))
     
     # quadratic correction # v = a i**2 + b i + c # vmax = v[-2b / a]
@@ -73,13 +72,13 @@ def fit_defocus_registration(
     p = np.polyfit(dzs[i-1:i+2], var[i-1:i+2], 2)
     dzx = -p[1]/(2*p[0])
     
-    O, overlap = make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size, dx_D, mask, data, m, i0, j0, window=100)
+    O, overlap = make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size, dx_D, mask, data, W, m, i0, j0, window=100)
 
     z1 = (dzx + dzy)/2.
     return z1, {'O_subregion': O, 'defocus_fs': dzy, 'defocus_ss': dzx, 'astigmatism': (dzx-dzy)/2.}
 
 def make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size, 
-                     dx_D, mask, data, m, i0, j0, window=100):
+                     dx_D, mask, data, W, m, i0, j0, window=100):
     dx = dzx * x_pixel_size / z
     dy = dzy * y_pixel_size / z
     

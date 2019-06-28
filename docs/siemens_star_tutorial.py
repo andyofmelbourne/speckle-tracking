@@ -25,23 +25,30 @@ W = st.make_whitefield(data, mask)
 
 roi = st.guess_roi(W)
 
-dz, res = st.fit_defocus(
+defocus, res = st.fit_defocus(
              data,
              x_pixel_size, y_pixel_size,
              z, wav, mask, W, roi)
 
-pixel_map, uinv, dxy = st.make_pixel_map(
-                  z, dz, res['astigmatism'], 
-                  roi, x_pixel_size, y_pixel_size,
-                  W.shape)
+#pixel_map, uinv, dxy = st.make_pixel_map(
+#                  z, defocus, res['astigmatism'], 
+#                  roi, x_pixel_size, y_pixel_size,
+#                  W.shape)
 
-dij_n = st.make_pixel_translations(
-           translations, 
-           basis, dxy[0], dxy[1])
+M = z / defocus 
 
-O, n0, m0 = st.make_object_map(
-               data, mask, W, dij_n, pixel_map)
+dx = dy = x_pixel_size / M
 
+xy = st.make_pixel_translations(
+                translations, 
+                basis, dx, dy)
+
+u, res = st.pixel_map_from_data(data, xy[:, 0], xy[:, 1], W, mask)
+
+#O, n0, m0 = st.make_object_map(
+#               data, mask, W, dij_n, pixel_map)
+
+"""
 #---------------------------
 # Refine
 #---------------------------
@@ -84,3 +91,4 @@ st.write_h5({
     'angles' : angles,
     'angles_forward' : res['angles_forward']
     })
+"""

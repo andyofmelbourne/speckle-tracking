@@ -19,32 +19,19 @@ def guess_roi(W, verbose=True):
         interesting data in a frame will be in the region:
         frame[roi[0]:roi[1], roi[2]:roi[3]]
     """
-    roi = [0, 0, 0, 0]
-    
-    # left ss intercept
-    x = np.arange(W.shape[0])
-    y = np.cumsum(np.sum(W, axis=1))
-    p = np.polyfit(x, y, 2)
-    roi[0] = int(round(-p[2]/p[1]))
-    # y = mx + c, 0 = mx + c, x = -c / m
+    cumsum = np.cumsum(np.sum(W, axis=1))
+    i      = np.arange(cumsum.shape[0])
+    i, j   = np.meshgrid(i, i, indexing='ij')
+    err    = 4*(1 - (cumsum[j]-cumsum[i])/cumsum[-1]) + (j-i)/cumsum.shape[0]
+    left, right = np.unravel_index(np.argmin(err), i.shape)
 
-    # right ss intercept
-    y = np.cumsum(np.sum(W, axis=1)[::-1])
-    p = np.polyfit(x, y, 2)
-    roi[1] = W.shape[0] - int(round(-p[2]/p[1])) 
+    cumsum = np.cumsum(np.sum(W, axis=0))
+    i      = np.arange(cumsum.shape[0])
+    i, j   = np.meshgrid(i, i, indexing='ij')
+    err    = 4*(1 - (cumsum[j]-cumsum[i])/cumsum[-1]) + (j-i)/cumsum.shape[0]
+    bottom, top = np.unravel_index(np.argmin(err), i.shape)
     
-    # left fs intercept
-    x = np.arange(W.shape[1])
-    y = np.cumsum(np.sum(W, axis=0))
-    p = np.polyfit(x, y, 2)
-    roi[2] = int(round(-p[2]/p[1]))
-    # y = mx + c, 0 = mx + c, x = -c / m
-
-    # right ss intercept
-    y = np.cumsum(np.sum(W, axis=0)[::-1])
-    p = np.polyfit(x, y, 2)
-    roi[3] = W.shape[1] - int(round(-p[2]/p[1])) 
-    
+    roi = [left, right, bottom, top]
     if verbose : print('guessing the region of interest:', roi)
     return roi
 

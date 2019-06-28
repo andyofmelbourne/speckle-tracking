@@ -12,6 +12,7 @@ from .make_pixel_translations import make_pixel_translations
 from .make_object_map import make_object_map
 from .update_translations import update_translations
 from .update_pixel_map import update_pixel_map
+from .pixel_map_from_data import pixel_map_from_data
 from .update_pixel_map import update_pixel_map_opencl
 from .update_pixel_map import make_projection_images
 from .update_pixel_map import quadratic_refinement_opencl

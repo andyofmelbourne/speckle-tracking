@@ -3,7 +3,11 @@ from scipy.ndimage import filters
 from scipy.stats import pearsonr
 import tqdm
 
-def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centre=None, sig=10, edge_pix=5, window=30, rad_range=None, verbose=True):
+def fit_thon_rings(
+        data, x_pixel_size, y_pixel_size, 
+        z, wav, mask, W, roi, centre=None, 
+        sig=10, edge_pix=5, window=30, 
+        rad_range=None, verbose=True, **kwargs):
     r"""Find the focus to sample distance by fitting Thon rings to power spectrum.
 
     This is done by generating a filtered power spectrum of the data. Then fitting
@@ -158,20 +162,6 @@ def fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, centr
     thon_dis[:thon.shape[0]//2, :thon.shape[1]//2] = thon_calc[:thon.shape[0]//2, :thon.shape[1]//2]
     thon_dis = np.fft.fftshift(thon_dis)
     
-    Mss, Mfs = (z + dz)/(z1 + dz), (z - dz)/(z1 - dz)
-    
-    zb = (z-z1)/2. * (1/Mss + 1/Mfs)
-    zss = (z-z1) * (1/Mss)
-    zfs = (z-z1) * (1/Mfs)
-
-    if verbose : 
-        print('defocus (focus-sample dist.): {:.2e}'.format(z1))
-        print('sample-detector dist.       : {:.2e}'.format(z-z1))
-        print('defocus (slow scan axis)    : {:.2e}'.format(z1+dz))
-        print('defocus (fast scan axis)    : {:.2e}'.format(z1-dz))
-        print('Magnification       : {:.2e} (ss) {:.2e} (fs) {:.2e} (av.)'.format(Mss, Mfs, (Mss+Mfs)/2.))
-        print('Effective pixel size: {:.2e}m (ss) {:.2e}m (fs) {:.2e}m (av.)'.format(x_pixel_size/Mss, y_pixel_size/Mfs, (x_pixel_size/Mss + y_pixel_size/Mfs)/2.))
-        print('Effective defocus   : {:.2e}m (ss) {:.2e}m (fs) {:.2e}m (av.)'.format(zss, zfs, zb))
     return z1, {'thon_display': thon_dis, 'bd':bd, 'defocus_fs': z1-dz, 'defocus_ss': z1+dz, 'astigmatism': dz}
 
 
