@@ -332,3 +332,18 @@ def bilinear_interpolation_array(array, ss, fs, fill = -1, invalid=-1):
     out[m] /= s[m]
     out[~m] = fill
     return out  
+
+
+def write_h5(write, fnam = 'siemens_star.cxi', og = 'speckle_tracking/'):
+    with h5py.file(fnam) as f:
+        for k in write.keys():
+            if (og+k) in f :
+                del f[og+k]
+            f[og+k] = write[k]
+
+def read_h5(read, fnam = 'siemens_star.cxi', og = 'speckle_tracking/'):
+    out = {}
+    with h5py.file(fnam) as f:
+        for k in read:
+            out[k] = f[og+k][()]
+    return out
