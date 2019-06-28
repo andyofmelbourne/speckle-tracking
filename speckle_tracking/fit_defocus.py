@@ -1,6 +1,10 @@
 import numpy as np
 
 from .fit_thon_rings import fit_thon_rings
+from .make_object_map import make_object_map
+from .make_pixel_map import make_pixel_map
+from .calc_error import calc_error
+from .make_pixel_translations import make_pixel_translations
 
 
 def fit_defocus(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, **kwargs):
@@ -63,7 +67,37 @@ def fit_defocus(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, **kwargs
     See Also
     --------
     fit_thon_rings
+    fit_defocus_registration
     """
-    return fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, **kwargs)
+    defocus, res = fit_thon_rings(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, **kwargs)
+    
+    if 'basis' in kwargs and 'translations' in kwargs :
+        defocus1, res1 = fit_defocus_registration(
+                               data, x_pixel_size, y_pixel_size, z, 
+                               wav, mask, W, roi, kwargs['basis'], 
+                               kwargs['translations'], window=window)
+        
+        # choose the one that gives the least error
+        dij_n0 = make_pixel_translations(
+                kwargs['translations'], kwargs['basis'], res['defocus_ss'], res['defocus_fs'])
+        dz0 = res['astigmatism']
+        u0, uinv, dxy = make_pixel_map(z, defocus, dz0, roi, x_pixel_size, y_pixel_size, mask.shape)
+        O0, n00, m00  = make_object_map(data, mask, W, dij_n0, u0)
+        error0        = calc_error(data, mask, W, dij_n0, O0, u0, n00, m00)[0]
+        print('Thon ring error:', error0)
+        
+        dij_n1 = make_pixel_translations(
+                kwargs['translations'], kwargs['basis'], res1['defocus_ss'], res1['defocus_fs'])
+        dz1 = res1['astigmatism']
+        u1, uinv, dxy = make_pixel_map(z, defocus1, dz1, roi, x_pixel_size, y_pixel_size, mask.shape)
+        O1, n01, m01  = make_object_map(data, mask, W, dij_n1, u1)
+        error1        = calc_error(data, mask, W, dij_n1, O1, u1, n01, m01)[0]
+        print('Fit by registration error:', error1)
+
+        if error1 > error0 :
+            print('lower error for fit by registration')
+            defocus = defocus1
+            res     = res1
+    return defocus, res
 
 
