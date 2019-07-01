@@ -1,4 +1,5 @@
 import numpy as np
+import h5py
 
 def mk_2dgaus(shape, sig, centre = None):
     if centre is None :
@@ -335,7 +336,7 @@ def bilinear_interpolation_array(array, ss, fs, fill = -1, invalid=-1):
 
 
 def write_h5(write, fnam = 'siemens_star.cxi', og = 'speckle_tracking/'):
-    with h5py.file(fnam) as f:
+    with h5py.File(fnam) as f:
         for k in write.keys():
             if (og+k) in f :
                 del f[og+k]
@@ -343,7 +344,7 @@ def write_h5(write, fnam = 'siemens_star.cxi', og = 'speckle_tracking/'):
 
 def read_h5(read, fnam = 'siemens_star.cxi', og = 'speckle_tracking/'):
     out = {}
-    with h5py.file(fnam) as f:
+    with h5py.File(fnam) as f:
         for k in read:
             out[k] = f[og+k][()]
     return out

@@ -1,7 +1,7 @@
 import numpy as np
 import tqdm
 
-def make_object_map(data, mask, W, dij_n, pixel_map, subpixel=False, verbose=True, minimum_overlap=None):
+def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False, verbose=True, minimum_overlap=None):
     r"""
     Parameters
     ----------
@@ -95,8 +95,14 @@ def make_object_map(data, mask, W, dij_n, pixel_map, subpixel=False, verbose=Tru
         U &= \text{max}(\text{ij}_\text{map}[0, i, j]) - \text{min}(\Delta ij_n[0]) + n_0 \\
         V &= \text{max}(\text{ij}_\text{map}[1, i, j]) - \text{min}(\Delta ij_n[1]) + m_0
     """
+    if roi is None :
+        roi = [0, W.shape[0], 0, W.shape[1]]
+
+    m_roi = np.zeros_like(mask)
+    m_roi[roi[0]:roi[1], roi[2]:roi[3]] = mask[roi[0]:roi[1], roi[2]:roi[3]]
+    
     # mask the pixel mapping
-    ij     = np.array([pixel_map[0][mask], pixel_map[1][mask]])
+    ij     = np.array([pixel_map[0][m_roi], pixel_map[1][m_roi]])
     
     # choose the offset so that ij - dij_n + n0 > -0.5
     # for all unmasked pixels
@@ -117,10 +123,10 @@ def make_object_map(data, mask, W, dij_n, pixel_map, subpixel=False, verbose=Tru
             fs = pixel_map[1] - dij_n[n, 1] + m0
             
             I = bilinear_interpolation_array_inverse(
-                                           I, W*data[n], ss, fs, invalid = mask)
+                                           I, W*data[n], ss, fs, invalid = m_roi)
             
             overlap = bilinear_interpolation_array_inverse(
-                                           overlap, WW, ss, fs, invalid = mask)
+                                           overlap, WW, ss, fs, invalid = m_roi)
         
     else :
         for n in tqdm.trange(data.shape[0], desc='building object map'):
@@ -128,8 +134,8 @@ def make_object_map(data, mask, W, dij_n, pixel_map, subpixel=False, verbose=Tru
             ss = np.rint((ij[0] - dij_n[n, 0] + n0)).astype(np.int)
             fs = np.rint((ij[1] - dij_n[n, 1] + m0)).astype(np.int)
             #
-            I[      ss, fs] += (W*data[n])[mask]
-            overlap[ss, fs] += WW[mask]
+            I[      ss, fs] += (W*data[n])[m_roi]
+            overlap[ss, fs] += WW[m_roi]
             
     overlap[overlap<1e-2] = -1
     m = (overlap > 0)

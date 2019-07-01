@@ -31,13 +31,16 @@ def fit_defocus_registration(
     
     # step size (this could break down with some scans...)
     w = roi[1] - roi[0]
-    step = np.abs(np.median(np.diff(dx_D[:, 0])))
+    step = max(np.abs(np.median(np.diff(dx_D[:, 0]))), np.abs(np.median(np.diff(dx_D[:, 1]))))
     overlap_min = 0.5
     overlap_max = 0.98
-    dzx_min = step * z / (w * (1 - overlap_min) * x_pixel_size )
-    dzx_max = step * z / (w * (1 - overlap_max) * x_pixel_size )
+    #dzx_min = step * z / (w * (1 - overlap_min) * x_pixel_size )
+    #dzx_max = step * z / (w * (1 - overlap_max) * x_pixel_size )
+    # dzs = np.linspace(dzx_min, dzx_max, 100)
     
-    dzs = np.linspace(dzx_min, dzx_max, 100)
+    overlaps = np.linspace(overlap_min, overlap_max, 300)
+    dzs = step * z / (w * (1 - overlaps) * x_pixel_size )
+    
     
     # find detector pos corresponding to central region of O
     dx = dzs[-1] * x_pixel_size / z
@@ -109,7 +112,7 @@ def make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size,
     
     # determine the object-map domain
     shape   = (window+1, window+1)
-    I       = np.zeros(shape, dtype=np.float)
+    I       = -np.ones(shape, dtype=np.float)
     overlap = np.zeros(shape, dtype=np.float)
     WW      = W**2
     minimum_overlap = 2
@@ -130,7 +133,7 @@ def make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size,
         I[      ss, fs] += (W*data[n])[m]
         overlap[ss, fs] += WW[m]
             
-    overlap[overlap<1e-2] = -1
+    overlap[overlap < 2*np.median(WW[roi[0]:roi[1],roi[2]:roi[3]])] = -1
     m = (overlap > 0)
     
     I[m]  = I[m] / overlap[m]

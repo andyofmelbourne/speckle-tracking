@@ -80,19 +80,27 @@ def fit_defocus(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, verbose=
         
         # choose the one that gives the least error
         dij_n0 = make_pixel_translations(
-                kwargs['translations'], kwargs['basis'], res['defocus_ss'], res['defocus_fs'])
+                kwargs['translations'], kwargs['basis'], 
+                x_pixel_size * z / res['defocus_ss'], 
+                y_pixel_size * z / res['defocus_fs'])
+        
         dz0 = res['astigmatism']
         u0, uinv, dxy = make_pixel_map(z, defocus, dz0, roi, x_pixel_size, y_pixel_size, mask.shape)
         O0, n00, m00  = make_object_map(data, mask, W, dij_n0, u0)
         error0        = calc_error(data, mask, W, dij_n0, O0, u0, n00, m00)[0]
+        res['O'] = O0
         print('Thon ring error:', error0)
         
         dij_n1 = make_pixel_translations(
-                kwargs['translations'], kwargs['basis'], res1['defocus_ss'], res1['defocus_fs'])
+                kwargs['translations'], kwargs['basis'], 
+                x_pixel_size * res1['defocus_ss'] / z, 
+                y_pixel_size * res1['defocus_fs'] / z)
+        
         dz1 = res1['astigmatism']
         u1, uinv, dxy = make_pixel_map(z, defocus1, dz1, roi, x_pixel_size, y_pixel_size, mask.shape)
         O1, n01, m01  = make_object_map(data, mask, W, dij_n1, u1)
         error1        = calc_error(data, mask, W, dij_n1, O1, u1, n01, m01)[0]
+        res1['O'] = O0
         print('Fit by registration error:', error1)
         
         if error1 < error0 :

@@ -86,7 +86,7 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
         \end{align}
     """
     # mask the pixel mapping
-    ij     = np.array([pixel_map[0][mask], pixel_map[1][mask]])
+    ij     = np.array([pixel_map[0], pixel_map[1]])
     
     error_total = 0.
     error_frame = np.zeros(data.shape[0])
@@ -103,30 +103,32 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
             fs = pixel_map[1] - dij_n[n, 1] + m0
             #
             I0 = W * bilinear_interpolation_array(I, ss, fs, fill=-1, invalid=-1)
-            I0 = I0[mask]
+            #I0 = I0[mask]
         
         else :
             # define the coordinate mapping and round to int
             ss = np.rint((ij[0] - dij_n[n, 0] + n0)).astype(np.int)
             fs = np.rint((ij[1] - dij_n[n, 1] + m0)).astype(np.int)
             #
-            I0 = I[ss, fs] * W[mask]
+            #I0 = I[ss, fs] * W[mask]
+            I0 = I[ss, fs] * W
         
-        d  = data[n][mask]
-        m  = (I0>0)*(d>0)
+        d  = data[n]
+        m  = (I0>0)*(d>0)*mask
         
         #error_map = m*(I0 - d)**2 / sig[mask]
         error_map = m*(I0 - d)**2
         tot       = np.sum(error_map)
         
         error_total       += tot
-        error_pixel[mask] += error_map
+        error_pixel       += error_map
         error_frame[n]     = tot / np.sum(m)
-        norm[mask]        += m
+        #print(m.shape, mask.shape, mask[m].shape, W.shape, norm.shape)
+        norm              += m*(W - d)**2
     
     m = norm>0
     error_pixel[m] = error_pixel[m] / norm[m]
-    return error_total, error_frame, error_pixel
+    return error_total, error_frame, error_pixel, norm
 
 def make_pixel_map_err(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, search_window=20, grid=[20, 20]):
     # demand that the data is float32 to avoid excess mem. usage
