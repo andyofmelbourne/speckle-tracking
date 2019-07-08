@@ -148,8 +148,8 @@ def update_translations(data, mask, W, O, pixel_map, n0, m0, dij_n, search_windo
                 l += 1
     
     A = []
-    print('\nquadratic refinement:')
-    print('---------------------')
+    #print('\nquadratic refinement:')
+    #print('---------------------')
     for ss_shift in [-1, 0, 1]:
         for fs_shift in [-1, 0, 1]:
             A.append([ss_shift**2, fs_shift**2, ss_shift, fs_shift, ss_shift*fs_shift, 1])
@@ -179,9 +179,9 @@ def update_translations(data, mask, W, O, pixel_map, n0, m0, dij_n, search_windo
     A = np.array([ss_shift**2, fs_shift**2, ss_shift, fs_shift, ss_shift*fs_shift, np.ones_like(ss_shift)])
     err2 = np.sum( np.dot(C.T, A) )
 
-    print('input error: {:.3e}'.format(err0))
-    print('min   error: {:.3e}'.format(err1))
-    print('quad  error: {:.3e}'.format(err2))
+    #print('input error: {:.3e}'.format(err0))
+    #print('min   error: {:.3e}'.format(err1))
+    #print('quad  error: {:.3e}'.format(err2))
     
     m *= (ss_shift**2+fs_shift**2 < 9)
     out[m, 0] = ss_shift[m] + out[m, 0]
@@ -223,8 +223,8 @@ def calc_errs(data, mask, W, O, pixel_map, n0, m0, dij_n, ss, fs):
     max_comp = device.max_compute_units
     max_size = translations_err_cl.get_work_group_info(
                        cl.kernel_work_group_info.WORK_GROUP_SIZE, device)
-    print('maximum workgroup size:', max_size)
-    print('maximum compute units :', max_comp)
+    #print('maximum workgroup size:', max_size)
+    #print('maximum compute units :', max_comp)
     
     # allocate local memory and dtype conversion
     ############################################
