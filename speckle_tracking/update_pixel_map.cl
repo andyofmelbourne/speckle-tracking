@@ -83,6 +83,94 @@ __kernel void update_pixel_map(
     }
 }
 
+__kernel void update_pixel_map_split(
+    __global float  *W,
+    __global float  *data,
+    __local  float  *data2,
+    __global float  *out,
+    __global float  *O,
+    __global float  *pixel_map,
+    __global float  *dij_n,
+    __global int    *mask,
+    __local  int    *mask2,
+    __global int    *is,
+    __global int    *js,
+    const    float    n0,
+    const    float    m0,
+    const    float  subsample,
+    const    int    N,
+    const    int    I,
+    const    int    J,
+    const    int    U,
+    const    int    V,
+    const    int    ss_min,
+    const    int    ss_max,
+    const    int    fs_min,
+    const    int    fs_max
+    )
+{                                                       
+    int i, j;
+    j = get_group_id(1);
+    i = is[j];
+    j = js[j];
+    
+    // printf("%i %i %i %i\n", ss_min, ss_max, fs_min, fs_max);
+    
+    // loop 
+    int n, ss, fs;
+    float err  = 0.;
+    float norm = 0.;
+    float t, err_min = FLT_MAX;
+    int i_min, j_min, di, dj;
+    
+    for (n = 0; n < N; n++){ 
+        data2[n] = data[I*J*n + i*J + j];
+        mask2[n] = mask[I*J*n + i*J + j];
+    }
+    
+    for (di = ss_min; di < ss_max; di++){ 
+    for (dj = fs_min; dj < fs_max; dj++){ 
+        err  = 0.;
+        norm = 0.;
+        for (n = 0; n < N; n++)
+        { 
+            if(mask2[n]==1){
+                ss = rint( pixel_map[0   + i*J + j] + di - dij_n[n*2 + 0] + n0 );
+                fs = rint( pixel_map[I*J + i*J + j] + dj - dij_n[n*2 + 1] + m0 );
+                
+                if((ss >=0) && (ss < U) && (fs >= 0) && (fs < V) && (O[ss*V + fs]>0))
+                {
+                    t     = data2[n] - W[i*J + j] * O[ss*V + fs];
+                    err  += t*t;
+                    //
+                    t     = data2[n] - W[i*J + j];
+                    norm += t*t;
+                }
+            }
+        }
+        
+        if(norm > 0)
+        {
+            err /= norm;
+            
+            if(err < err_min)
+            {
+                err_min = err;
+                i_min   = di;
+                j_min   = dj;
+            }
+        }
+        
+    }}
+    
+    if(err_min < FLT_MAX){
+        out[i*J + j] = err_min;
+        pixel_map[0   + i*J + j] += i_min;
+        pixel_map[I*J + i*J + j] += j_min;
+    }
+}
+
+
 float bilinear_interpolation(
     __global float  *O,
     const    float  ss,
@@ -158,6 +246,70 @@ float bilinear_interpolation(
     else 
     {
     return out / n;
+    }
+}
+
+__kernel void pixel_map_err_split(
+    __global float  *W,
+    __global float  *data,
+    __local  float  *data2,
+    __global float  *out,
+    __global float  *O,
+    __global float  *pixel_map,
+    __global float  *dij_n,
+    __global int    *mask,
+    __local  int    *mask2,
+    const    float    n0,
+    const    float    m0,
+    const    int    N,
+    const    int    I,
+    const    int    J,
+    const    int    U,
+    const    int    V,
+    const    int    di,
+    const    int    dj
+    )
+{                                                       
+    int i = get_group_id(0);
+    int j = get_group_id(1);
+    
+    // printf("%i %i %i %i\n", ss_min, ss_max, fs_min, fs_max);
+    
+    // loop 
+    int n;
+    float err  = 0.;
+    float norm = 0.;
+    float t, ot, ss, fs;
+    
+    for (n = 0; n < N; n++){ 
+        data2[n] = data[I*J*n + i*J + j];
+        mask2[n] = mask[I*J*n + i*J + j];
+    }
+    
+    err  = 0.;
+    norm = 0.;
+    for (n = 0; n < N; n++)
+    { 
+        if(mask2[n]==1){
+            ss = pixel_map[0   + i*J + j] + di - dij_n[n*2 + 0] + n0;
+            fs = pixel_map[I*J + i*J + j] + dj - dij_n[n*2 + 1] + m0;
+
+            // evaluate O using bilinear interpolation 
+            ot = bilinear_interpolation(O, ss, fs, V, U);
+            if(ot >= 0)
+            {
+                t     = data2[n] - W[i*J + j] * ot;
+                err  += t*t;
+                //
+                t     = data2[n] - W[i*J + j];
+                norm += t*t;
+            }
+        }
+    }
+    
+    if(norm > 0)
+    {
+        out[i*J + j] = err / norm;
     }
 }
 

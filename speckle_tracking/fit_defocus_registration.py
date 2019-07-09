@@ -58,6 +58,8 @@ def fit_defocus_registration(
         O, overlap = make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size, dx_D, mask, data, W, m, i0, j0, window=100)
         var.append(np.var(O[O>0]) * np.mean(overlap[O>0]))
     
+    vars_fs = np.array(var)
+    
     # quadratic correction # v = a i**2 + b i + c # vmax = v[-2b / a]
     i = np.argmax(var)
     p = np.polyfit(dzs[i-1:i+2], var[i-1:i+2], 2)
@@ -70,6 +72,8 @@ def fit_defocus_registration(
         O, overlap = make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size, dx_D, mask, data, W, m, i0, j0, window=100)
         var.append(np.var(O[O>0]) * np.mean(overlap[O>0]))
     
+    vars_ss = np.array(var)
+    
     # quadratic correction # v = a i**2 + b i + c # vmax = v[-2b / a]
     i = np.argmax(var)
     p = np.polyfit(dzs[i-1:i+2], var[i-1:i+2], 2)
@@ -78,7 +82,7 @@ def fit_defocus_registration(
     O, overlap = make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size, dx_D, mask, data, W, m, i0, j0, window=100)
 
     z1 = (dzx + dzy)/2.
-    return z1, {'O_subregion': O, 'defocus_fs': dzy, 'defocus_ss': dzx, 'astigmatism': (dzx-dzy)/2.}
+    return z1, {'O_subregion': O, 'defocus_fs': dzy, 'defocus_ss': dzx, 'astigmatism': (dzx-dzy)/2., 'vars': np.array([dzs, vars_ss, vars_fs]) }
 
 def make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size, 
                      dx_D, mask, data, W, m, i0, j0, window=100):
