@@ -128,7 +128,7 @@ def integrate(dssin, dfsin, maskin, maxiter=3000, stepin=[1.,1.]):
     x0[0, :]  = x0[1, :]
     x0[:, -1] = x0[1, -2]
     
-    cgls = Cgls(x0, f, df, fd, dfd=dfd, imax=maxiter)
+    cgls = Cgls(x0, f, df, fd, dfd=dfd, imax=maxiter, e_tol = 1e-3)
 
     scale *= stepin[0]
     
@@ -207,6 +207,7 @@ class Cgls(object):
         if iterations == None :
             iterations = self.imax
         #
+        derr = 1
         import tqdm
         t = tqdm.trange(iterations, desc='cgls err:')
         for i in t:
@@ -232,7 +233,10 @@ class Cgls(object):
             # calculate the error
             self.errors.append(self.f(self.x))
             self.iters = self.iters + 1
-            if self.iters > self.imax or (self.errors[-1] < self.e_tol):
+            if len(self.errors) > 1 :
+                derr = (self.errors[-2] - self.errors[-1]) / self.errors[-1]
+            
+            if self.iters > self.imax or (derr < self.e_tol):
                 break
             t.set_description("cgls err: {:.2e}".format(self.errors[-1]))
         #

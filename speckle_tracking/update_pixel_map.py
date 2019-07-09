@@ -129,6 +129,7 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
                data, mask, W, O, pixel_map, n0, m0, 
                dij_n, subpixel, subsample, 
                search_window, ss_grid.ravel(), fs_grid.ravel())
+    error = res['error']
     
     # if the update is on a sparse grid, then interpolate
     if interpolate :
@@ -142,7 +143,7 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
 
     if quadratic_refinement :
         out, res = quadratic_refinement_opencl(data, mask, W, O, out, n0, m0, dij_n)
-
+    
     if fill_bad_pix :
         out[0] = fill_bad(out[0], mask, 4.)
         out[1] = fill_bad(out[1], mask, 4.)
@@ -164,6 +165,7 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
     if (filter is not None) and (filter > 0):
         out = filter_pixel_map(out, mask, filter)
     
+    res['error'] = error
     return out, res
 
 
@@ -391,7 +393,8 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
     ##################################################################
     
     step = min(100, ss.shape[0])
-    for i in tqdm.tqdm(np.arange(ss.shape[0])[::step], desc='updating pixel map'):
+    it = tqdm.tqdm(np.arange(ss.shape[0])[::step], desc='updating pixel map')
+    for i in it:
         ssi = ss[i:i+step:]
         fsi = fs[i:i+step:]
         update_pixel_map_cl(queue, (1, fsi.shape[0]), (1, 1), 
@@ -409,12 +412,14 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
               data.shape[0], data.shape[1], data.shape[2], 
               O.shape[0], O.shape[1], ss_min, ss_max, fs_min, fs_max)
         queue.finish()
+        
+        it.set_description("updating pixel map: {:.2e}".format(np.sum(err_map) / np.sum(err_map>0)))
     
     # only return filled values
     out = np.zeros((2,) + ss.shape, dtype=pixel_map.dtype)
     out[0] = pixel_mapout[0][ss, fs]
     out[1] = pixel_mapout[1][ss, fs]
-    return out, {'error_map': err_map}
+    return out, {'error_map': err_map, 'error': np.sum(err_map)}
 
 def quadratic_refinement_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n):
     # demand that the data is float32 to avoid excess mem. usage
@@ -449,8 +454,8 @@ def quadratic_refinement_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n):
     max_comp = device.max_compute_units
     max_size = update_pixel_map_cl.get_work_group_info(
                        cl.kernel_work_group_info.WORK_GROUP_SIZE, device)
-    print('maximum workgroup size:', max_size)
-    print('maximum compute units :', max_comp)
+    #print('maximum workgroup size:', max_size)
+    #print('maximum compute units :', max_comp)
     
     # allocate local memory and dtype conversion
     ############################################
@@ -476,12 +481,9 @@ def quadratic_refinement_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n):
     pixel_shift.fill(0.)
     
     A = []
-    print('\nquadratic refinement:')
-    print('---------------------')
     for ss_shift in [-1, 0, 1]:
         for fs_shift in [-1, 0, 1]:
             A.append([ss_shift**2, fs_shift**2, ss_shift, fs_shift, ss_shift*fs_shift, 1])
-            print(ss_shift, fs_shift)
             update_pixel_map_cl( queue, W.shape, (1, 1), 
                   cl.SVM(Win), 
                   cl.SVM(data), 
@@ -526,8 +528,6 @@ def quadratic_refinement_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n):
     out[0][m] = out[0][m] + pixel_shift[0][m]
     out[1][m] = out[1][m] + pixel_shift[1][m]
       
-    print('calculation took:', time.time()-d0, 's')
-    
     error = np.sum(np.min(err_quad, axis=0))
     return out, {'pixel_shift': pixel_shift, 'error': error, 'err_quad': err_quad}
 
@@ -580,3 +580,4 @@ def fill_bad(pm, mask, sig):
     out2 = pm.copy()
     out2[~mask] = out[~mask] / norm[~mask]
     return out2
+

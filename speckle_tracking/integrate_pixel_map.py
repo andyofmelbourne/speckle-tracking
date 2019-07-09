@@ -84,6 +84,11 @@ def integrate_pixel_map(pixel_map, weight, wavelength, z, zr,
         theta_r[1], x = remove_grad_const(theta_r[1], weight, j, 100)
     else :
         theta_r, x = remove_offset_tilt_defocus(theta_r, weight, 100)
+        print(x, np.mean(theta_r, axis=(1,2)))
+        theta_r, x = remove_offset_tilt_defocus(theta_r, weight, 100)
+        print(x, np.mean(theta_r, axis=(1,2)))
+        theta_r, x = remove_offset_tilt_defocus(theta_r, weight, 100)
+        print(x, np.mean(theta_r, axis=(1,2)))
     
     t, res = integrate(
                  theta_r[0], theta_r[1], 
