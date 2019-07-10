@@ -22,3 +22,4 @@ from .calc_error import calc_error
 from .calc_error import make_pixel_map_err
 from .propagation_profile import propagation_profile
 from .angular_resolution import angular_resolution
+from .integrate_pixel_map import get_defocus
