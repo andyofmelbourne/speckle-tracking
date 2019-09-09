@@ -148,13 +148,17 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
         out[0] = fill_bad(out[0], mask, 4.)
         out[1] = fill_bad(out[1], mask, 4.)
 
+    u0 = np.array(np.indices(W.shape))
+    if (filter is not None) and (filter > 0):
+        out = u0 + filter_pixel_map(out-u0, mask, filter)
+    
     if integrate :
-        from .utils import integrate
-        u0 = np.array(np.indices(W.shape))
-        phase_pix, res = integrate(
+        from .utils import integrate_grad2
+        phase_pix, res = integrate_grad2(
                          out[0]-u0[0], out[1]-u0[1], 
-                         W**0.5, maxiter=2000)
+                         mask*W**0.5, maxiter=2000)
         
+        # prevent crazy numbers before filtering
         if clip is not None :
             out[0] = u0[0] + np.clip(res['dss_forward'], clip[0], clip[1])
             out[1] = u0[1] + np.clip(res['dfs_forward'], clip[0], clip[1])
@@ -162,8 +166,8 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
             out[0] = u0[0] + res['dss_forward']
             out[1] = u0[1] + res['dfs_forward']
     
-    if (filter is not None) and (filter > 0):
-        out = filter_pixel_map(out, mask, filter)
+    if clip is not None :
+        out = u0 + np.clip(out-u0, clip[0], clip[1])
     
     res['error'] = error
     return out, res
@@ -391,6 +395,20 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
     ##################################################################
     # End crap
     ##################################################################
+
+    # evaluate err_map0
+    ssi = ss
+    fsi = fs
+    update_pixel_map_cl(queue, (1, fsi.shape[0]), (1, 1), cl.SVM(Win), 
+                        cl.SVM(data), localmem, cl.SVM(err_map), cl.SVM(Oin), 
+                        cl.SVM(pixel_mapout), cl.SVM(dij_nin), cl.SVM(maskin),
+                        cl.SVM(ssi), cl.SVM(fsi), n0, m0, subsample, 
+                        data.shape[0], data.shape[1], data.shape[2], 
+                        O.shape[0], O.shape[1], 0, 1, 0, 1)
+    queue.finish()
+
+    pixel_mapout = pixel_map.astype(np.float32)
+    err_map0     = err_map.copy()
     
     step = min(100, ss.shape[0])
     it = tqdm.tqdm(np.arange(ss.shape[0])[::step], desc='updating pixel map')
@@ -413,7 +431,11 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
               O.shape[0], O.shape[1], ss_min, ss_max, fs_min, fs_max)
         queue.finish()
         
-        it.set_description("updating pixel map: {:.2e}".format(np.sum(err_map) / np.sum(err_map>0)))
+        er = np.mean(err_map[err_map>0])
+        it.set_description("updating pixel map: {:.2e}".format(er))
+        
+        #it.set_description("updating pixel map: {:.2e}".format(np.sum(err_map) \
+                #                   / np.sum(err_map>0)))
     
     # only return filled values
     out = np.zeros((2,) + ss.shape, dtype=pixel_map.dtype)
@@ -484,6 +506,7 @@ def quadratic_refinement_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n):
     for ss_shift in [-1, 0, 1]:
         for fs_shift in [-1, 0, 1]:
             A.append([ss_shift**2, fs_shift**2, ss_shift, fs_shift, ss_shift*fs_shift, 1])
+            err_map.fill(9999)
             update_pixel_map_cl( queue, W.shape, (1, 1), 
                   cl.SVM(Win), 
                   cl.SVM(data), 
@@ -516,7 +539,7 @@ def quadratic_refinement_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n):
     det  = 2*C[0] * 2*C[1] - C[4]**2
     
     # make sure all sampled shifts have a valid error
-    m    = np.all(err_quad<np.finfo(np.float32).max, axis=0)
+    m    = np.all(err_quad!=9999, axis=0)
     # make sure the determinant is non zero
     m    = m * (det != 0)
     pixel_shift[0][m] = (-2*C[1] * C[2] +   C[4] * C[3])[m] / det[m]

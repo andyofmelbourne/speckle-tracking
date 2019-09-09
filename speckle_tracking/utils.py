@@ -128,7 +128,7 @@ def integrate(dssin, dfsin, maskin, maxiter=3000, stepin=[1.,1.]):
     x0[0, :]  = x0[1, :]
     x0[:, -1] = x0[1, -2]
     
-    cgls = Cgls(x0, f, df, fd, dfd=dfd, imax=maxiter, e_tol = 1e-3)
+    cgls = Cgls(x0, f, df, fd, dfd=dfd, imax=maxiter, e_tol = 1e-4)
 
     scale *= stepin[0]
     
@@ -142,6 +142,140 @@ def integrate(dssin, dfsin, maskin, maxiter=3000, stepin=[1.,1.]):
                              'dss_residual': dss_forw-dss,
                              'dfs_residual': dfs_forw-dfs,
                              'cgls_errors': cgls.errors}
+
+
+def integrate_grad2(dssin, dfsin, maskin, maxiter=3000, stepin=[1.,1.], sigma=1.):
+    scale = np.mean(np.array([dssin, dfsin]))
+    dss = dssin / scale
+    dfs = dfsin / scale
+    mask = maskin / np.mean(maskin)
+    step = [1, stepin[1]/stepin[0]]
+    
+    def grad_ss(p):
+        return (p[1:, :] - p[:-1, :])/step[0]
+    
+    def grad_fs(p):
+        return (p[:, 1:] - p[:, :-1])/step[1]
+    
+    def grad2_ss(p):
+        return (p[2:, :] - 2*p[1:-1, :] + p[:-2, :])/step[0]**2
+    
+    def grad2_fs(p):
+        return (p[:, 2:] - 2*p[:, 1:-1] + p[:, :-2])/step[1]**2
+    
+    def f(x):
+        return np.sum( mask * (grad_ss(x)[:,:-1]-dss)**2 ) \
+             + np.sum( mask * (grad_fs(x)[:-1,:]-dfs)**2 ) \
+             + sigma * np.sum( grad2_ss(x)**2) \
+             + sigma * np.sum( grad2_fs(x)**2) 
+
+    def f_grad(x):
+        return np.sum( mask * (grad_ss(x)[:,:-1]-dss)**2 ) \
+             + np.sum( mask * (grad_fs(x)[:-1,:]-dfs)**2 )
+
+    def f_grad2(x):
+        return sigma * np.sum( grad2_ss(x)**2) \
+             + sigma * np.sum( grad2_fs(x)**2) 
+
+    def df(x):
+        out = np.zeros_like(x)
+        t = (x[2:,:] - 2*x[1:-1,:] + x[:-2,:])/step[0]**4
+        #
+        # out_i,j     +=  sig [xi,j - 2xi-1,j + xi-2,j]
+        out[2:,:] += t
+        #
+        # out_i,j     -= 2sig [xi+1,j - 2xi,j + xi-1,j]
+        out[1:-1,:] -= 2*t
+        #
+        # out_i,j     +=  sig [xi+2,j - 2xi+1,j + xi,j]
+        out[:-2,:] += t
+        #
+        # out_i,j     +=  sig [xi,j - 2xi,j-1 + xi,j-2]
+        t = (x[:,2:] - 2*x[:,1:-1] + x[:,:-2])/step[1]**4
+        out[:,2:] += t
+        #
+        # out_i,j     -= 2sig [xi,j+1 - 2xi,j + xi,j-1]
+        out[:,1:-1] -= 2* t
+        #
+        # out_i,j     +=  sig [xi,j+2 - 2xi,j+1 + xi,j]
+        out[:,:-2] += t
+        #
+        out *= sigma
+        #
+        # outi,j       = [xi,j       - xi-1,j      - dssi-1,j ] mi-1,j
+        t = ((x[1:, :-1] - x[:-1, :-1])/step[0] - dss[:, :])*mask/step[0]
+        out[1:, :-1]  += t
+        #
+        # outi,j       = [xi+1,j     - xi,j        - dssi,j   ] mi,j
+        out[:-1, :-1] -= t
+        #
+        # outi,j       = [xi,j       - xi,j-1      - dfsi,j-1 ] mi,j-1
+        t = ((x[:-1, 1:] - x[:-1, :-1])/step[1] - dfs[:, :])*mask/step[1]
+        out[:-1, 1:]  += t
+        #
+        # outi,j       = [xi,j+1       - xi,j      - dfsi,j   ] mi,j
+        out[:-1, :-1] -= t
+        return 2*out 
+
+
+    def dfd(x, d):
+        out = 0.
+        #
+        # out += di,j di,j mi-1,j 
+        #
+        # out -= di,j di-1,j mi-1,j
+        #
+        # out -= di,j di+1,j mi,j
+        #
+        # out += di,j di,j mi,j
+        #
+        # out += di,j di,j mi,j-1
+        #
+        # out -= di,j di,j-1 mi,j-1
+        #
+        # out -= di,j di,j+1 mi,j
+        #
+        # out += di,j di,j mi,j
+        out = 2*np.sum((
+                    d[1:,:-1]  * d[1:,:-1]/step[0]**2  -  d[1:,:-1]  * d[:-1,:-1]/step[0]**2 \
+                   -d[:-1,:-1] * d[1:,:-1]/step[0]**2  +  d[:-1,:-1] * d[:-1,:-1]/step[0]**2 \
+                   +d[:-1,1:]  * d[:-1,1:]/step[1]**2  -  d[:-1,1:]  * d[:-1,:-1]/step[1]**2 \
+                   -d[:-1,:-1] * d[:-1,1:]/step[1]**2  +  d[:-1,:-1] * d[:-1,:-1]/step[1]**2
+                    )*mask)
+        #
+        t = d[2:,:] - 2*d[1:-1,:] + d[:-2,:]
+        out += 2*sigma*np.sum(
+                 d[2:,:]   * t \
+              -2*d[1:-1,:] * t \
+                +d[:-2,:]  * t \
+               ) / step[0]**4
+        #
+        t = d[:,2:] - 2*d[:, 1:-1] + d[:, :-2]
+        out += 2*sigma*np.sum(
+                 d[:,2:]   * t \
+              -2*d[:,1:-1] * t \
+                +d[:,:-2]  * t \
+               ) / step[1]**4
+        return out
+
+    fd = lambda x, d : np.sum( d * df(x))
+
+    cgls = Cgls(np.zeros((dss.shape[0]+1, dss.shape[1]+1)), 
+                f, df, fd, dfd=dfd, imax=maxiter, e_tol = 1e-3)
+    
+    scale *= stepin[0]
+    
+    phase = scale * cgls.cgls()
+
+    dss_forw = grad_ss(phase)[:,:-1]/stepin[0] 
+    dfs_forw = grad_fs(phase)[:-1,:]/stepin[0]
+    
+    return phase[:-1, :-1], {'dss_forward': dss_forw,
+                             'dfs_forward': dfs_forw,
+                             'dss_residual': dss_forw-dss,
+                             'dfs_residual': dfs_forw-dfs,
+                             'cgls_errors': cgls.errors}
+
 
 def line_search_newton_raphson(x, d, fd, dfd, iters = 1, tol=1.0e-10):
     """Finds the minimum of the the function f along the direction of d by using a second order Taylor series expansion of f.
@@ -237,6 +371,7 @@ class Cgls(object):
                 derr = (self.errors[-2] - self.errors[-1]) / self.errors[-1]
             
             if self.iters > self.imax or (derr < self.e_tol):
+                t.close()
                 break
             t.set_description("cgls err: {:.2e}".format(self.errors[-1]))
         #
@@ -352,3 +487,6 @@ def read_h5(read, fnam = 'siemens_star.cxi', og = 'speckle_tracking/'):
         for k in read:
             out[k] = f[og+k][()]
     return out
+
+
+

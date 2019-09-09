@@ -70,24 +70,21 @@ def integrate_pixel_map(pixel_map, weight, wavelength, z, zr,
         \Phi_r'(i \Delta_{ss}) &= \Delta_{ss} \sum_{j=0}^{j=i} \left[ j\frac{z_r - z}{z_r} \Delta_{ss} - \Delta_x (u[j] + n_0)\right] 
         \end{align}
     """
-    # for now :
-    n0 = m0 = 0
-    #\theta_r(x) &= \frac{i \Delta_{ss} \frac{z_r - z}{z_r} - \Delta_x(u[i] + n_0)}{z}  
-    i, j = np.indices(pixel_map.shape[1:])
-    theta_r    = np.zeros_like(pixel_map)
-    theta_r[0] = (i * x_pixel_size * (zr - z)/zr - dx * (pixel_map[0] + n0))/z
-    theta_r[1] = (j * y_pixel_size * (zr - z)/zr - dy * (pixel_map[1] + m0))/z
-
     # remove offset and tilt
+    theta_r    = pixel_map.copy()
+
     if remove_astigmatism :
         for k in range(3): # TODO
             theta_r[0], x = remove_grad_const(theta_r[0], weight, i, 100)
             theta_r[1], x = remove_grad_const(theta_r[1], weight, j, 100)
     else :
-        for k in range(3): # TODO
-            theta_r, x = remove_offset_tilt_defocus(theta_r, weight, 100)
-        print(x, np.mean(theta_r, axis=(1,2)))
+        theta_r, x = remove_offset_tilt_defocus(theta_r, weight, 100)
+        print(x, np.mean(weight*theta_r, axis=(1,2)))
     
+    i, j = np.indices(pixel_map.shape[1:])
+    theta_r[0] *= dx /z
+    theta_r[1] *= dy /z
+
     t, res = integrate(
                  theta_r[0], theta_r[1], 
                  weight, maxiter, [x_pixel_size, y_pixel_size])
@@ -267,4 +264,4 @@ def get_defocus(pixel_map, weight, zt, x_pixel_size, y_pixel_size, dx, dy):
         print('Magnification       : {:.3e} (ss) {:.3e} (fs) {:.3e} (av.)'.format(Mss, Mfs, (Mss+Mfs)/2.))
         print('Effective pixel size: {:.3e}m (ss) {:.3e}m (fs) {:.3e}m (av.)'.format(x_pixel_size/Mss, y_pixel_size/Mfs, (x_pixel_size/Mss + y_pixel_size/Mfs)/2.))
         print('Effective defocus   : {:.3e}m (ss) {:.3e}m (fs) {:.3e}m (av.)'.format(zess, zefs, zb))
-    return z_ss, z_fs, dz
+    return zs, dz_ss, dz_fs, z_ss, z_fs, dz

@@ -39,7 +39,7 @@ def angular_resolution(data, mask, W, O, pixel_map, n0, m0, dij_n, dxyz, z,
     s2 *= dxyz[1] / z
     x1 *= dxyz[0] / z
     x2 *= dxyz[1] / z
-
+    
     res3 = {'x_ss': x1, 'h_ss': y1, 'h_fit_ss': g1, 'sigma_ss': s1,
             'x_fs': x2, 'h_fs': y2, 'h_fit_fs': g2, 'sigma_fs': s2}
     

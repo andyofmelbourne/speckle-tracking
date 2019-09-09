@@ -18,9 +18,33 @@ Maybe we also want the option to split over detector pixels...
 """
 import numpy as np
 import h5py
+import copy
 
 from . import config_reader
 from . import cmdline_parser
+
+config_default = {
+        'data' : {
+            'data'  : '/entry_1/data_1/data',
+            'basis' : '/entry_1/instrument_1/detector_1/basis_vectors',
+            'z'     : '/entry_1/instrument_1/detector_1/distance',
+            'x_pixel_size' : '/entry_1/instrument_1/detector_1/x_pixel_size',
+            'y_pixel_size' : '/entry_1/instrument_1/detector_1/y_pixel_size',
+            'wav'          : '/entry_1/instrument_1/source_1/wavelength',
+            'translations' : '/entry_1/sample_1/geometry/translation'
+            },
+        'speckle_tracking' : {
+            'mask' : '/speckle_tracking/mask',
+            'W'    : '/speckle_tracking/whitefield',
+            'O'    : '/speckle_tracking/object_map',
+            'n0'   : '/speckle_tracking/n0',
+            'm0'   : '/speckle_tracking/m0',
+            'dxy'  : '/speckle_tracking/object_map_voxel_size',
+            'pixel_map' : '/speckle_tracking/pixel_map',
+            'xy'   : '/speckle_tracking/pixel_translations',
+            'roi'  : '/speckle_tracking/roi'
+            }
+        }
 
 
 def get_all(sn, des, exclude=[]):
@@ -215,7 +239,8 @@ def get_val_h5(h5, val, r, shape, extract, k):
     return valout
 
 def config_read_from_h5(config, h5_file, val_doc_adv=False, 
-                        extract=False, roi=False, exclude=[]):
+                        extract=False, roi=False, exclude=[], 
+                        flatten=False, update_default={}):
     """
     Same as config_read, but also gets variables from an open h5_file:
         [group-name]
@@ -232,6 +257,10 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False,
     
     val_doc_adv : bool
         Toggles the output format of 'config_dict', see below.
+
+    flatten : bool, default (False)
+        If True then all key value pairs are returned in the top level 
+        of the dictionary.
     
     Returns
     -------
@@ -247,7 +276,14 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False,
             output = {group-name: {key : eval(val)}}
     
     """
-    
+    if config is None :
+        config = copy.deepcopy(config_default)
+        for sec in update_default.keys() :
+            if sec in config_default :
+                config[sec].update(update_default[sec])
+            else :
+                config[sec] = update_default[sec]
+
     # open the h5 file if h5_file is a string
     close   = False
     if type(h5_file) is str :
@@ -256,17 +292,22 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False,
     
     # get the roi if there
     r = None
-    if roi :
-        for group in config.keys():
-            if 'roi' in config[group] :
-                r = config[group]['roi']
-                break
-            elif 'ROI' in config[group] :
-                r = config[group]['ROI']
-                break
-        # now get the shape of datasets that 
-        # this will apply to:
-        shape = h5_file['/entry_1/data_1/data'].shape[-2:]
+    if roi is not False and roi is not None :
+        if type(roi) is not str and roi is not True :
+            r = roi 
+        else :
+            for group in config.keys():
+                if 'roi' in config[group] :
+                    r = config[group]['roi']
+                    break
+                elif 'ROI' in config[group] :
+                    r = config[group]['ROI']
+                    break
+            r = h5_file[r][()]
+    
+    # now get the shape of datasets that 
+    # this will apply to:
+    shape = h5_file['/entry_1/data_1/data'].shape[-2:]
     
     # now search for '/' and fetch from the open
     for sec in config.keys():
@@ -299,6 +340,7 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False,
             else :
                 valout = None
             
+            print(sec, k, val, type(valout))
             if valout is None :
                 continue 
             
@@ -309,5 +351,14 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False,
     
     if close :
         h5_file.close()
-    return config
+
+    if flatten :
+        out = {}
+        for sec in config.keys():
+            for k in config[sec].keys():
+                out[k] = config[sec][k]
+    else :
+        out = config
+
+    return out
 

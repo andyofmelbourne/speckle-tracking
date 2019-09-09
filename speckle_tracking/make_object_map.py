@@ -1,7 +1,8 @@
 import numpy as np
 import tqdm
 
-def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False, verbose=True, minimum_overlap=None):
+def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False, 
+                    verbose=True, minimum_overlap=None, sig=None):
     r"""
     Parameters
     ----------
@@ -98,6 +99,14 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False, v
     if roi is None :
         roi = [0, W.shape[0], 0, W.shape[1]]
 
+    if (sig is not None) and (sig > 0):
+        i, j = np.indices(W.shape)
+        c0 = roi[0] + (roi[1]-roi[0])/2.
+        c1 = roi[2] + (roi[3]-roi[2])/2.
+        exp = np.exp(- (i-c0)**2/(2.*sig**2) - (j-c1)**2/(2.*sig**2))
+    else :
+        exp = 1
+    
     m_roi = np.zeros_like(mask)
     m_roi[roi[0]:roi[1], roi[2]:roi[3]] = mask[roi[0]:roi[1], roi[2]:roi[3]]
     
@@ -114,7 +123,7 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False, v
                int(np.rint(np.max(ij[1]) - np.min(dij_n[:, 1]) + m0))+1)
     I       = np.zeros(shape, dtype=np.float)
     overlap = np.zeros(shape, dtype=np.float)
-    WW      = W**2
+    WW      = (exp*W)**2
     
     if subpixel :
         for n in tqdm.trange(data.shape[0], desc='building object map'):
@@ -123,7 +132,7 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False, v
             fs = pixel_map[1] - dij_n[n, 1] + m0
             
             I = bilinear_interpolation_array_inverse(
-                                           I, W*data[n], ss, fs, invalid = m_roi)
+                                           I, exp**2 * W*data[n], ss, fs, invalid = m_roi)
             
             overlap = bilinear_interpolation_array_inverse(
                                            overlap, WW, ss, fs, invalid = m_roi)
@@ -134,7 +143,7 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False, v
             ss = np.rint((ij[0] - dij_n[n, 0] + n0)).astype(np.int)
             fs = np.rint((ij[1] - dij_n[n, 1] + m0)).astype(np.int)
             #
-            I[      ss, fs] += (W*data[n])[m_roi]
+            I[      ss, fs] += (exp**2 * W * data[n])[m_roi]
             overlap[ss, fs] += WW[m_roi]
             
     overlap[overlap<1e-2] = -1
@@ -147,7 +156,10 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False, v
         m = overlap < minimum_overlap
         I[m] = -1
     
-    return I, n0, m0
+    if sig is not None :
+        return I, n0, m0, exp
+    else :
+        return I, n0, m0
 
 def bilinear_interpolation_array_inverse(out, array, ss, fs, invalid=-1):
     """
