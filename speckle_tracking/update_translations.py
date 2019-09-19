@@ -99,10 +99,10 @@ def update_translations_1(data, mask, W, O, pixel_map, n0, m0, dij_n, search_win
     det[~m]  = 1
     ss_shift = (-2*C[1] * C[2] +   C[4] * C[3]) / det
     fs_shift = (   C[4] * C[2] - 2*C[0] * C[3]) / det
-
+    
     A = np.array([ss_shift**2, fs_shift**2, ss_shift, fs_shift, ss_shift*fs_shift, np.ones_like(ss_shift)])
     err2 = np.sum( np.dot(C.T, A) )
-
+    
     #print('input error: {:.3e}'.format(err0))
     #print('min   error: {:.3e}'.format(err1))
     #print('quad  error: {:.3e}'.format(err2))
