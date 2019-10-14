@@ -15,38 +15,32 @@ translations = f['/entry_1/sample_1/geometry/translation'][()]
 
 f.close()
 
-
-#---------------------------
-# intialise
-#---------------------------
 mask  = st.make_mask(data)
 
 W = st.make_whitefield(data, mask)
 
-roi = st.guess_roi(W)
+roi         = st.guess_roi(W)
+good_frames = np.arange(0, data.shape[0], 4)
+s           = (good_frames, slice(roi[0], roi[1]), slice(roi[2], roi[3]))
+data = data[s]
+W    = W[s[1:]]
+mask = mask[s[1:]]
+translations = translations[good_frames]
+basis = basis[good_frames]
 
 defocus, res = st.fit_defocus(
              data,
              x_pixel_size, y_pixel_size,
-             z, wav, mask, W, roi)
+             z, wav, mask, W, None)
 
-#pixel_map, uinv, dxy = st.make_pixel_map(
-#                  z, defocus, res['astigmatism'], 
-#                  roi, x_pixel_size, y_pixel_size,
-#                  W.shape)
+M  = z / defocus 
+dx = x_pixel_size / M
+dy = y_pixel_size / M
 
-M = z / defocus 
+xy = st.make_pixel_translations(translations, basis, dx, dy)
 
-dx = dy = x_pixel_size / M
+u, res = st.pixel_map_from_data(data, xy, W, mask)
 
-xy = st.make_pixel_translations(
-                translations, 
-                basis, dx, dy)
-
-u, res = st.pixel_map_from_data(data, xy[:, 0], xy[:, 1], W, mask)
-
-#O, n0, m0 = st.make_object_map(
-#               data, mask, W, dij_n, pixel_map)
 
 """
 #---------------------------

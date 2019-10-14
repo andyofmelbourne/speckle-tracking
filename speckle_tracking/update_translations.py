@@ -10,7 +10,7 @@ def update_translations(
     
     if roi is None :
         roi = [0, W.shape[0], 0, W.shape[1]]
-
+    
     dr = data[:, roi[0]:roi[1], roi[2]:roi[3]].copy()
     mr = mask[roi[0]:roi[1], roi[2]:roi[3]].copy()
     Wr = W[roi[0]:roi[1], roi[2]:roi[3]].copy()
