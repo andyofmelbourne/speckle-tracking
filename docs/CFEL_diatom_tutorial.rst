@@ -1,180 +1,135 @@
-Diatom example (out-of-date)
-****************************
+Diatom example
+**************
 
 .. contents:: Table of Contents
 
-Workflow:
-    install --> select diffraction frames --> make whitefield --> make mask --> make object map --> update pixel shift map (and obj.) --> update translations (and obj.)
+First download the cxi file (link to come, for now at ~/Documents/2019/speckle-data/diatom_tutorial/diatom.cxi).
 
-Then one can cylce through:
-    update pixel shift map --> make object map --> update translations --> make object map
+The Input CXI File
+------------------
+The file has the following structure::
 
-until satisfied.
+     └─ $  h5ls -r diatom.cxi 
+    /                        Group
+    /entry_1                 Group
+    /entry_1/data_1          Group
+    /entry_1/data_1/data     Dataset {400, 480, 438}
+    /entry_1/instrument_1    Group
+    /entry_1/instrument_1/detector_1 Group
+    /entry_1/instrument_1/detector_1/basis_vectors Dataset {400, 2, 3}
+    /entry_1/instrument_1/detector_1/distance Dataset {SCALAR}
+    /entry_1/instrument_1/detector_1/mask Dataset {480, 438}
+    /entry_1/instrument_1/detector_1/x_pixel_size Dataset {SCALAR}
+    /entry_1/instrument_1/detector_1/y_pixel_size Dataset {SCALAR}
+    /entry_1/instrument_1/source_1 Group
+    /entry_1/instrument_1/source_1/energy Dataset {SCALAR}
+    /entry_1/instrument_1/source_1/wavelength Dataset {SCALAR}
+    /entry_1/sample_1        Group
+    /entry_1/sample_1/geometry Group
+    /entry_1/sample_1/geometry/translation Dataset {400, 3}
 
-Install
-=======
-.. code-block:: bash
+
+This is the minimal amount of information that the input cxi file can have, see :ref:`cxi-file`. So, as we can see in the :code:`entry_1/data_1/data` the dataset consists of 121 frames, where each frame is an image of 516x1556 pixels.
+
+
+Now that's out of the way, we should decide if we want to use the `Python Interface`_, `Command-line Interface`_ or the `Gui Interface`_. So... choose. 
+
+Python Interface
+----------------
+
+Make the mask
+    First let's import speckle tracking and things, then call the :py:func:`~speckle_tracking.make_mask` function with default settings to create a binary True/False (good/bad) pixel map for the detector. Then we are going to write this back into the file::
+
+        import speckle_tracking as st
+        import h5py
+        import numpy as np
+        
+        # extract data
+        with h5py.File('diatom.cxi', 'r') as f:
+            data  = f['/entry_1/data_1/data'][()].astype(np.float32)
+            basis = f['/entry_1/instrument_1/detector_1/basis_vectors'][()]
+            z     = f['/entry_1/instrument_1/detector_1/distance'][()]
+            x_pixel_size = f['/entry_1/instrument_1/detector_1/x_pixel_size'][()]
+            y_pixel_size = f['/entry_1/instrument_1/detector_1/y_pixel_size'][()]
+            wav          = f['/entry_1/instrument_1/source_1/wavelength'][()]
+            translations = f['/entry_1/sample_1/geometry/translation'][()]
+        
+        mask  = st.make_mask(data)
+        
+        st.write_h5({'mask': mask}, 'diatom.cxi')
+
+    The function :py:func:`~speckle_tracking.write_h5` is a conveniance function for writing a dataset to the group "/speckle_tracking/" inside the h5 file, it will overide any previous dataset.
+
+Generate the Whitefield
+    Now we make the "whitefield" which is the image formed on the detector when there is no sample in place. You might already have this from a separate measurement, but usually it's better to estimate it directly from the scan data which we do by calling :py:func:`~speckle_tracking.make_whitefield`::
+
+        W = st.make_whitefield(data, mask)
+        
+        st.write_h5({'whitefield': W}, 'diatom.cxi')
+        
+Define the ROI 
+    Usually the region of the detector with useful diffraction is small compared to the full detector area. So defining the ROI (Region Of Interest) speeds things up, do this manually or by using a script that tries to guess this region :py:func:`~speckle_tracking.guess_roi`::
+        
+        roi = st.guess_roi(W)
+        good_frames = np.arange(1,data.shape[0])
+        
+        st.write_h5({'roi': roi, 'good_frames': good_frames}, 'diatom.cxi')
+        
+        # apply the roi
+        s    = (good_frames, slice(roi[0], roi[1]), slice(roi[2], roi[3]))
+        data         = data[s]
+        W            = W[s[1:]]
+        mask         = mask[s[1:]]
+        basis        = basis[s[0]]
+        translations = translations[s[0]]
+        
+Determine the defocus
+    Now let us estimate the focus to sample distance -- this distance determines the effective magnification of the object reference image in each of the shadow images. There are two methods for achieving this automatically: :py:func:`~speckle_tracking.fit_defocus_registration` and :py:func:`~speckle_tracking.fit_thon_rings`. However in the present case, the defocus distance could be estimated during the experiment::
+        
+        defocus = 2.23e-3
+        
+        st.write_h5({'defocus': defocus}, 'diatom.cxi')
+        
+Generate the pixel space translations
+    Now we will determine the relative position of the magnified object in each of the shadow images in pixel units. First, we must decide the sampling frequency for the object reference map. Here we set this to the de-magnified pixel size, as determined by the estimated defocus. Then we call :py:func:`~speckle_tracking.make_pixel_translations`::
+        
+        dx_ref  = x_pixel_size * defocus / z
+        dy_ref  = y_pixel_size * defocus / z
+        xy_pix  = st.make_pixel_translations(translations, basis, dx_ref, dy_ref)
+        
+        st.write_h5({
+            'dxy_ref': np.array([dx_ref, dy_ref]),
+            'xy_pix' : xy_pix
+            }, 'diatom.cxi')
+
+Determine the pixel mapping and object reference image
+    At this stage we have everything we need to solve for the object reference map and the wavefront distortions in pixel units using :py:func:`~speckle_tracking.pixel_map_from_data`::
+
+        sw = [10, 10]
+        pixel_map, res = st.pixel_map_from_data(data, xy_pix, W, mask, search_window=sw)
+        
+        st.write_h5({
+            'pixel_map': pixel_map,
+            'object_map' : res['object_map']
+            }, 'diatom.cxi')
+
+Pixel map to ray angles and pupil phase
+    Once we have the pixel mapping array, we can convert this to into the ray propagation angles, which can then be integrated to obtain the phase using :py:func:`~speckle_tracking.integrate_pixel_map`::
+
+        phase, angles, res = st.integrate_pixel_map(pixel_map, W, wav, z-defocus, z, x_pixel_size, y_pixel_size, dxy[0], dxy[1], False, maxiter=5000)
+        
+        st.write_h5({
+            'phase': phase,
+            'angles' : angles
+            }, 'diatom.cxi')
+
+    Armed with the phase, we can obtain many quantities of interest: such as the propagation profile near the focus (:py:func:`~speckle_tracking.propagation_profile`) and the corrected defocus and astigmatism values (:py:func:`~speckle_tracking.get_defocus`).
+
+Command-line Interface
+----------------------
+In the folder speckle-tracking/speckle_tracking/bin are a list of python functions designed to be called from the command line. Appart from the input cxi file, all other options are passed via a text file. The text file has the same name as the program with .ini file extension. For example::
     
-    ssh -X max-cfel
-    git clone https://github.com/andyofmelbourne/speckle-tracking.git
-    cd speckle-tracking
-    mkdir -p hdf5/diatom
-    cp /gpfs/cfel/cxi/scratch/user/amorgan/2018/speckle-data/MLL_260/MLL_260_minimal.cxi hdf5/diatom/
-    source /gpfs/cfel/cxi/common/cfelsoft-rh7/setup.sh
-    module load cfel-python3/latest
+        
 
-Now compile the cython code:
-
-.. code-block:: bash
-    
-    cd utils 
-    python setup.py build_ext --inplace
-    cd ..
-
-and run the gui:
-
-.. code-block:: bash
-    
-    python gui/speckle-gui.py hdf5/diatom/MLL_260_minimal.cxi
-
-Now you should see a confusing error about some widget not having 'R'. This is because the gui doesn't know where to find the sample translations, which is at: *MLL_260_minimal.cxi:/entry_1/sample_1/geometry/translation*. When you ran the last command above, it automatically created a file called *hdf5/diatom/speckle-gui.ini*, which is copied from the template in *gui/speckle-gui.ini*. Anyway we must edit this new file and change the line from:
-
-.. code-block:: bash
-    
-    [hdf5/diatom/speckle-gui.ini]
-    translation_paths = ['/pos_refine/translation', '/entry_1/sample_3/geometry/translation']
-
-To: 
-
-.. code-block:: bash
-    
-    [hdf5/diatom/speckle-gui.ini]
-    translation_paths = ['/pos_refine/translation', '/entry_1/sample_3/geometry/translation', '/entry_1/sample_1/geometry/translation']
-
-Now rerun the last command, and you should be looking at a window with two tabs. Click on the tab *show / select frames*, drag the verical yellow line to the right, then adjust the colour scale and you should see diffraction data. 
-
-Select frames
-=============
-Now there are bad frames we need to get rid of. Click with the mouse on red dot representing the first frame (you can tell which is which by dragging the yellow line and observing the blue dot on the frame selector) you should see that it turns grey. Not so obvious is that the entire right hand column is also bad (the translations are badly encoded). Drag the rectangle over these frames and click *bad frames* then click *write to file*. You should then be looking at this:
-
-.. image:: images/select_frames.png
-   :width: 600
-
-Now select the *view_h5_data_widget* widget and click update. At the bottom a new entry should appear called: *frame_selector/good_frames* which is just a list of good diffraction data to use.
-
-
-Make whitefield
-===============
-Now let's make a whitefield. Click *Process/make_whitefield*, set *sigma_t* to None (mouse hover over text for a tooltip). Then click *Run* when finished an image should appear, adjust the colour scale and you should see a white square. 
-
-Now you can close the *show / select frames* tab, then click *Display/show / select frames* to open it again. Now each of the diffraction patterns should be divided by the whitefield.  
-
-
-Make mask
-=========
-Click *Process/mask maker*, then click the button *next frame* and adjust colour scale. Mask bad pixels, (click *next frame* to see if any hot pixels light up), then click *save mask*.
-
-Stitch (make an object map)
-===========================
-Click *Process/stitch*, then set the parameters to:
-
-.. code-block:: bash
-
-    [stitch]
-    roi = (80, 430, 60, 450)
-    whitefield = /make_whitefield/whitefield
-    good_frames = /frame_selector/good_frames
-    defocus = 0.0022
-    reg = 50
-    
-    [stitch-advanced]
-    mask = /mask_maker/mask
-    translation = /entry_1/sample_1/geometry/translation
-
-Click *Run* and you should see: 
-
-.. image:: images/stitch.png
-   :width: 600
-
-Update pixel shift map
-======================
-Click *Process/update_pixel_map*, then set the parameters to:
-
-.. code-block:: bash
-
-    [update_pixel_map]
-    roi = (80, 430, 60, 450)
-    whitefield = /make_whitefield/whitefield
-    good_frames = /frame_selector/good_frames
-    defocus = 0.0022
-    max_step = 4.0 
-    pixel_shifts = None
-    sub_pixel = True 
-    atlas = /stitch/O 
-
-    [update_pixel_map-advanced]
-    mask = /mask_maker/mask
-    translation = /entry_1/sample_1/geometry/translation
-    
-
-Click *Run* and you should see: 
-
-.. image:: images/update_pixel_map.png
-   :width: 600
-
-This is the x-shifts and y-shifts due to the lens aberrations. Now go back to *Process/stitch* change: 
-
-.. code-block:: bash
-
-    [stitch]
-    reg = None
-    pixel_shifts = /update_pixel_map/pixel_shifts
-    sub_pixel = True
-
-Click *Run* and you should see an improved map of the object.
-
-Update translations
-===================
-Click *Process/pos_refine*, then set the parameters to:
-
-.. code-block:: bash
-
-    [pos_refine]
-    roi = (80, 430, 60, 450)
-    whitefield = /make_whitefield/whitefield
-    good_frames = /frame_selector/good_frames
-    defocus = 0.0022
-    reg = None 
-    atlas_smooth = 0 
-    max_step = 10.0 
-    max_iters = 10 
-    pixel_shifts = /update_pixel_map/pixel_shifts
-    sub_pixel = True 
-    atlas = /stitch/O 
-
-    [pos_refine-advanced]
-    mask = /mask_maker/mask
-    translation = /entry_1/sample_1/geometry/translation
-
-Click *Run* and the new positions will be written to */pos_refine/translation*. Now go back to *Process/stitch* change: 
-
-.. code-block:: bash
-
-    [stitch-advanced]
-    translation = /pos_refine/translation
-
-Click *Run* and you should see a (very slightly) improved map of the object.
-
-Update pixel shift map (agian)
-==============================
-Now update the pixel shift map again, but be sure to include the new translations. Click *Process/update_pixel_map*, then set the parameters to:
-
-.. code-block:: bash
-
-    [update_pixel_map]
-    pixel_shifts = /update_pixel_map/pixel_shifts
-    
-    [update_pixel_map-advanced]
-    translation = /pos_refine/translation
-
-
+Gui Interface
+-------------

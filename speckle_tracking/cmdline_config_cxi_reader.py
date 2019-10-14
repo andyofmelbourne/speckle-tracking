@@ -47,15 +47,15 @@ config_default = {
         }
 
 
-def get_all(sn, des, exclude=[]):
+def get_all(sn, des, exclude=[], config_dirs=None, roi=False):
     """
     exclude can be used to avoid large datasets for example
     """
     # get command line args
-    args, params = cmdline_parser.parse_cmdline_args(sn, des)
+    args, params = cmdline_parser.parse_cmdline_args(sn, des, config_dirs=config_dirs)
     
     # get the datasets from the cxi file
-    params = config_read_from_h5(params, args.filename, False, True, True, exclude=exclude)
+    params = config_read_from_h5(params, args.filename, False, True, roi=roi, exclude=exclude)
     
     # now only take the good_frames
     """
@@ -303,7 +303,8 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False,
                 elif 'ROI' in config[group] :
                     r = config[group]['ROI']
                     break
-            r = h5_file[r][()]
+            if r in h5_file :
+                r = h5_file[r][()]
     
     # now get the shape of datasets that 
     # this will apply to:

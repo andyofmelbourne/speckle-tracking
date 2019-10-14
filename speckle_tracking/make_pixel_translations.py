@@ -1,6 +1,11 @@
 import numpy as np
 
 def make_pixel_translations(translations, basis, dx, dy, verbose=True):
+    """
+    Convert sample translations from lab frame to pixel coordinates.
+    
+    
+    """
     if verbose: print('Converting translations from lab frame to pixel coordinates:\n')
     
     x_pixel_size = np.sqrt(np.sum(basis[0, 0]**2))

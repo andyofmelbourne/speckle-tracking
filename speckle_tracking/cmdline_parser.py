@@ -50,7 +50,7 @@ def parse_cmdline_args(script_name, description, \
         con_fnams = [args.config,]
     else :
         con_fnams = []
-
+    
     con_fnams = con_fnams + [os.path.join(root, cd+'/'+script_name+'.ini') for cd in con_dirs]
     
     # process config file
