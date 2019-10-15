@@ -19,6 +19,7 @@ Maybe we also want the option to split over detector pixels...
 import numpy as np
 import h5py
 import copy
+import os
 
 from . import config_reader
 from . import cmdline_parser
@@ -56,18 +57,6 @@ def get_all(sn, des, exclude=[], config_dirs=None, roi=False):
     
     # get the datasets from the cxi file
     params = config_read_from_h5(params, args.filename, False, True, roi=roi, exclude=exclude)
-    
-    # now only take the good_frames
-    """
-    if 'good_frames' in params[sn]:
-        gf = params[sn]['good_frames']
-        with h5py.File(args.filename) as f :
-            shape = f['/entry_1/data_1/data'].shape
-        
-        for k in params[sn].keys():
-            if hasattr(params[sn][k], '__len__') and len(params[sn][k]) == shape[0]:
-                params[sn][k] = params[sn][k][gf]
-    """
     
     # now convert from physical to pixel units:
     if 'translation' in params[sn] :
@@ -212,31 +201,53 @@ def get_Fresnel_pixel_shifts_cxi_inverse(
     translation[:, 2] = defocus 
     return translation
 
-def get_val_h5(h5, val, r, shape, extract, k):
-    if val not in h5 :
-        raise KeyError(val + ' not found in file')
+def roi_extract(f, roi, key, shape):
+    fshape = f[key].shape
+    # for now any axis within shape will be roi'd
+    s = [slice(None) for i in fshape]
     
-    if r is not None :
-        if extract :
-            if (len(h5[val].shape) >= 2) and (h5[val].shape[-2:] == shape):
-                valout = h5[val][..., r[0]:r[1], r[2]:r[3]]
-            else :
-                valout = h5[val][()]
-        else :
-            valout = h5[val]
-    else :
-        if h5[val].size < 1e5 or extract :
-            valout = h5[val][()]
-        else :
-            valout = h5[val]
+    if roi is not None and roi is not False and shape is not None :
+        for i in range(len(fshape)):
+            for j in range(len(shape)):
+                if fshape[i] == shape[j]:
+                    s[i] = roi[j]
+     
+    return f[key][tuple(s)]
 
-    # special case for the bit mask
-    if (val == 'entry_1/instrument_1/detector_1/mask'  or \
-        val == 'entry_1/instrument_1/detector_1/mask') and \
-        type(valout) is np.ndarray :
-            # hot (4) and dead (8) pixels
-            valout   = ~np.bitwise_and(valout, 4 + 8).astype(np.bool) 
-    return valout
+
+def get_val_h5_new(fnam, val, roi, shape):
+    # see if val is one of:
+    # 1: python expression
+    # 2: hdf path for fnam. e.g. /foo/bar
+    # 3: hdf path for another file e.g. loc/foo.cxi/bar
+    if type(val) is not str :
+        option = 1
+        return val
+    
+    # split val name into filename and dataset location
+    # assume the last '.' is before the filename extension
+    a       = val.split('.')
+    fnam2   = '.'.join(a[:-1]) + '.' + a[-1].split('/')[0]
+    dataset = val.split(fnam2)[-1]
+    
+    if fnam2 != '.' and os.path.exists(fnam2) :
+        option = 3
+        fnam3  = fnam2
+    elif val[0] == '/':
+        option = 2
+        fnam3  = fnam
+        dataset = val
+    else :
+        # it was just a plain old string
+        return val
+    
+    with h5py.File(fnam3, 'r') as f:
+        if val not in f :
+            raise KeyError(val + ' not found in file')
+        
+        return roi_extract(f, roi, val, shape)
+
+
 
 def config_read_from_h5(config, h5_file, val_doc_adv=False, 
                         extract=False, roi=False, exclude=[], 
@@ -276,6 +287,7 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False,
             output = {group-name: {key : eval(val)}}
     
     """
+    # if the config is None then load the default
     if config is None :
         config = copy.deepcopy(config_default)
         for sec in update_default.keys() :
@@ -283,76 +295,56 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False,
                 config[sec].update(update_default[sec])
             else :
                 config[sec] = update_default[sec]
-
-    # open the h5 file if h5_file is a string
-    close   = False
-    if type(h5_file) is str :
-        h5_file = h5py.File(h5_file, 'r')
-        close   = True
-    
-    # get the roi if there
-    r = None
-    if roi is not False and roi is not None :
-        if type(roi) is not str and roi is not True :
-            r = roi 
-        else :
-            for group in config.keys():
-                if 'roi' in config[group] :
-                    r = config[group]['roi']
-                    break
-                elif 'ROI' in config[group] :
-                    r = config[group]['ROI']
-                    break
-            if r in h5_file :
-                r = h5_file[r][()]
-    
-    # now get the shape of datasets that 
-    # this will apply to:
-    shape = h5_file['/entry_1/data_1/data'].shape[-2:]
     
     # now search for '/' and fetch from the open
     for sec in config.keys():
+        
+        # get the roi if there
+        if roi is not None and roi is not False :
+            with h5py.File(h5_file) as f:
+                shape = f['/entry_1/data_1/data'].shape
+            
+            roi = [slice(None) for i in shape]
+            
+            if val_doc_adv :
+                val, doc, adv = config[sec]['roi'][0]
+            else :
+                val           = config[sec]['roi']
+            
+            roi1 = get_val_h5_new(h5_file, val, None, None)
+
+            if roi1 is not None :
+                roi[1] = slice(roi1[0], roi1[1])
+                roi[2] = slice(roi1[2], roi1[3])
+             
+            if 'good_frames' in config[sec] :
+                if val_doc_adv :
+                    val, doc, adv = config[sec]['good_frames'][0]
+                else :
+                    val           = config[sec]['good_frames']
+                
+                roi0 = get_val_h5_new(h5_file, val, None, None)
+                roi[0] = roi0
+
+        else :
+            roi, shape = None, None
+
         for k in config[sec].keys():
             if val_doc_adv :
                 val, doc, adv = config[sec][k][0]
             else :
                 val = config[sec][k]
-
+            
             if k in exclude :
                 continue
             
-            # extract from same file
-            if type(val) is str and val[0] == '/': 
-                valout = get_val_h5(h5_file, val, r, shape, extract, k)
-            
-            # extract from different file *.h5
-            elif type(val) is str and '.h5/' in val:
-                fn, path = val.split('.h5/')
-                f = h5py.File(fn+'.h5', 'r') 
-                valout = get_val_h5(f, path, r, shape, extract, k)
-                f.close()
-            
-            # extract from different file *.cxi
-            elif type(val) is str and '.cxi/' in val:
-                fn, path = val.split('.cxi/')
-                f = h5py.File(fn+'.cxi', 'r') 
-                valout = get_val_h5(f, path, r, shape, extract, k)
-                f.close()
-            else :
-                valout = None
-            
-            print(sec, k, val, type(valout))
-            if valout is None :
-                continue 
+            valout = get_val_h5_new(h5_file, val, roi, shape)
             
             if val_doc_adv :
                 config[sec][k] = (valout, doc, adv)
             else :
                 config[sec][k] = valout
     
-    if close :
-        h5_file.close()
-
     if flatten :
         out = {}
         for sec in config.keys():

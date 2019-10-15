@@ -70,7 +70,7 @@ class Show_nd_data_widget(QWidget):
 
         elif len(shape) == 2 :
             if refresh :
-                self.plotW.setImage(f[name][()].real.T, autoRange = False, autoLevels = False, autoHistogramRange = False)
+                self.plotW.setImage(f[name][()].astype(np.float).real.T, autoRange = False, autoLevels = False, autoHistogramRange = False)
             else :
                 if 'complex' in f[name].dtype.name :
                     title = name + ' (abs, angle, real, imag)'
@@ -82,10 +82,10 @@ class Show_nd_data_widget(QWidget):
                 self.plotW.ui.menuBtn.hide()
                 self.plotW.ui.roiBtn.hide()
                 if 'complex' in f[name].dtype.name :
-                    im = f[name][()].T
+                    im = f[name][()].T.astype(np.float)
                     self.plotW.setImage(np.array([np.abs(im), np.angle(im), im.real, im.imag]))
                 else :
-                    self.plotW.setImage(f[name][()].T)
+                    self.plotW.setImage(f[name][()].astype(np.float).T)
 
         elif len(shape) == 3 :
             if refresh :
@@ -96,7 +96,9 @@ class Show_nd_data_widget(QWidget):
                 self.plotW = pg.ImageView(view = frame_plt)
                 self.plotW.ui.menuBtn.hide()
                 self.plotW.ui.roiBtn.hide()
-                self.plotW.setImage(f[name][0].real.T)
+
+                # solve a bug with flat images in pyqtgraph
+                self.plotW.setImage(f[name][0].real.T.astype(np.float).real.T)
                 
                 # add a little 1d plot with a vline
                 self.plotW2 = pg.PlotWidget(title = 'index')
@@ -105,7 +107,7 @@ class Show_nd_data_widget(QWidget):
                 self.plotW2.setMaximumSize(10000000, 100)
                     
                 self.vline.sigPositionChanged.connect(self.replot_frame)
-
+        
         f.close()
          
         # add to layout
@@ -121,9 +123,8 @@ class Show_nd_data_widget(QWidget):
 
     def replot_frame(self):
         i = int(self.vline.value())
-        f = h5py.File(self.filename, 'r')
-        self.plotW.setImage( f[self.name][i].real.T, autoRange = False, autoLevels = False, autoHistogramRange = False)
-        f.close()
+        with h5py.File(self.filename, 'r') as f:
+            self.plotW.setImage( f[self.name][i].astype(np.float).real.T, autoRange = False, autoLevels = False, autoHistogramRange = False)
     
     def close(self):
         # remove from layout
@@ -146,4 +147,3 @@ class Show_nd_data_widget(QWidget):
     def update(self):
         # update the current plot
         self.show(self.filename, self.name, True)
-
