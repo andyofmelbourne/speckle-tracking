@@ -25,7 +25,7 @@ if __name__ == '__main__':
                          search_window = params['search_window'])
     
     out = { 
-            'pixel_map'   : pixel_map,
+            'pixel_map'   : u,
             'object_map'  : res['object_map']
           }
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)

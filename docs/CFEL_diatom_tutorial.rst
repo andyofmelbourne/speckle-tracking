@@ -127,9 +127,34 @@ Pixel map to ray angles and pupil phase
 
 Command-line Interface
 ----------------------
-In the folder speckle-tracking/speckle_tracking/bin are a list of python functions designed to be called from the command line. Appart from the input cxi file, all other options are passed via a text file. The text file has the same name as the program with .ini file extension. For example::
-    
+In the folder speckle-tracking/speckle_tracking/bin are a list of python functions designed to be called from the command line. Appart from the input cxi file, all other options are passed via a text file. The text file has the same name as the program with .ini file extension. If such a file is not present in the dateset directory, it will be read from the same director as the script. It will then be copied into the dataset directory. For example::
+
+    export PATH=/path_to_speckle-tracking/speckle_tracking/bin:$PATH
+    make_mask.py diatom.cxi
+    ▶ ls
+    diatom.cxi  make_mask.ini
         
+The format of the .ini file::
+    
+    ▶ cat make_mask.ini 
+    [make_mask]
+    data  = /entry_1/data_1/data ;str, location of diffraction data
+
+    [make_mask-advanced]
+    h5_group = speckle_tracking ;str, name of h5 group to write to
+
+the 'make_mask-advanced' section is for options that will likely not be required to change often.
+
+The steps above, in the `Python Interface`_, can then be performed with the following commands::
+
+    make_mask.py diatom.cxi
+    make_whitefield.py diatom.cxi
+    guess_roi.py diatom.cxi
+    write_h5.py diatom.cxi/speckle_tracking/defocus 2.23e-3
+    write_h5.py diatom.cxi/speckle_tracking/good_frames 'range(1,121)'
+    pixel_map_from_data.py diatom.cxi
+
+To inspect the results of these commands one can of course look into the datasets produced in diatom.cxi/speckle_tracking using whatever means you please. For quick inspection we also have a conveniance function for quickly viewing hdf5 datasets.
 
 Gui Interface
 -------------

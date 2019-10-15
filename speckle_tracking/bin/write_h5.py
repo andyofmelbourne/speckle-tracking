@@ -38,7 +38,6 @@ if __name__ == '__main__':
                         help="scalar dataset or python readable expression")
     
     args = parser.parse_args()
-    print(args)
     
     # now split the dataset name into filename and dataset location
     # assume the last '.' is before the filename extension
