@@ -5,10 +5,10 @@ try :
 except :
     from PyQt4.QtGui import *
 
-import speckle_tracking 
+import speckle_tracking as st
 from speckle_tracking import config_reader
 
-def discover_config(script_name, h5_fnam, config_fnam='', config_dirs = ['/process/',]):
+def discover_config(script_name, h5_fnam, config_fnam='', config_dirs = ['/process', '/speckle_tracking/bin']):
     import sys, os
     root = os.path.split(os.path.abspath(__file__))[0]
     root = os.path.split(root)[0]

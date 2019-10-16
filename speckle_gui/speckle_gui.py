@@ -8,12 +8,16 @@ except :
 import sys, os
 import signal
 import glob
+import numpy as np
 
 
-import speckle_tracking 
+import speckle_tracking as st
 from speckle_tracking import cmdline_parser
 
-from . import widgets 
+root = os.path.abspath(os.path.split(st.__file__)[0])
+
+import _widgets as widgets
+#from . import widgets 
 
 class Tabs_widget(QTabWidget):
     def __init__(self, fnam):
@@ -100,7 +104,7 @@ class Speckle_gui(QMainWindow):
         load_pro_actions.append(lambda x, s = script_names[-1], f = fnam : tabs_widget.addTab(widgets.Update_pixel_map_widget(s, f), s))
         load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
         pro_menu.addAction(load_pro_widgets[-1])
-
+        
         # fit_defocus widget
         #########################
         script_names.append('fit_defocus_thon')
@@ -109,26 +113,27 @@ class Speckle_gui(QMainWindow):
                                 f = fnam : tabs_widget.addTab(widgets.Fit_defocus_widget(s, f), s))
         load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
         pro_menu.addAction(load_pro_widgets[-1])
-
+        
         # auto populate the process menu
         ################################
-        #pro_fnams = glob.glob(root+'/process/*.py')
-        pro_fnams = "fit_defocus_registration.py forward_sim.py make_whitefield.py speckle-gui.py update_pixel_map.py fit_defocus_thon.py h5_operations.py  pos_refine.py stitch.py zernike.py".split()
-
-        for pfnam in pro_fnams:
+        pro_fnams = glob.glob(root+'/bin/*.py')
+        exclude = ['write_h5.py']
+        #pro_fnams = "fit_defocus_registration.py forward_sim.py make_whitefield.py speckle-gui.py update_pixel_map.py fit_defocus_thon.py h5_operations.py  pos_refine.py stitch.py zernike.py".split()
+        
+        for pfnam in pro_fnams :
+            print(pfnam)
+            if np.any([e in pfnam for e in exclude]) :
+                continue 
+            
             script_name = os.path.split(pfnam)[1][:-3]
             
             if script_name in script_names :
                 continue
-
-            if 'pos_refine' in script_name:
-                mpi = True 
-            else :
-                mpi = False 
+            
+            mpi = False 
             
             load_pro_widgets.append(QAction(script_name, self))
-            load_pro_actions.append(lambda x, s = script_name, 
-                    f = fnam : tabs_widget.addTab(widgets.Auto_build_widget(s, f, mpi=mpi), s))
+            load_pro_actions.append(lambda x, s = script_name, f = fnam : tabs_widget.addTab(widgets.Auto_build_widget(s, f, mpi=mpi), s))
             load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
             pro_menu.addAction(load_pro_widgets[-1])
 

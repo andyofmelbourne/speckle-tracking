@@ -108,9 +108,9 @@ class Mask_maker_widget(QWidget):
         
         self.display_RGB = display_data
         if auto :
-            self.plot.setImage(self.display_RGB)
+            self.plot.setImage(self.display_RGB.astype(np.float))
         else :
-            self.plot.setImage(self.display_RGB, autoRange = False, autoLevels = False, autoHistogramRange = False)
+            self.plot.setImage(self.display_RGB.astype(np.float), autoRange = False, autoLevels = False, autoHistogramRange = False)
 
     def generate_mask(self):
         self.mask.fill(1)
@@ -378,7 +378,7 @@ class Mask_maker_widget(QWidget):
                 else :
                     self.display_RGB[j0, i0, :] = np.array([0,0,1]) * self.cspad_max
             
-            self.plot.setImage(self.display_RGB, autoRange = False, autoLevels = False, autoHistogramRange = False)
+            self.plot.setImage(self.display_RGB.astype(np.float), autoRange = False, autoLevels = False, autoHistogramRange = False)
     
     def make_unbonded_pixels(self):
         cspad_psana_shape = self.cspad_psana_shape

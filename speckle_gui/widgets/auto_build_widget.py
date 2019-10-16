@@ -24,7 +24,7 @@ class Auto_build_widget(QWidget):
         ---run command widget---
     
     """
-    def __init__(self, script_name, h5_fnam, config_fnam = '', config_dirs = ['/process/',], mpi=False):
+    def __init__(self, script_name, h5_fnam, config_fnam = '', config_dirs = ['/process', '/speckle_tracking/bin'], mpi=False):
         super(Auto_build_widget, self).__init__()
         print('auto loading:', script_name)
         self.h5_fnam     = h5_fnam
@@ -33,7 +33,7 @@ class Auto_build_widget(QWidget):
         
         self.config_fnams, self.config_output =  discover_config(script_name, \
                                                  h5_fnam, config_fnam, config_dirs)
-        
+        print(self.config_output)
         self.initUI()
 
     def initUI(self):

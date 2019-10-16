@@ -98,12 +98,17 @@ class Show_nd_data_widget(QWidget):
                 self.plotW.ui.roiBtn.hide()
 
                 # solve a bug with flat images in pyqtgraph
-                self.plotW.setImage(f[name][0].real.T.astype(np.float).real.T)
+                for i in range(10):
+                    im = f[name][i]
+                    if im.max() != im.min() :
+                        break
+                
+                self.plotW.setImage(f[name][i].real.T.astype(np.float).real.T)
                 
                 # add a little 1d plot with a vline
                 self.plotW2 = pg.PlotWidget(title = 'index')
                 self.plotW2.plot(np.arange(f[name].shape[0]), pen=(255, 150, 150))
-                self.vline = self.plotW2.addLine(x = 0, movable=True, bounds = [0, f[name].shape[0]-1])
+                self.vline = self.plotW2.addLine(x = i, movable=True, bounds = [0, f[name].shape[0]-1])
                 self.plotW2.setMaximumSize(10000000, 100)
                     
                 self.vline.sigPositionChanged.connect(self.replot_frame)
