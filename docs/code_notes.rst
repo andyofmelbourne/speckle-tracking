@@ -1,3 +1,5 @@
+.. _cxi-file:
+
 CXI files
 =========
 This software primarily deals with projection images, that are stored
