@@ -9,6 +9,10 @@ Then install::
     cd speckle-tracking 
     python setup.py install --user
 
+Documentation
+=============
+https://speckle-tracking.readthedocs.io
+
 Quick Start
 ===========
 
@@ -19,3 +23,5 @@ Make a simulated diffraction experiment, this will output a cxi file::
 Launch the gui::
 
     speckle-gui example/example.cxi
+
+

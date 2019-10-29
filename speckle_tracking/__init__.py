@@ -26,3 +26,4 @@ from .angular_resolution import angular_resolution
 from .integrate_pixel_map import get_defocus
 from .cmdline_config_cxi_reader import config_read_from_h5
 from .cmdline_config_cxi_reader import write_all
+from .remove_offset_tilt_from_pixel_map import remove_offset_tilt_from_pixel_map
