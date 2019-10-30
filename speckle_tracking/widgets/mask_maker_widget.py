@@ -52,8 +52,8 @@ class Mask_maker_widget(QWidget):
             cspad = f[data_path][()]
         
         elif len(f[data_path].shape) == 3 :
-            self.index = 0
-            cspad = f[data_path][0]
+            self.index = f[data_path].shape[0]//2
+            cspad = f[data_path][self.index]
         self.fnam      = fnam
         self.data_path = data_path
         
@@ -108,7 +108,15 @@ class Mask_maker_widget(QWidget):
         
         self.display_RGB = display_data
         if auto :
-            self.plot.setImage(self.display_RGB.astype(np.float))
+            im = self.cspad
+            minl = np.percentile(im, 10.)
+            maxl = np.percentile(im, 90.)
+
+            self.plot.setImage(self.display_RGB.astype(np.float), levels=(minl, maxl))
+
+            # set min max of histogram widget to minl and maxl
+            hw = self.plot.getHistogramWidget()
+            hw.item.setHistogramRange(minl, maxl)
         else :
             self.plot.setImage(self.display_RGB.astype(np.float), autoRange = False, autoLevels = False, autoHistogramRange = False)
 

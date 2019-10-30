@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # make a main window with the h5 viewer
 
 try :
@@ -16,7 +17,7 @@ from speckle_tracking import cmdline_parser
 
 root = os.path.abspath(os.path.split(st.__file__)[0])
 
-import _widgets as widgets
+widgets = st._widgets 
 #from . import widgets 
 
 class Tabs_widget(QTabWidget):
@@ -144,7 +145,7 @@ class Speckle_gui(QMainWindow):
 
 
 def main():
-    args, params = cmdline_parser.parse_cmdline_args('speckle-gui', 
+    args, params = cmdline_parser.parse_cmdline_args('speckle_gui', 
                                                      'speckle-tracking main gui', 
                                                      config_dirs=[os.path.dirname(__file__),])
     

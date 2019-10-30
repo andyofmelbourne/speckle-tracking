@@ -12,16 +12,16 @@ class Select_frames_widget(QWidget):
     Draw a scatter plot of the X-Y coordinates in f[R]
     """
         
-    def __init__(self, filename, good_frames, R):
+    def __init__(self, filename, good_frames, R, frame=0):
         super(Select_frames_widget, self).__init__()
         self.R = R
         self.good_frames = good_frames
         
         self.filename = filename
         self.frames = []
-        self.initUI()
+        self.initUI(frame)
     
-    def initUI(self):
+    def initUI(self, frame):
         # Make a grid layout
         layout = QGridLayout()
         
@@ -45,10 +45,12 @@ class Select_frames_widget(QWidget):
         # scatter plot
         ##############
         self.good_frame_pen     = pg.mkPen((255, 150, 150))
+        self.good_frame_brush   = pg.mkBrush(255, 255, 255, 120)
         self.bad_frame_pen      = pg.mkPen(None)
+        self.selected_frame_brush = pg.mkBrush('b')
         #self.selected_frame_pen = pg.mkPen((150, 150, 255))
         
-        self.s1    = pg.ScatterPlotItem(size=5, pen=self.good_frame_pen, brush=pg.mkBrush(255, 255, 255, 120))
+        self.s1    = pg.ScatterPlotItem(size=5, pen=self.good_frame_pen, brush=self.good_frame_brush)
         spots = [{'pos': [X[i], Y[i]], 'data': i} for i in range(len(R))] 
         self.s1.addPoints(spots)
 
@@ -86,7 +88,8 @@ class Select_frames_widget(QWidget):
 
         ## Show the selected frame
         ##########################
-        self.s2     = pg.ScatterPlotItem(size = 10, pxMode=True, brush = pg.mkBrush('b'))
+        self.s2     = pg.ScatterPlotItem(size = 10, pxMode=True, brush = self.selected_frame_brush)
+        self.s2.setData([self.X[frame]], [self.Y[frame]])
 
         ## rectangular ROI selection
         ############################

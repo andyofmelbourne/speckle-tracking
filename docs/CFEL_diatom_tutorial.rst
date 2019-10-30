@@ -163,3 +163,31 @@ To inspect the results of these commands one can of course look into the dataset
 
 Gui Interface
 -------------
+First be sure that the speckle tracking bin dirctory is in the path::
+
+    export PATH=/path_to_speckle-tracking/speckle_tracking/bin:$PATH
+
+Then fire up the GUI::
+
+    speckle_gui.py diatom.cxi
+
+At this point the file speckle_gui.ini has just been copied from the bin directory to the current directory, which can be edited and then loaded automatically at the next call. Also a window should pop up. On the left you will see the locations of datasets in the cxi file. Clicking on /entry_1/data_1/data will cause the widget to display the raw detector readings. To the right of the window the colour scale can be adjusted, at the bottom the frame number can be changed by draging the vertical yellow line from left to right, in the image panel the image can zoomed in or out with the mouse wheel and translated with click and drag. After some adjustment of the colour scale you should see this:
+
+.. image:: images/gui_startup.png
+   :width: 600
+
+Select good frames
+    Clicking on the show / select frames tab will display a widget designed for frame selection:
+
+    .. image:: images/select_frames.png
+       :width: 600
+
+    To the right is a panel that displays the x-y position of the sample as a scatter plot. The blue circle indicates the current frame, the red dots indicate good frames and the grey dots bad frames. By clicking on the small circles frames can be toggled good or bad, or, the rectangle can used to select many frames. Clicking write to file, will output the frame selection to the dataset /frame_selector/good_frames in the diatom.cxi file. Now if you drag the vericle yellow line all the way to the left, you should see that the first frame in the file is blank. Also the location, as shown by the blue dot in the right panel, is in a funny location. Clearly, we should remove it from the analysis. Drag the yellow line from the first image, then click on the red dot corresponding to the first image. Then click write to file. This will output the good frames selection (the red dots) into the dataset /frames_selector/good_frames. To see this, just click on the view_h5_data_widget tab, then click update at the bottom and you should see the dataset pop up.  
+
+Make the mask (manually)
+    The make_mask.py script attempt to automatically detect bad pixels. However, it is often the case that one wishes to modify this mask, or not use it at all. Click on mask maker, in the Process tab, and you should see:
+
+    .. image:: images/mask_maker.png
+       :width: 600
+
+    The blue pixels (if any) indicate masked pixels, the grey scale image is one of the data frames (which can be scrolled by click prev / next frame in the left panel...
