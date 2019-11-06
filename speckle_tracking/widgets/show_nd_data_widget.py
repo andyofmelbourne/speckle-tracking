@@ -32,7 +32,15 @@ class Show_nd_data_widget(QWidget):
             (N, M>4)  float, complex, int --> 2d image
             (N, M>4)  complex             --> 2d images (abs, angle, real, imag)
             (N, M, L) float, complex, int --> 2d images (real) with slider
+
+        scatter:
+            (N, M, 2) float, int          --> N overlayed scatter plots
         """
+        if len(name.split(' ')) == 2 :
+            name, im_type = name.split(' ')
+        else :
+            im_type = None
+        
         # make plot
         f = h5py.File(filename, 'r')
         shape = f[name].shape
@@ -56,6 +64,40 @@ class Show_nd_data_widget(QWidget):
             else :
                 self.plotW = pg.PlotWidget(title = name)
                 self.plotW.plot(f[name][()], pen=(255, 150, 150))
+
+        elif (len(shape) == 2 or len(shape) == 3) and im_type == 'scatter' : 
+            if refresh :
+                self.plotW.clear()
+            else :
+                self.plotW = pg.PlotWidget(title = name)
+            
+            self.ss = []
+            # scatter plot
+            ##############
+            if len(shape) == 2 :
+                X = f[name][:, 0]
+                Y = f[name][:, 1]
+                pen   = pg.mkPen((255, 150, 150))
+                brush = pg.mkBrush(255, 255, 255, 120)
+                 
+                self.s1    = pg.ScatterPlotItem(size=5, pen=pen, brush=brush)
+                spots = [{'pos': [X[n], Y[n]], 'data': n} for n in range(len(X))] 
+                self.s1.addPoints(spots)
+                self.ss.append(self.s1)
+            else :
+                np.random.seed(3)
+                for n in range(f[name].shape[0]):
+                    X = f[name][n, :, 0]
+                    Y = f[name][n, :, 1]
+                    pen   = pg.mkPen(tuple(np.random.randint(0, 255, 3)))
+                    brush = pg.mkBrush(tuple(np.random.randint(0, 255, 4)))
+                     
+                    self.ss.append(pg.ScatterPlotItem(size=5, pen=pen, brush=brush))
+                    spots = [{'pos': [X[n], Y[n]], 'data': n} for n in range(len(X))] 
+                    self.ss[-1].addPoints(spots)
+            
+            for s1 in self.ss:
+                self.plotW.addItem(s1)
         
         elif len(shape) == 2 and shape[1] < 4 :
             pens = [(255, 150, 150), (150, 255, 150), (150, 150, 255)]

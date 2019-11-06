@@ -8,7 +8,7 @@ import numpy as np
 
 if __name__ == '__main__':
     # get command line args and config
-    sc  = 'update_pixel_map'
+    sc  = 'update_translations'
      
     # search the current directory for *.ini files if not present in cxi directory
     config_dirs = [os.path.split(os.path.abspath(__file__))[0]]
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     args, params = cmdline_config_cxi_reader.get_all(sc, des, config_dirs=config_dirs, roi=True)
     params = params[sc]
     
-    u, res = st.update_pixel_map(
+    xy_pix, res = st.update_translations(
             params['data'].astype(np.float32),
             params['mask'], 
             params['whitefield'], 
@@ -30,23 +30,18 @@ if __name__ == '__main__':
             params['m0'], 
             params['pixel_translations'], 
             params['search_window'],
-            None, None,
-            params['subpixel'], 
-            params['subsample'], 
-            params['interpolate'], 
-            params['fill_bad_pix'],
-            params['quadratic_refinement'],
-            params['integrate'], 
-            params['clip'], 
-            params['filter'], 
-            verbose=True, guess=False)
+            False,
+            params['maxiters'],
+            params['tol'],
+            None)
     
-    u0 = np.array(np.indices(params['data'].shape[1:]))
-    du = u-u0
-    out = {'pixel_map': u, 'pixel_map_residual': du}
+    comp = np.array([xy_pix, params['pixel_translations']])
+    
+    out = { 'pixel_translations': xy_pix, 
+            'pixel_translations_comparison': comp}
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)
     
     # output display for gui
     with open('.log', 'w') as f:
-        print('display: /'+params['h5_group']+'/pixel_map_residual', file=f)
+        print('display: /'+params['h5_group']+'/pixel_translations_comparison scatter', file=f)
 

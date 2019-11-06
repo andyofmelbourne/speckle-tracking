@@ -30,6 +30,5 @@ if __name__ == '__main__':
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)
 
     # output display for gui
-    with open('.log', 'a') as f:
-        f.write('display: /speckle_tracking/reference_image')
-        print('display: /speckle_tracking/reference_image')
+    with open('.log', 'w') as f:
+        print('display: /'+params['h5_group']+'/reference_image', file=f)

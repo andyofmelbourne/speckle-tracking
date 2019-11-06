@@ -15,38 +15,6 @@ def enqueue_output(out, queue):
     out.close()
 
 
-def tail(f, window=20):
-    """
-    Returns the last `window` lines of file `f` as a list.
-    f - a byte file-like object
-
-    from: https://stackoverflow.com/a/7047765
-    """
-    if window == 0:
-        return []
-    BUFSIZ = 1024
-    f.seek(0, 2)
-    bytes = f.tell()
-    size = window + 1
-    block = -1
-    data = []
-    while size > 0 and bytes > 0:
-        if bytes - BUFSIZ > 0:
-            # Seek back one whole BUFSIZ
-            f.seek(block * BUFSIZ, 2)
-            # read BUFFER
-            data.insert(0, f.read(BUFSIZ))
-        else:
-            # file too small, start from begining
-            f.seek(0,0)
-            # only read what was not read
-            data.insert(0, f.read(bytes))
-        linesFound = data[0].count('\n')
-        size -= linesFound
-        bytes -= BUFSIZ
-        block -= 1
-    return ''.join(data).splitlines()[-window:]
-
 class WatchFileWidget(QWidget):
     display_signal = pyqtSignal(str)
     
@@ -69,7 +37,9 @@ class WatchFileWidget(QWidget):
     def fileChanged(self):
         # read the file and print output
         with open(self.fnam) as f:
-            last_line = tail(f, window=1)[-1]
+            lines = f.readlines()
+            last_line = lines[-1]
+            print('last_line:', last_line)
             self.display_signal.emit(last_line.split('display:')[1].strip())
     
     def stop(self):
