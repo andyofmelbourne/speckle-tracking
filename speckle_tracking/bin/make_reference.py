@@ -18,7 +18,7 @@ if __name__ == '__main__':
     args, params = cmdline_config_cxi_reader.get_all(sc, des, config_dirs=config_dirs, roi=True)
     params = params['make_reference']
     
-    O, n0, m0 = make_object_map(
+    O, n0, m0 = st.make_object_map(
                            params['data'], 
                            params['mask'], 
                            params['whitefield'], 
@@ -28,3 +28,8 @@ if __name__ == '__main__':
     
     out = {'reference_image': O, 'n0': n0, 'm0': m0}
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)
+
+    # output display for gui
+    with open('.log', 'a') as f:
+        f.write('display: /speckle_tracking/reference_image')
+        print('display: /speckle_tracking/reference_image')

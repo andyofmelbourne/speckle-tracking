@@ -25,8 +25,8 @@ if __name__ == '__main__':
     xy_pix  = st.make_pixel_translations(params['translations'], params['basis'], dx_ref, dy_ref)
     
     out = { 
-            'dxy_ref' : np.array([dx_ref, dy_ref]),
-            'xy_pix'  : xy_pix
+            'xy_pixel_size_ref' : np.array([dx_ref, dy_ref]),
+            'pixel_translations'  : xy_pix
           }
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=False)
 
