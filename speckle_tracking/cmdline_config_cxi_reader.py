@@ -212,6 +212,10 @@ def roi_extract(f, roi, key, shape):
                 if fshape[i] == shape[j]:
                     s[i] = roi[j]
      
+    # Hack: this doesn't work for 1d arrays
+    # I have no idea why...
+    if len(s) == 1:
+        return f[key][()]
     return f[key][tuple(s)]
 
 
