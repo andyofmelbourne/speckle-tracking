@@ -1,0 +1,15 @@
+1
+00:00:00,00 --> 00:00:04,00
+select the "guess_roi" tab in the "Process" menu
+
+2
+00:00:05,00 --> 00:00:07,00
+the default values are fine
+
+3
+00:00:07,00 --> 00:00:11,00
+click the "Run" button
+
+4
+00:00:12,00 --> 00:00:19,00
+clicking on the "view_h5_data_widget" and the "update" button we can see the length 4 list of numbers

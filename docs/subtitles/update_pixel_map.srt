@@ -1,0 +1,23 @@
+1
+00:00:00,00 --> 00:00:06,00
+click "update_pixel_map" in the "Process" tab
+
+2
+00:00:07,00 --> 00:00:13,00
+change the search window from 10 to 20 pixels
+
+4
+00:00:16,00 --> 00:00:22,00
+since we don't have a pixel map yet, set this to "None"
+
+5
+00:00:26,00 --> 00:00:30,00
+increase the filter parameter, since this is the first update
+
+6
+00:00:31,00 --> 00:01:06,00
+you can skip to 1:06...
+
+7
+00:01:07,00 --> 00:01:21,00
+after adjusting the colour scale we can see an imperfect pixel map
