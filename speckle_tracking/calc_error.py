@@ -1,6 +1,8 @@
 import numpy as np
 import tqdm
 
+from .make_object_map import make_object_map
+
 def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbose=True):
     r"""
     Parameters
@@ -72,7 +74,7 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
     error_pixel : ndarray
         Float array of shape (M, L). The average pixel error per detector pixel, 
         :math:`\varepsilon_\text{pixel}[i, j] = \langle \varepsilon[n, i, j]\rangle_{n}`.
-
+    
     Notes
     -----
     The error, per pixel and per frame, is given by:
@@ -89,9 +91,11 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
     ij     = np.array([pixel_map[0], pixel_map[1]])
     
     error_total = 0.
+    error_residual = np.zeros(data.shape, dtype=np.float32)
     error_frame = np.zeros(data.shape[0])
     error_pixel = np.zeros(data.shape[1:])
     norm        = np.zeros(data.shape[1:])
+    flux_corr   = np.zeros(data.shape[0])
     
     #sig = np.std(data, axis=0)
     #sig[sig <= 0] = 1
@@ -113,8 +117,12 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
             #I0 = I[ss, fs] * W[mask]
             I0 = I[ss, fs] * W
         
+
         d  = data[n]
         m  = (I0>0)*(d>0)*mask
+                
+        # flux correction factor
+        flux_corr[n] = np.sum(m * I0 * data[n]) / np.sum(m * data[n]**2) 
         
         #error_map = m*(I0 - d)**2 / sig[mask]
         error_map = m*(I0 - d)**2
@@ -125,10 +133,18 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
         error_frame[n]     = tot / np.sum(m)
         #print(m.shape, mask.shape, mask[m].shape, W.shape, norm.shape)
         norm              += m*(W - d)**2
+        error_map          = m * np.abs(W-d)
+        error_map[~m]      = -1      
+        error_residual[n]  = error_map
+    
+    # now map the errors to object space
+    error_reference, n0, m0 = make_object_map(error_residual, mask, W, dij_n, pixel_map, subpixel=True)
+
+    print("err ref shape:", error_residual.shape)
     
     m = norm>0
     error_pixel[m] = error_pixel[m] / norm[m]
-    return error_total, error_frame, error_pixel, norm
+    return error_total, error_frame, error_pixel, error_residual, error_reference, norm, flux_corr
 
 def make_pixel_map_err(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, search_window=20, grid=[20, 20]):
     # demand that the data is float32 to avoid excess mem. usage
@@ -429,3 +445,18 @@ def bilinear_interpolation(array, ss, fs, fill = -1, invalid=-1):
     
     w = w/np.sum(w)
     return np.sum( w * a )
+
+def flux_correction(data, W, O, n0, m0, u1, dij_n, mask):
+    cs    = [] 
+    for n in tqdm.trange(data.shape[0], desc='calculating errors'):
+        # define the coordinate mapping and round to int
+        ss = u1[0] - dij_n[n, 0] + n0
+        fs = u1[1] - dij_n[n, 1] + m0
+        #
+        I0 = W * bilinear_interpolation_array(O, ss, fs, fill=-1, invalid=-1)
+        #
+        m = I0>0
+        
+        c = np.sum(mask * m * I0 * data[n]) / np.sum(mask * m * data[n]**2)
+        cs.append(c)
+    return (data.T * np.array(cs)).T.astype(np.float32)

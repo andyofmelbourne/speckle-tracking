@@ -118,7 +118,7 @@ class Speckle_gui(QMainWindow):
         # auto populate the process menu
         ################################
         pro_fnams = glob.glob(root+'/bin/*.py')
-        exclude = ['write_h5.py']
+        exclude = ['write_h5.py', 'wipe_cxi.py', 'speckle_gui.py', 'zernike.py', 'hdf_display.py', 'pos_refine.py', 'forward_sim.py']
         #pro_fnams = "fit_defocus_registration.py forward_sim.py make_whitefield.py speckle-gui.py update_pixel_map.py fit_defocus_thon.py h5_operations.py  pos_refine.py stitch.py zernike.py".split()
         
         for pfnam in pro_fnams :
