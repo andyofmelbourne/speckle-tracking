@@ -308,7 +308,7 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False,
         
         # get the roi if there
         if roi is not None and roi is not False :
-            with h5py.File(h5_file) as f:
+            with h5py.File(h5_file, 'r') as f:
                 shape = f['/entry_1/data_1/data'].shape
             
             roi = [slice(None) for i in shape]

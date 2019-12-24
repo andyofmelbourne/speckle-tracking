@@ -14,7 +14,7 @@ if __name__ == '__main__':
     config_dirs = [os.path.split(os.path.abspath(__file__))[0]]
     
     # extract the first paragraph from the doc string
-    des = st.make_object_map.__doc__.split('\n\n')[0]
+    des = st.update_pixel_map.__doc__.split('\n\n')[0]
     
     # now load the necessary data
     args, params = cmdline_config_cxi_reader.get_all(sc, des, config_dirs=config_dirs, roi=True)

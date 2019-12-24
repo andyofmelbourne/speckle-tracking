@@ -149,14 +149,13 @@ def config_write(con_dict, fnam, val_doc_adv=False):
 
 def write_h5(h5_file, h5_group, d):
     import h5py
-    f = h5py.File(h5_file)
-    for key, val in d.items(): 
-        key2 = h5_group + '/' + key
-        
-        if key2 in f :
-            del f[key2]
-        
-        print(key2, type(val))
-        f[key2] = val
-    f.close()
+    with h5py.File(h5_file, 'a') as f: 
+        for key, val in d.items(): 
+            key2 = h5_group + '/' + key
+            
+            if key2 in f :
+                del f[key2]
+            
+            print(key2, type(val))
+            f[key2] = val
 

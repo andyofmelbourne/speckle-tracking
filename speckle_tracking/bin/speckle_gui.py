@@ -108,12 +108,12 @@ class Speckle_gui(QMainWindow):
         
         # fit_defocus widget
         #########################
-        script_names.append('fit_defocus_thon')
-        load_pro_widgets.append(QAction(script_names[-1], self))
-        load_pro_actions.append(lambda x, s = script_names[-1], 
-                                f = fnam : tabs_widget.addTab(widgets.Fit_defocus_widget(s, f), s))
-        load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
-        pro_menu.addAction(load_pro_widgets[-1])
+        #script_names.append('fit_defocus_thon')
+        #load_pro_widgets.append(QAction(script_names[-1], self))
+        #load_pro_actions.append(lambda x, s = script_names[-1], 
+        #                        f = fnam : tabs_widget.addTab(widgets.Fit_defocus_widget(s, f), s))
+        #load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
+        #pro_menu.addAction(load_pro_widgets[-1])
         
         # auto populate the process menu
         ################################
