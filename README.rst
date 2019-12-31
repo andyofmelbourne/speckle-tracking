@@ -9,7 +9,7 @@ To install just download the repo:
 Then install pocl (to enable OpenCL on CPUs), followed by the package::
 
     cd speckle-tracking 
-    conda install -c conda-forge pocl
+    conda install -c conda-forge pocl pyopencl
     pip install -e .
 
 This last line will link the installation the current directory, so that changes to the code will take immediate effect. 
