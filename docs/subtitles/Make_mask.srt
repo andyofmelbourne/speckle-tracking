@@ -1,0 +1,43 @@
+1
+00:00:04,00 --> 00:00:07,00
+select the "make_mask" tab
+
+2
+00:00:07,00 --> 00:00:09,00
+the data input location is good.
+
+3
+00:00:09,00 --> 00:00:12,00
+the generated mask will be put in the "speckle_tracking" group of the cxi file
+
+4
+00:00:12,00 --> 00:00:15,00
+click the "Run" button and you should see the progress indicated in the terminal
+
+5
+00:00:15,00 --> 00:01:10,00
+you might want to skip the video forward to 1:10:00...
+
+6
+00:01:11,00 --> 00:01:19,00
+clicking on the "view_h5_data_widget" tab, then clicking "update" you can see the location of the generated mask
+
+7
+00:01:20,00 --> 00:01:25,00
+to manually edit the mask, select the "mask maker" widget in the "Process" menu
+
+8
+00:01:26,00 --> 00:01:29,00
+adjust the colour scale as needed
+
+9
+00:01:30,00 --> 00:01:33,00
+blue pixels are masked, clicking on them will toggle the masked state
+
+10
+00:01:35,00 --> 00:01:40,00
+clicking "next frame" will cycle through the frames in the dataset
+
+11 
+00:01:41,00 --> 00:01:45,00
+in this case I don't see any more bad pixels so we don't need to click "save mask"

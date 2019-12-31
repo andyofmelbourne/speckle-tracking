@@ -1,0 +1,15 @@
+1
+00:00:00,00 --> 00:00:07,00
+select the "make_whitefield" tab in the "Process" menu
+
+2
+00:00:07,00 --> 00:00:9,00
+the default values are fine
+
+3
+00:00:09,00 --> 00:00:14,00
+click the "Run" button
+
+4
+00:00:17,00 --> 00:00:21,00
+visual inspection of the result (now at /speckle_tracking/whitefield) looks ok

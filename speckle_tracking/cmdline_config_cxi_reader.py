@@ -82,24 +82,27 @@ def write_all(params, filename, output_dict, apply_roi=True):
     if apply_roi :
         roi      = params['roi']
         shape = h5_file['/entry_1/data_1/data'].shape[-2:]
+        N     = h5_file['/entry_1/data_1/data'].shape[0]
         roi_shape = (roi[1]-roi[0], roi[3]-roi[2])
          
         # un-roi all datasets 
         for k in output_dict.keys():
             if type(output_dict[k]) is np.ndarray :
+                if (k != 'good_frames') and ('good_frames' in params) and (output_dict[k].shape[0] == len(params['good_frames'])) :
+                    print('resizing 0 axis of:', k)
+                    temp = np.zeros((N,) + output_dict[k].shape[1:], 
+                                    dtype=output_dict[k].dtype)
+                    
+                    temp[params['good_frames']] = output_dict[k]
+                    
+                    # now overwrite output array
+                    output_dict[k] = temp
+                
                 if len(output_dict[k].shape) >= 2 :
                     if output_dict[k].shape[-2:] == roi_shape :
-                        temp = None
-                        
-                        #kk = h5_group+'/'+k
-                        #if kk in h5_file :
-                        #    k_shape = h5_file[h5_group+'/'+k].shape[-2:]
-                        #    if len(k_shape) > 1 and k_shape[-2:] == shape :
-                        #        temp = h5_file[h5_group+'/'+k][()]
-                        
-                        if temp is None :
-                            temp = np.zeros(output_dict[k].shape[:-2] + shape, 
-                                            dtype=output_dict[k].dtype)
+                        print('resizing detector axis of:', k)
+                        temp = np.zeros(output_dict[k].shape[:-2] + shape, 
+                                        dtype=output_dict[k].dtype)
 
                         temp[..., roi[0]:roi[1], roi[2]:roi[3]] = output_dict[k]
                         
@@ -212,6 +215,10 @@ def roi_extract(f, roi, key, shape):
                 if fshape[i] == shape[j]:
                     s[i] = roi[j]
      
+    # Hack: this doesn't work for 1d arrays
+    # I have no idea why...
+    if len(s) == 1:
+        return f[key][()]
     return f[key][tuple(s)]
 
 
@@ -301,7 +308,7 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False,
         
         # get the roi if there
         if roi is not None and roi is not False :
-            with h5py.File(h5_file) as f:
+            with h5py.File(h5_file, 'r') as f:
                 shape = f['/entry_1/data_1/data'].shape
             
             roi = [slice(None) for i in shape]

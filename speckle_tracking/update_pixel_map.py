@@ -103,6 +103,9 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
     # We should have "None" mean: please guess it for me
     if roi is None :
         roi = [0, W.shape[0], 0, W.shape[1]]
+
+    if pixel_map is None :
+        pixel_map = np.array(np.indices(W.shape)).astype(np.float)
     
     # define search_window 
     if search_window is None :
@@ -140,7 +143,8 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
         ss, fs = np.rint(ss_grid).astype(np.int), np.rint(fs_grid).astype(np.int)
         out[0][ss, fs] = u[0].reshape(ss_grid.shape)
         out[1][ss, fs] = u[1].reshape(ss_grid.shape)
-
+    
+    print('quadratic_refinement:', quadratic_refinement)
     if quadratic_refinement :
         out, res = quadratic_refinement_opencl(data, mask, W, O, out, n0, m0, dij_n)
     

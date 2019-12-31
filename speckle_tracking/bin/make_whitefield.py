@@ -23,3 +23,7 @@ if __name__ == '__main__':
     
     out = {'whitefield': W}
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=False)
+
+    # output display for gui
+    with open('.log', 'w') as f:
+        print('display: /'+params['h5_group']+'/whitefield', file=f)

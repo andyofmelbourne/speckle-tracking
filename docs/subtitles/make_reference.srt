@@ -1,0 +1,39 @@
+1
+00:00:00,00 --> 00:00:06,00
+click "make_reference" in the "Process" tab
+
+2
+00:00:07,00 --> 00:00:10,00
+check the default values
+
+3
+00:00:10,00 --> 00:00:12,00
+we don't have a pixel_map estimate yet...
+
+4
+00:00:16,00 --> 00:00:20,00
+so we should set this to "None"
+
+5
+00:00:20,00 --> 00:00:23,00
+we have already generated a "good_frames" list
+
+6
+00:00:23,00 --> 00:00:38,00
+it's in the /frame_selector/good_frames dataset, so let's enter that
+
+7
+00:00:39,00 --> 00:00:43,00
+click the "Run" button
+
+8
+00:00:49,00 --> 00:00:53,00
+after a while we should see the generated image
+
+9
+00:00:54,00 --> 00:00:59,00
+adjust the colour scale (values of -1 are for un-assigned values in the map)
+
+10
+00:00:59,00 --> 00:01:10,00
+looking closely one can see artefacts in the image due to the lens aberations

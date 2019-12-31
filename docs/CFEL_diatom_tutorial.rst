@@ -3,7 +3,7 @@ Diatom example
 
 .. contents:: Table of Contents
 
-First download the cxi file (link to come, for now at ~/Documents/2019/speckle-data/diatom_tutorial/diatom.cxi).
+First download the cxi file (link to come, for now contact morganaj@unimelb.edu.au)
 
 The Input CXI File
 ------------------
@@ -171,23 +171,56 @@ Then fire up the GUI::
 
     speckle_gui.py diatom.cxi
 
-At this point the file speckle_gui.ini has just been copied from the bin directory to the current directory, which can be edited and then loaded automatically at the next call. Also a window should pop up. On the left you will see the locations of datasets in the cxi file. Clicking on /entry_1/data_1/data will cause the widget to display the raw detector readings. To the right of the window the colour scale can be adjusted, at the bottom the frame number can be changed by draging the vertical yellow line from left to right, in the image panel the image can zoomed in or out with the mouse wheel and translated with click and drag. After some adjustment of the colour scale you should see this:
-
-.. image:: images/gui_startup.png
-   :width: 600
 
 Select good frames
-    Clicking on the show / select frames tab will display a widget designed for frame selection:
+    Remove the first frame, which is blank, from the analysis using the "show / select frames" tab.
 
-    .. image:: images/select_frames.png
-       :width: 600
+    .. raw:: html
 
-    To the right is a panel that displays the x-y position of the sample as a scatter plot. The blue circle indicates the current frame, the red dots indicate good frames and the grey dots bad frames. By clicking on the small circles frames can be toggled good or bad, or, the rectangle can used to select many frames. Clicking write to file, will output the frame selection to the dataset /frame_selector/good_frames in the diatom.cxi file. Now if you drag the vericle yellow line all the way to the left, you should see that the first frame in the file is blank. Also the location, as shown by the blue dot in the right panel, is in a funny location. Clearly, we should remove it from the analysis. Drag the yellow line from the first image, then click on the red dot corresponding to the first image. Then click write to file. This will output the good frames selection (the red dots) into the dataset /frames_selector/good_frames. To see this, just click on the view_h5_data_widget tab, then click update at the bottom and you should see the dataset pop up.  
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/h5eLsgMwjtg" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-Make the mask (manually)
-    The make_mask.py script attempt to automatically detect bad pixels. However, it is often the case that one wishes to modify this mask, or not use it at all. Click on mask maker, in the Process tab, and you should see:
+Make the mask
+    First auto generate the mask using the "make_mask" process, then check it using the "mask maker" widget. 
 
-    .. image:: images/mask_maker.png
-       :width: 600
+    .. raw:: html
 
-    The blue pixels (if any) indicate masked pixels, the grey scale image is one of the data frames (which can be scrolled by click prev / next frame in the left panel...
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/PhTLEd-YSw8" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+Generate the whitefield image
+    .. raw:: html
+    
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/5ZPkE_G9dls" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    
+
+Estimate the detector region of interest
+    .. raw:: html
+
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/uPWTWQm8jEE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    
+
+Generate the pixel space translations
+    Make the pixel space translations and enter the defocus estimate.
+    
+    .. raw:: html
+    
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/yt5Pk_lND6k" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+
+Generate the initial reference image
+    Assuming no lens distortions, stitch together the frames to make a reference image. 
+
+    .. raw:: html
+    
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/xEzkS9L5Dm4" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+Update the pixel mapping function
+    By comparing the recorded images with the initial estimate for the reference image we can generate an estimate for the pixel mapping along the pixel coordinates of the detector:
+
+    .. raw:: html
+    
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/syqThBUOWCE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+Iteratively update the reference image and pixel mapping
+    .. raw:: html
+    
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/Fr8hroKa18A" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>

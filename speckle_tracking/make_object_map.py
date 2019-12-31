@@ -111,6 +111,12 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False,
     m_roi[roi[0]:roi[1], roi[2]:roi[3]] = mask[roi[0]:roi[1], roi[2]:roi[3]]
     
     # mask the pixel mapping
+    if pixel_map is None or pixel_map is False : 
+        pixel_map = np.zeros((2,)+W.shape, dtype=np.float)
+        i, j = np.indices(W.shape)
+        pixel_map[0] = i
+        pixel_map[1] = j
+    
     ij     = np.array([pixel_map[0][m_roi], pixel_map[1][m_roi]])
     
     # choose the offset so that ij - dij_n + n0 > -0.5

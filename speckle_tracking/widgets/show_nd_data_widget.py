@@ -32,10 +32,19 @@ class Show_nd_data_widget(QWidget):
             (N, M>4)  float, complex, int --> 2d image
             (N, M>4)  complex             --> 2d images (abs, angle, real, imag)
             (N, M, L) float, complex, int --> 2d images (real) with slider
+
+        scatter:
+            (N, M, 2) float, int          --> N overlayed scatter plots
         """
+        if len(name.split(' ')) == 2 :
+            name, im_type = name.split(' ')
+        else :
+            im_type = None
+        
         # make plot
         f = h5py.File(filename, 'r')
         shape = f[name].shape
+        title = name + ' ' + str(shape) + ' ' + str(f[name].dtype)
 
         if self.name == name :
             refresh = True
@@ -48,14 +57,69 @@ class Show_nd_data_widget(QWidget):
                 self.plotW.setData(f[name][()])
             else :
                 self.plotW = self.text_label = QLabel(self)
-                self.plotW.setText('<b>'+name+'</b>: ' + str(f[name][()]))
+                self.plotW.setText('<b>'+title+'</b>: ' + str(f[name][()]))
 
         elif len(shape) == 1 :
             if refresh :
                 self.plotW.setData(f[name][()])
             else :
-                self.plotW = pg.PlotWidget(title = name)
+                self.plotW = pg.PlotWidget(title = title)
                 self.plotW.plot(f[name][()], pen=(255, 150, 150))
+        
+        elif (len(shape) == 1) or (len(shape) == 2 and shape[0]<5) : 
+            if len(shape) == 1 :
+                I = [()]
+            else :
+                I = range(shape[0])
+                np.random.seed(3)
+            
+            pen = (255, 150, 150)
+            
+            if refresh :
+                self.plotW.clear()
+            else :
+                self.plotW = pg.PlotWidget(title = title)
+            
+            for i, ii in enumerate(I):
+                if ii>0:
+                    pen = tuple(np.random.randint(0, 255, 3))
+                
+                self.plotW.plot(f[name][i], pen=pen)
+                print('pen', pen)
+
+        elif (len(shape) == 2 or len(shape) == 3) and im_type == 'scatter' : 
+            if refresh :
+                self.plotW.clear()
+            else :
+                self.plotW = pg.PlotWidget(title = title)
+            
+            self.ss = []
+            # scatter plot
+            ##############
+            if len(shape) == 2 :
+                X = f[name][:, 0]
+                Y = f[name][:, 1]
+                pen   = pg.mkPen((255, 150, 150))
+                brush = pg.mkBrush(255, 255, 255, 120)
+                 
+                self.s1    = pg.ScatterPlotItem(size=5, pen=pen, brush=brush)
+                spots = [{'pos': [X[n], Y[n]], 'data': n} for n in range(len(X))] 
+                self.s1.addPoints(spots)
+                self.ss.append(self.s1)
+            else :
+                np.random.seed(3)
+                for n in range(f[name].shape[0]):
+                    X = f[name][n, :, 0]
+                    Y = f[name][n, :, 1]
+                    pen   = pg.mkPen(tuple(np.random.randint(0, 255, 3)))
+                    brush = pg.mkBrush(tuple(np.random.randint(0, 255, 4)))
+                     
+                    self.ss.append(pg.ScatterPlotItem(size=5, pen=pen, brush=brush))
+                    spots = [{'pos': [X[n], Y[n]], 'data': n} for n in range(len(X))] 
+                    self.ss[-1].addPoints(spots)
+            
+            for s1 in self.ss:
+                self.plotW.addItem(s1)
         
         elif len(shape) == 2 and shape[1] < 4 :
             pens = [(255, 150, 150), (150, 255, 150), (150, 150, 255)]
@@ -73,9 +137,9 @@ class Show_nd_data_widget(QWidget):
                 self.plotW.setImage(f[name][()].astype(np.float).real.T, autoRange = False, autoLevels = False, autoHistogramRange = False)
             else :
                 if 'complex' in f[name].dtype.name :
-                    title = name + ' (abs, angle, real, imag)'
+                    title = title + ' (abs, angle, real, imag)'
                 else :
-                    title = name
+                    title = title
                 
                 frame_plt = pg.PlotItem(title = title)
                 self.plotW = pg.ImageView(view = frame_plt)
@@ -92,7 +156,7 @@ class Show_nd_data_widget(QWidget):
                 self.replot_frame()
             else :
                 # show the middle frame
-                frame_plt = pg.PlotItem(title = name)
+                frame_plt = pg.PlotItem(title = title)
                 self.plotW = pg.ImageView(view = frame_plt)
                 self.plotW.ui.menuBtn.hide()
                 self.plotW.ui.roiBtn.hide()

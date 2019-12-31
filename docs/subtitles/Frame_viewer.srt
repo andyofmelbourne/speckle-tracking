@@ -1,0 +1,43 @@
+1
+00:00:04,00 --> 00:00:7,00
+add speckle tracking bin to the path
+
+2
+00:00:10,00 --> 00:00:13,00
+open the gui
+
+3
+00:00:20,00 --> 00:00:23,00
+select the "show / select frames" widget tab
+
+4
+00:00:23,00 --> 00:00:25,00
+mouse wheel zooms and click and drag pans the image
+
+5
+00:00:25,00 --> 00:00:29,00
+the same applies for the colour scale widget
+
+6
+00:00:34,00 --> 00:00:37,00
+dragging the yellow bar selects different data frames. This also changes the "blue dot" in the top right panel.
+
+7
+00:00:42,00 --> 00:00:45,00
+the first frame is blank, so let's remove it
+
+8
+00:00:49,00 --> 00:00:52,00
+click on the offending frame in the top right panel
+
+9
+00:00:53,00 --> 00:00:56,00
+then, click on "write to file"
+
+10
+00:00:56,00 --> 00:00:59,00
+click on the "view_h5_data_widget" tab and click "update" to refresh the list
+
+11 
+00:00:59,00 --> 00:00:64,00
+we can see that a new dataset has been created that starts at frame 1 (rather than 0)

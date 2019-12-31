@@ -156,13 +156,16 @@ def fit_thon_rings(
     thon_calc = calculate_thon(z, z1, dz, x_pixel_size, y_pixel_size, thon.shape, wav, bd)
     
     # overlay with forward calculation for display
-    #thon = make_thon(data, mask, W, roi, sig=None, centre=centre)
+    edge_mask[:thon.shape[0]//2, :thon.shape[1]//2] = False
+    
     thon_dis = np.log(thon)**0.2
     thon_dis = (thon_dis-thon_dis.min())/(thon_dis-thon_dis.min()).max()
-    thon_dis[:thon.shape[0]//2, :thon.shape[1]//2] = thon_calc[:thon.shape[0]//2, :thon.shape[1]//2]
+    thon_dis[~edge_mask] = thon_calc[~edge_mask]
     thon_dis = np.fft.fftshift(thon_dis)
     
-    return z1, {'thon_display': thon_dis, 'bd':bd, 'defocus_fs': z1-dz, 'defocus_ss': z1+dz, 'astigmatism': dz}
+    out = {'thon_display': thon_dis, 'bd':bd, 'defocus_fs': z1-dz, 'defocus_ss': z1+dz, 'astigmatism': dz}
+    out.update(res2)
+    return z1, out
 
 
 def make_thon(data, mask, W, roi=None, sig=None, centre=None):
@@ -316,7 +319,7 @@ def fit_sincos(f, r):
     
     ai, bi  = np.unravel_index(np.argmax(error), error.shape)
     a, b    = a_s[ai], b_s[bi]
-    res = {'error_map': error, 'fit': forward(a, b)}
+    res = {'error_map': error, 'fit': np.array([forward(a, b), f])}
     return a, b, res
 
 def calculate_thon(z, z1, dz, x_pixel_size, y_pixel_size, shape, wav, bd):

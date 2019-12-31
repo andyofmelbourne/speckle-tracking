@@ -31,7 +31,7 @@ def promt_to_create_h5(fnam):
 
 def parse_cmdline_args(script_name, description, \
                        create_h5=True, copy_config_to_h5dir = True, \
-                       config_dirs = ['process/', 'gui/']):
+                       config_dirs = ['process/', 'bin/', 'gui/']):
     """
     """
     parser = argparse.ArgumentParser(description=description)
@@ -45,13 +45,14 @@ def parse_cmdline_args(script_name, description, \
     if create_h5 :
         promt_to_create_h5(args.filename)
     
-    con_dirs  = [os.path.split(args.filename)[0],] + config_dirs 
     if args.config is not None :
         con_fnams = [args.config,]
     else :
         con_fnams = []
+
+    h5_dir_con = [os.path.join(os.path.split(args.filename)[0], script_name+'.ini'),]
     
-    con_fnams = con_fnams + [os.path.join(root, cd+'/'+script_name+'.ini') for cd in con_dirs]
+    con_fnams = con_fnams + h5_dir_con + [os.path.join(root, os.path.join(cd, script_name+'.ini')) for cd in config_dirs]
     
     # process config file
     params, fnam = config_reader.config_read(con_fnams)

@@ -1,0 +1,28 @@
+1
+00:00:00,00 --> 00:00:06,00
+click "make_pixel_translations" in the "Process" tab
+
+2
+00:00:07,00 --> 00:00:09,00
+the default defocus value does not exist
+
+3
+00:00:09,00 --> 00:00:12,00
+to see this click on the "view_h5_data_widget" tab, we can see that this dataset is not present
+
+4
+00:00:13,00 --> 00:00:19,00
+so replace the dataset location with the correct distance in metres
+
+5
+00:00:19,00 --> 00:00:21,00
+the default values in the advanced section are good
+
+6
+00:00:22,00 --> 00:00:27,00
+click run
+
+7
+00:00:28,00 --> 00:00:35,00
+and you can see the generated datasets in the list
+

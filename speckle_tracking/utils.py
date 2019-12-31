@@ -261,7 +261,7 @@ def integrate_grad2(dssin, dfsin, maskin, maxiter=3000, stepin=[1.,1.], sigma=1.
     fd = lambda x, d : np.sum( d * df(x))
 
     cgls = Cgls(np.zeros((dss.shape[0]+1, dss.shape[1]+1)), 
-                f, df, fd, dfd=dfd, imax=maxiter, e_tol = 1e-3)
+                f, df, fd, dfd=dfd, imax=maxiter, e_tol = 1e-10)
     
     scale *= stepin[0]
     
