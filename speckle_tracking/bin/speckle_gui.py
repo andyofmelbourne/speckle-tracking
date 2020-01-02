@@ -100,11 +100,11 @@ class Speckle_gui(QMainWindow):
 
         # update_pixel_map widget
         #########################
-        script_names.append('pos_refine')
-        load_pro_widgets.append(QAction(script_names[-1], self))
-        load_pro_actions.append(lambda x, s = script_names[-1], f = fnam : tabs_widget.addTab(widgets.Update_pixel_map_widget(s, f), s))
-        load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
-        pro_menu.addAction(load_pro_widgets[-1])
+        #script_names.append('pos_refine')
+        #load_pro_widgets.append(QAction(script_names[-1], self))
+        #load_pro_actions.append(lambda x, s = script_names[-1], f = fnam : tabs_widget.addTab(widgets.Update_pixel_map_widget(s, f), s))
+        #load_pro_widgets[-1].triggered.connect( load_pro_actions[-1] )
+        #pro_menu.addAction(load_pro_widgets[-1])
         
         # fit_defocus widget
         #########################
@@ -118,7 +118,7 @@ class Speckle_gui(QMainWindow):
         # auto populate the process menu
         ################################
         pro_fnams = glob.glob(root+'/bin/*.py')
-        exclude = ['write_h5.py', 'wipe_cxi.py', 'speckle_gui.py', 'zernike.py', 'hdf_display.py', 'pos_refine.py', 'forward_sim.py']
+        exclude = ['write_h5.py', 'wipe_cxi.py', 'speckle_gui.py', 'hdf_display.py']
         #pro_fnams = "fit_defocus_registration.py forward_sim.py make_whitefield.py speckle-gui.py update_pixel_map.py fit_defocus_thon.py h5_operations.py  pos_refine.py stitch.py zernike.py".split()
         
         for pfnam in pro_fnams :

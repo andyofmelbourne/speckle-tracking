@@ -5,7 +5,7 @@ except :
     from PyQt4.QtGui import *
     from PyQt4.QtCore import pyqtSignal, QTimer, QProcess, QFileSystemWatcher
 
-import sys, os
+import sys, os, time
 from threading  import Thread
 from queue import Queue, Empty
 
@@ -22,6 +22,8 @@ class WatchFileWidget(QWidget):
         super(WatchFileWidget, self).__init__()
         
         self.fnam = fnam
+        self.last_read = None
+        self.min_time = 1e-1
         
     def start(self):
         # if the file does not exist
@@ -35,11 +37,16 @@ class WatchFileWidget(QWidget):
         self.w.fileChanged.connect(self.fileChanged)
 
     def fileChanged(self):
+        # if the file was read less than self.min_time ago, then skip
+        if (self.last_read is not None) and (time.time()-self.last_read)<self.min_time :
+            return
+        
         # read the file and print output
         with open(self.fnam) as f:
             lines = f.readlines()
             last_line = lines[-1]
             print('last_line:', last_line)
+            self.last_read = time.time()
             self.display_signal.emit(last_line.split('display:')[1].strip())
     
     def stop(self):

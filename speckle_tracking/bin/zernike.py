@@ -1,19 +1,11 @@
-#! /usr/bin/env python
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+#!/usr/bin/env python
+import os
+import speckle_tracking as st
+from speckle_tracking import cmdline_config_cxi_reader
+from speckle_tracking import cmdline_parser 
 
-# make an example cxi file
-# with a small sample and small aberations
-
-import sys, os
-base = os.path.join(os.path.dirname(__file__), '..')
-root = os.path.abspath(base)
-sys.path.insert(0, os.path.join(root, 'utils'))
-
-import cmdline_config_cxi_reader
-import optics
+import speckle_tracking.optics as optics
+import speckle_tracking.utils as utils
 
 import numpy as np
 import scipy.constants as sc
@@ -167,24 +159,19 @@ def get_geometric_aberrations(phase, y, x, dq, wavelen,
 
     return phase
 
-def make_phase(pixel_shifts, z, du, lamb, df):
-    phi_y = 2 * df * du[0]**2 * np.pi / (lamb * z) * np.cumsum(pixel_shifts[0], axis=0, dtype=np.float)
-    phi_x = 2 * df * du[1]**2 * np.pi / (lamb * z) * np.cumsum(pixel_shifts[1], axis=1, dtype=np.float)
-    
-    # this is because broadcasting is performed along the last dimension
-    phi = phi_y + phi_x + phi_x[0, :]
-    phi  = (phi.T + phi_y[:, 0].T).T 
-    phi /= 2.
-    return -phi
-
 if __name__ == '__main__':
-    # get input 
-    ###########
-    args, params = cmdline_config_cxi_reader.get_all('zernike', 
-                   'stitch frames together to form a merged view of the sample from projection images')
+    # get command line args and config
+    # search the current directory for *.ini files if not present in cxi directory
+    config_dirs = [os.path.split(os.path.abspath(__file__))[0]]
+    
+    # extract the first paragraph from the doc string
+    des = 'stitch frames together to form a merged view of the sample from projection images'
+    
+    # now load the necessary data
+    args, params = cmdline_config_cxi_reader.get_all('zernike', des, config_dirs=config_dirs, roi=True)
     params = params['zernike']
     
-    phase = np.zeros_like(params['pixel_shifts'][0])
+    phase = params['phase']
     
     # calculate the Zernike coefficients
     # ----------------------------------
@@ -193,7 +180,6 @@ if __name__ == '__main__':
     du      = np.array([params['x_pixel_size'], params['y_pixel_size']])
     dq      = du / (wavelen * params['distance'])
 
-    phase = make_phase(params['pixel_shifts'], params['distance'], du, wavelen, params['defocus'])
     z, z_poly, basis, basis_grid, y, x = calculate_Zernike_coeff(phase, params['mask'], params['orders'], dq)
     
     # get defocus, astigmatism and tilt
@@ -233,5 +219,6 @@ if __name__ == '__main__':
            'zernike_basis_vectors': basis_grid}
     cmdline_config_cxi_reader.write_all(params, args.filename, out)
     
-    print('display: '+params['h5_group']+'/zernike_coefficients') ; sys.stdout.flush()
-    
+    # output display for gui
+    with open('.log', 'w') as f:
+        print('display: /'+params['h5_group']+'/zernike_coefficients', file=f)

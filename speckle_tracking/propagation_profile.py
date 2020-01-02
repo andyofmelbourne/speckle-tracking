@@ -3,7 +3,7 @@ import tqdm
 
 from .utils import bilinear_interpolation_array
 
-def propagation_profile(phase, W, z, wav, x_pixel_size, y_pixel_size, X, zs=[-1e-4, 1e-4, 1000], Nint=4, axis=1):
+def propagation_profile(phase, W, z, wav, x_pixel_size, y_pixel_size, zs=[-1e-4, 1e-4, 1000], Nint=4):
     """
     """
     Npad = 1

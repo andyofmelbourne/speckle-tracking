@@ -28,4 +28,9 @@ from .integrate_pixel_map import get_defocus
 from .cmdline_config_cxi_reader import config_read_from_h5
 from .cmdline_config_cxi_reader import write_all
 from .remove_offset_tilt_from_pixel_map import remove_offset_tilt_from_pixel_map
+from .calculate_sample_thickness import calculate_sample_thickness
 from . import _widgets 
+from . import optics
+ 
+calculate_phase = integrate_pixel_map
+focus_profile = propagation_profile
