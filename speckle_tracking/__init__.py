@@ -34,3 +34,4 @@ from . import optics
  
 calculate_phase = integrate_pixel_map
 focus_profile = propagation_profile
+split_half_recon = angular_resolution
