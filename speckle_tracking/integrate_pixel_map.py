@@ -2,7 +2,7 @@ from .utils import integrate
 from .utils import Cgls
 import numpy as np
 
-def integrate_pixel_map(pixel_map, weight, wavelength, z, zr, 
+def integrate_pixel_map(pixel_map, weight, wavelength, z, 
                         x_pixel_size, y_pixel_size, dx, dy, 
                         remove_astigmatism = False, maxiter=3000):
     r"""

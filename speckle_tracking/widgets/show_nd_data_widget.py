@@ -7,6 +7,9 @@ import h5py
 import pyqtgraph as pg
 import numpy as np
 
+# test
+import threading
+
 class Show_nd_data_widget(QWidget):
     def __init__(self):
         super(Show_nd_data_widget, self).__init__()
@@ -48,9 +51,11 @@ class Show_nd_data_widget(QWidget):
 
         if self.name == name :
             refresh = True
-        
-        if not refresh :
+        elif (self.name is not None) and (self.name != name):
             self.close()
+
+        #if not refresh :
+        #    self.close()
 
         if shape == () :
             if refresh :
@@ -61,10 +66,11 @@ class Show_nd_data_widget(QWidget):
 
         elif len(shape) == 1 :
             if refresh :
-                self.plotW.setData(f[name][()])
+                self.plotW.clear()
             else :
                 self.plotW = pg.PlotWidget(title = title)
-                self.plotW.plot(f[name][()], pen=(255, 150, 150))
+
+            self.plotW.plot(f[name][()], pen=(255, 150, 150))
         
         elif (len(shape) == 1) or (len(shape) == 2 and shape[0]<5) : 
             if len(shape) == 1 :

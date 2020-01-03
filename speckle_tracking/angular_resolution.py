@@ -3,13 +3,15 @@
 
 from .update_pixel_map import *
 
-def angular_resolution(data, mask, W, O, pixel_map, n0, m0, dij_n, dxyz, z,
+def angular_resolution(data, mask, W, O, pixel_map, n0, m0, dij_n, dss, dfs, z,
                      search_window=None, grid=None, roi=None, 
                      subpixel=False, subsample=1., 
                      interpolate = False, fill_bad_pix=True,
                      quadratic_refinement = True,
                      integrate = False, clip = None, 
                      filter=None, verbose=True, guess=False):
+    """
+    """
     
     split_mask = np.random.random(data.shape)>= 0.5 
     
@@ -35,10 +37,10 @@ def angular_resolution(data, mask, W, O, pixel_map, n0, m0, dij_n, dxyz, z,
     dt    = u2-u1
     x1, y1, g1, s1 = fit_gauss(dt[0])
     x2, y2, g2, s2 = fit_gauss(dt[1])
-    s1 *= dxyz[0] / z
-    s2 *= dxyz[1] / z
-    x1 *= dxyz[0] / z
-    x2 *= dxyz[1] / z
+    s1 *= dss / z
+    s2 *= dfs / z
+    x1 *= dss / z
+    x2 *= dfs / z
     
     res3 = {'x_ss': x1, 'h_ss': y1, 'h_fit_ss': g1, 'sigma_ss': s1,
             'x_fs': x2, 'h_fs': y2, 'h_fit_fs': g2, 'sigma_fs': s2}
