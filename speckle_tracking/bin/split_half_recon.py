@@ -8,19 +8,19 @@ import numpy as np
 
 if __name__ == '__main__':
     # get command line args and config
-    sc  = 'update_pixel_map'
+    sc  = 'split_half_recon'
      
     # search the current directory for *.ini files if not present in cxi directory
     config_dirs = [os.path.split(os.path.abspath(__file__))[0]]
     
     # extract the first paragraph from the doc string
-    des = st.update_pixel_map.__doc__.split('\n\n')[0]
+    des = st.split_half_recon.__doc__.split('\n\n')[0]
     
     # now load the necessary data
     args, params = cmdline_config_cxi_reader.get_all(sc, des, config_dirs=config_dirs, roi=True)
     params = params[sc]
-    
-    u, res = st.update_pixel_map(
+
+    u1, u2, res1, res2, res3 = st.split_half_recon(
             params['data'].astype(np.float32),
             params['mask'], 
             params['whitefield'], 
@@ -29,6 +29,9 @@ if __name__ == '__main__':
             params['n0'], 
             params['m0'], 
             params['pixel_translations'], 
+            params['dss'], 
+            params['dfs'], 
+            params['distance'],
             params['search_window'],
             None, None,
             params['subpixel'], 
@@ -41,12 +44,12 @@ if __name__ == '__main__':
             params['filter'], 
             verbose=True, guess=False)
     
-    u0 = np.array(np.indices(params['data'].shape[1:]))
-    du = u-u0
-    out = {'pixel_map': u, 'pixel_map_residual': du}
+    out = {'pixel_map_difference': u1-u2}
+    out.update(res3)
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)
     
     # output display for gui
     with open('.log', 'w') as f:
-        print('display: /'+params['h5_group']+'/pixel_map_residual', file=f)
+        print('display: /'+params['h5_group']+'/pixel_map_difference', file=f)
+
 

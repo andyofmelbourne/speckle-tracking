@@ -7,6 +7,9 @@ import h5py
 import pyqtgraph as pg
 import numpy as np
 
+# test
+import threading
+
 class Show_nd_data_widget(QWidget):
     def __init__(self):
         super(Show_nd_data_widget, self).__init__()
@@ -44,32 +47,57 @@ class Show_nd_data_widget(QWidget):
         # make plot
         f = h5py.File(filename, 'r')
         shape = f[name].shape
+        title = name + ' ' + str(shape) + ' ' + str(f[name].dtype)
 
         if self.name == name :
             refresh = True
-        
-        if not refresh :
+        elif (self.name is not None) and (self.name != name):
             self.close()
+
+        #if not refresh :
+        #    self.close()
 
         if shape == () :
             if refresh :
                 self.plotW.setText('<b>'+name+'</b>: ' + str(f[name][()]))
             else :
                 self.plotW = self.text_label = QLabel(self)
-                self.plotW.setText('<b>'+name+'</b>: ' + str(f[name][()]))
+                self.plotW.setText('<b>'+title+'</b>: ' + str(f[name][()]))
 
         elif len(shape) == 1 :
             if refresh :
-                self.plotW.setData(f[name][()])
+                self.plotW.clear()
             else :
-                self.plotW = pg.PlotWidget(title = name)
-                self.plotW.plot(f[name][()], pen=(255, 150, 150))
+                self.plotW = pg.PlotWidget(title = title)
+
+            self.plotW.plot(f[name][()], pen=(255, 150, 150))
+        
+        elif (len(shape) == 1) or (len(shape) == 2 and shape[0]<5) : 
+            if len(shape) == 1 :
+                I = [()]
+            else :
+                I = range(shape[0])
+                np.random.seed(3)
+            
+            pen = (255, 150, 150)
+            
+            if refresh :
+                self.plotW.clear()
+            else :
+                self.plotW = pg.PlotWidget(title = title)
+            
+            for i, ii in enumerate(I):
+                if ii>0:
+                    pen = tuple(np.random.randint(0, 255, 3))
+                
+                self.plotW.plot(f[name][i], pen=pen)
+                print('pen', pen)
 
         elif (len(shape) == 2 or len(shape) == 3) and im_type == 'scatter' : 
             if refresh :
                 self.plotW.clear()
             else :
-                self.plotW = pg.PlotWidget(title = name)
+                self.plotW = pg.PlotWidget(title = title)
             
             self.ss = []
             # scatter plot
@@ -115,9 +143,9 @@ class Show_nd_data_widget(QWidget):
                 self.plotW.setImage(f[name][()].astype(np.float).real.T, autoRange = False, autoLevels = False, autoHistogramRange = False)
             else :
                 if 'complex' in f[name].dtype.name :
-                    title = name + ' (abs, angle, real, imag)'
+                    title = title + ' (abs, angle, real, imag)'
                 else :
-                    title = name
+                    title = title
                 
                 frame_plt = pg.PlotItem(title = title)
                 self.plotW = pg.ImageView(view = frame_plt)
@@ -134,7 +162,7 @@ class Show_nd_data_widget(QWidget):
                 self.replot_frame()
             else :
                 # show the middle frame
-                frame_plt = pg.PlotItem(title = name)
+                frame_plt = pg.PlotItem(title = title)
                 self.plotW = pg.ImageView(view = frame_plt)
                 self.plotW.ui.menuBtn.hide()
                 self.plotW.ui.roiBtn.hide()

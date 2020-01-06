@@ -99,7 +99,6 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
     
     #sig = np.std(data, axis=0)
     #sig[sig <= 0] = 1
-    
     for n in tqdm.trange(data.shape[0], desc='calculating errors'):
         if subpixel: 
             # define the coordinate mapping and round to int
@@ -117,7 +116,6 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
             #I0 = I[ss, fs] * W[mask]
             I0 = I[ss, fs] * W
         
-
         d  = data[n]
         m  = (I0>0)*(d>0)*mask
                 
@@ -125,25 +123,26 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
         flux_corr[n] = np.sum(m * I0 * data[n]) / np.sum(m * data[n]**2) 
         
         #error_map = m*(I0 - d)**2 / sig[mask]
-        error_map = m*(I0 - d)**2
-        tot       = np.sum(error_map)
-        
-        error_total       += tot
-        error_pixel       += error_map
-        error_frame[n]     = tot / np.sum(m)
-        #print(m.shape, mask.shape, mask[m].shape, W.shape, norm.shape)
-        norm              += m*(W - d)**2
-        error_map          = m * np.abs(W-d)
-        error_map[~m]      = -1      
+        error_map          = m*(I0 - d)**2
+        error_map[~m]      = -1
         error_residual[n]  = error_map
+        norm              += m*(W - d)**2
+    
+    norm /= data.shape[0]
+    norm[norm==0]  = 1
+    
+    # normalise the residual
+    error_residual = error_residual / norm
     
     # now map the errors to object space
-    error_reference, n0, m0 = make_object_map(error_residual, mask, W, dij_n, pixel_map, subpixel=True)
-
-    print("err ref shape:", error_residual.shape)
+    error_reference, n0, m0 = make_object_map(error_residual, mask, np.ones_like(W), dij_n, pixel_map, subpixel=True)
     
-    m = norm>0
-    error_pixel[m] = error_pixel[m] / norm[m]
+    # get rid of the negatives before summing
+    error_residual[error_residual<0] = 0 
+    error_frame = np.sum(error_residual, axis = (1,2))
+    error_pixel = np.sum(error_residual, axis = 0)
+    error_total = np.sum(error_frame)
+    
     return error_total, error_frame, error_pixel, error_residual, error_reference, norm, flux_corr
 
 def make_pixel_map_err(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, search_window=20, grid=[20, 20]):

@@ -17,6 +17,7 @@ from .pixel_map_from_data import pixel_map_from_data
 from .update_pixel_map import update_pixel_map_opencl
 from .update_pixel_map import make_projection_images
 from .update_pixel_map import quadratic_refinement_opencl
+from .generate_pixel_map import generate_pixel_map
 from .integrate_pixel_map import integrate_pixel_map
 from .docstring_glossary import docstring_glossary
 from .calc_error import calc_error
@@ -27,4 +28,10 @@ from .integrate_pixel_map import get_defocus
 from .cmdline_config_cxi_reader import config_read_from_h5
 from .cmdline_config_cxi_reader import write_all
 from .remove_offset_tilt_from_pixel_map import remove_offset_tilt_from_pixel_map
+from .calculate_sample_thickness import calculate_sample_thickness
 from . import _widgets 
+from . import optics
+ 
+calculate_phase = integrate_pixel_map
+focus_profile = propagation_profile
+split_half_recon = angular_resolution
