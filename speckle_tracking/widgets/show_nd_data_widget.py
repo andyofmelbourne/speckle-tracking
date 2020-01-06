@@ -53,7 +53,7 @@ class Show_nd_data_widget(QWidget):
 
         if shape == () :
             if refresh :
-                self.plotW.setData(f[name][()])
+                self.plotW.setText('<b>'+name+'</b>: ' + str(f[name][()]))
             else :
                 self.plotW = self.text_label = QLabel(self)
                 self.plotW.setText('<b>'+name+'</b>: ' + str(f[name][()]))
