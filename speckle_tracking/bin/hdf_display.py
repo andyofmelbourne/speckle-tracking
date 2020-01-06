@@ -4,12 +4,8 @@ try :
 except :
     from PyQt4.QtGui import *
 
-from speckle_gui.widgets import show_nd_data_widget
 
-
-import h5py
-import pyqtgraph as pg
-import numpy as np
+import speckle_tracking._widgets
 import signal
 import argparse
 
@@ -21,7 +17,7 @@ class Hdf_display(QMainWindow):
          
         # add the tab widget
         ####################
-        widget = show_nd_data_widget.Show_nd_data_widget()
+        widget = speckle_tracking._widgets.Show_nd_data_widget()
         self.setCentralWidget(widget)
         
         widget.show(fnam, dataset)

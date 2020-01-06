@@ -3,7 +3,9 @@
 Siemens Star
 ============
 
-First get the siemens_star cxi file (link to come).
+First get the siemens_star cxi file (link to come). 
+
+For a more detailed introduction to the speckle-tracking interface, start with the :ref:`diatom` tutorial. 
 
 The Input CXI File
 ------------------
@@ -31,8 +33,7 @@ The file has the following structure::
 
 This is the minimal amount of information that the input cxi file can have, see :ref:`cxi-file`. So, as we can see in the :code:`entry_1/data_1/data` the dataset consists of 400 frames, where each frame is an image of 480x438 pixels.
 
-
-Now that's out of the way, we should decide if we want to use the `Python Interface`_, `Command-line Interface`_ or the `Gui Interface`_. So... choose. 
+For this tutorial, we will show how to reconstruct the wavefield and sample reference image using the `Python Interface`_ and the `Command-line Interface`_. If you are using the GUI interface, then follow the `Command-line Interface`_ with the corresponding widget and input values.
 
 Python Interface
 ----------------
@@ -203,5 +204,29 @@ Refinement
 Command-line Interface
 ----------------------
 
-Gui Interface
--------------
+:: 
+    
+    # build the pixel mask (with default settings)
+    make_mask.py siemens_star.cxi
+
+    # build the white-field array (with default settings)
+    make_whitefield.py siemens_star.cxi
+    
+    # estimate the significant region of interest 
+    guess_roi.py siemens_star.cxi
+
+    # estimate the defocus values by ``Thon ring'' fitting
+    fit_thon_rings.py siemens_star.cxi
+
+    # check the result of the above procedure
+    hdf_display.py siemens_star.cxi/speckle_tracking/thon_display
+
+Now we will generate the pixel map array. Because we have used the Thon rings to fit the defocus value, we also have an estimate for the degree of astigmatism. At the moment there are two defocus values stored in the cxi file::
+
+    /speckle_tracking/defocus    (
+    /speckle_tracking/defocus_fs 
+    /speckle_tracking/defocus_ss 
+    
+
+    generate_pixel_map.py siemens_star.cxi
+    make_reference.py siemens_star.cxi
