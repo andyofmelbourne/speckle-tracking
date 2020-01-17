@@ -117,8 +117,13 @@ class Show_nd_data_widget(QWidget):
                 for n in range(f[name].shape[0]):
                     X = f[name][n, :, 0]
                     Y = f[name][n, :, 1]
-                    pen   = pg.mkPen(tuple(np.random.randint(0, 255, 3)))
-                    brush = pg.mkBrush(tuple(np.random.randint(0, 255, 4)))
+
+                    if n == 0 :
+                        pen   = pg.mkPen((255, 150, 150))
+                        brush = pg.mkBrush(255, 255, 255, 120)
+                    else :
+                        pen   = pg.mkPen(tuple(np.random.randint(0, 255, 3)))
+                        brush = pg.mkBrush(tuple(np.random.randint(0, 255, 4)))
                      
                     self.ss.append(pg.ScatterPlotItem(size=5, pen=pen, brush=brush))
                     spots = [{'pos': [X[n], Y[n]], 'data': n} for n in range(len(X))] 

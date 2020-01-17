@@ -20,7 +20,7 @@ def update_translations(
     # first update O and xy until convergence
     it = tqdm.trange(maxiters, desc='updating object map and translations')
     for i in it:
-        O, n0, m0 = make_object_map(dr, mr, Wr, out, ur, subpixel=False)
+        O, n0, m0 = make_object_map(dr, mr, Wr, out, ur, subpixel=False, verbose=False)
         out, res  = update_translations_1(dr, mr, Wr, O, ur, n0, m0, out)
         err_new   = res['error']
         
@@ -169,7 +169,8 @@ def calc_errs(data, mask, W, O, pixel_map, n0, m0, dij_n, ss, fs):
     
     step = max_comp
     for i in range(len(ss)):
-        for n in tqdm.tqdm(np.arange(ns.shape[0])[::step], desc='updating sample translations'):
+        #for n in tqdm.tqdm(np.arange(ns.shape[0])[::step], desc='updating sample translations'):
+        for n in np.arange(ns.shape[0])[::step]:
             nsi = ns[n:n+step:]
             translations_err_cl( queue, (nsi.shape[0], 1), (1, 1), 
                   cl.SVM(Win), 
