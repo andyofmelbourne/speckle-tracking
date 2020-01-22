@@ -14,6 +14,6 @@ setup(
     name                 = "speckle-tracking",
     version              = "2019.0",
     packages             = find_packages(),
-    install_requires     = ['pyqt5', 'pyqtgraph', 'h5py', 'scipy', 'numpy', 'tqdm'],
+    install_requires     = ['pyqtgraph', 'h5py', 'scipy', 'numpy', 'tqdm'],
     ext_modules          = extensions
     )
