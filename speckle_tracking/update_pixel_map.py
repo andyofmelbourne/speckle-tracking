@@ -128,7 +128,7 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
     ss_grid, fs_grid = np.meshgrid(ss_grid, fs_grid, indexing='ij')
     
     # grid search of pixel shifts
-    u, res = update_pixel_map_opencl(
+    u, res = update_pixel_map_opencl_intel(
                data, mask, W, O, pixel_map, n0, m0, 
                dij_n, subpixel, subsample, 
                search_window, ss_grid.ravel(), fs_grid.ravel())
@@ -343,7 +343,7 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
     ## Step #1. Obtain an OpenCL platform.
     # with a cpu device
     for p in cl.get_platforms():
-        devices = p.get_devices(cl.device_type.GPU)
+        devices = p.get_devices(cl.device_type.CPU)
         print(p, devices)
         if len(devices) > 0:
             platform = p
@@ -444,6 +444,150 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
         #it.set_description("updating pixel map: {:.2e}".format(np.sum(err_map) \
                 #                   / np.sum(err_map>0)))
     
+    # only return filled values
+    out = np.zeros((2,) + ss.shape, dtype=pixel_map.dtype)
+    out[0] = pixel_mapout[0][ss, fs]
+    out[1] = pixel_mapout[1][ss, fs]
+    return out, {'error_map': err_map, 'error': np.sum(err_map)}
+
+def update_pixel_map_opencl_intel(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel, subsample, search_window, ss, fs):
+    # demand that the data is float32 to avoid excess mem. usage
+    assert(data.dtype == np.float32)
+    
+    ##################################################################
+    # OpenCL crap
+    ##################################################################
+    import os
+    import pyopencl as cl
+    ## Step #1. Obtain an OpenCL platform.
+    # with a cpu device
+    for p in cl.get_platforms():
+        devices = p.get_devices(cl.device_type.GPU)
+        print(p, devices)
+        if len(devices) > 0:
+            platform = p
+            device   = devices[0]
+            break
+    
+    print(platform, device)
+    
+    ## Step #3. Create a context for the selected device.
+    context = cl.Context([device])
+    queue   = cl.CommandQueue(context)
+    
+    # load and compile the update_pixel_map opencl code
+    here = os.path.split(os.path.abspath(__file__))[0]
+    kernelsource = os.path.join(here, 'update_pixel_map.cl')
+    kernelsource = open(kernelsource).read()
+    program     = cl.Program(context, kernelsource).build()
+    
+    if subpixel:
+        update_pixel_map_cl = program.update_pixel_map_subpixel
+    else :
+        update_pixel_map_cl = program.update_pixel_map
+    
+    update_pixel_map_cl.set_scalar_arg_dtypes(
+            [None, None, None, None, None, None, None, None, None, None,
+             np.float32, np.float32, np.float32, np.int32, np.int32, 
+             np.int32, np.int32, np.int32, np.int32, np.int32,
+             np.int32, np.int32])
+    
+    # Get the max work group size for the kernel test on our device
+    max_comp = device.max_compute_units
+    max_size = update_pixel_map_cl.get_work_group_info(
+                       cl.kernel_work_group_info.WORK_GROUP_SIZE, device)
+    print('maximum workgroup size:', max_size)
+    print('maximum compute units :', max_comp)
+    
+    # allocate local memory and dtype conversion
+    ############################################
+    localmem = cl.LocalMemory(np.dtype(np.float32).itemsize * data.shape[0])
+    
+    # inputs:
+    #Win         = W.astype(np.float32)
+    #pixel_mapin = pixel_map.astype(np.float32)
+    #Oin         = O.astype(np.float32)
+    #dij_nin     = dij_n.astype(np.float32)
+    #maskin      = mask.astype(np.int32)
+    #ss          = ss.ravel().astype(np.int32)
+    #fs          = fs.ravel().astype(np.int32)
+
+    mf          = cl.mem_flags
+    data_g      = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=data.astype(np.float32))
+    W_g         = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=W.astype(np.float32))
+    pixel_map_g = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=pixel_map.astype(np.float32))
+    O_g         = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=O.astype(np.float32))
+    dij_n_g     = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=dij_n.astype(np.float32))
+    mask_g      = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=mask.astype(np.int32))
+    ss_g        = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=ss.ravel().astype(np.int32))
+    fs_g        = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=fs.ravel().astype(np.int32))
+    
+    ss        = ss.ravel().astype(np.int32)
+    fs        = fs.ravel().astype(np.int32)
+    
+    ss_min, ss_max = (-(search_window[0]-1)//2, (search_window[0]+1)//2) 
+    fs_min, fs_max = (-(search_window[1]-1)//2, (search_window[1]+1)//2) 
+    
+    # outputs:
+    err_map_g      = cl.Buffer(context, mf.WRITE_ONLY, W.astype(np.float32).nbytes)
+    pixel_mapout_g = cl.Buffer(context, mf.WRITE_ONLY, pixel_map.astype(np.float32).nbytes)
+    ##################################################################
+    # End crap
+    ##################################################################
+
+    # evaluate err_map0
+    ssi = ss
+    fsi = fs
+    update_pixel_map_cl(queue, (1, fsi.shape[0]), (1, 1), W_g, 
+                        data_g, localmem, err_map_g, O_g, 
+                        pixel_mapout_g, dij_n_g, mask_g,
+                        ss_g, fs_g, n0, m0, subsample, 
+                        data.shape[0], data.shape[1], data.shape[2], 
+                        O.shape[0], O.shape[1], 0, 1, 0, 1)
+    queue.finish()
+    
+    pixel_mapout_g = cl.Buffer(context, mf.WRITE_ONLY, pixel_map.astype(np.float32).nbytes)
+
+    err_map0 = np.empty(W.shape, dtype=np.float32)
+    cl.enqueue_copy(queue, err_map0, err_map_g)
+    
+    step = min(100, ss.shape[0])
+    it = tqdm.tqdm(np.arange(ss.shape[0])[::step], desc='updating pixel map')
+    for i in it:
+        ssi = ss[i:i+step:]
+        fsi = fs[i:i+step:]
+        ss_g        = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=ssi.ravel().astype(np.int32))
+        fs_g        = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=fsi.ravel().astype(np.int32))
+        
+        update_pixel_map_cl(queue, (1, fsi.shape[0]), (1, 1), 
+              W_g, 
+              data_g,
+              localmem, 
+              err_map_g, 
+              O_g, 
+              pixel_mapout_g, 
+              dij_n_g,
+              mask_g,
+              ss_g,
+              fs_g,
+              n0, m0, subsample,
+              data.shape[0], data.shape[1], data.shape[2], 
+              O.shape[0], O.shape[1], ss_min, ss_max, fs_min, fs_max)
+        #queue.finish()
+        
+        #err_map = np.empty_like(err_map0)
+        #cl.enqueue_copy(queue, err_map, err_map_g)
+        
+        #er = np.mean(err_map[err_map>0])
+        #it.set_description("updating pixel map: {:.2e}".format(er))
+        
+        #it.set_description("updating pixel map: {:.2e}".format(np.sum(err_map) \
+                #                   / np.sum(err_map>0)))
+    
+    queue.finish()
+    pixel_mapout = np.empty_like(pixel_map.astype(np.float32))
+    cl.enqueue_copy(queue, pixel_map, pixel_mapout_g)
+
     # only return filled values
     out = np.zeros((2,) + ss.shape, dtype=pixel_map.dtype)
     out[0] = pixel_mapout[0][ss, fs]
