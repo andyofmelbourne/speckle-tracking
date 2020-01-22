@@ -343,11 +343,14 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
     ## Step #1. Obtain an OpenCL platform.
     # with a cpu device
     for p in cl.get_platforms():
-        devices = p.get_devices(cl.device_type.CPU)
+        devices = p.get_devices(cl.device_type.GPU)
+        print(p, devices)
         if len(devices) > 0:
             platform = p
             device   = devices[0]
             break
+    
+    print(platform, device)
     
     ## Step #3. Create a context for the selected device.
     context = cl.Context([device])
