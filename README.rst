@@ -15,7 +15,7 @@ Then install pocl (to enable OpenCL on CPUs) and pyopencl, followed by the packa
 This last line will link the installation the current directory, so that changes to the code will take immediate effect. 
 You may also want to add the speckle_tracking functions to your path::
 
-    echo PATH=`pwd`/bin:$PATH >> ~/.bashrc
+    echo PATH=`pwd`/speckle_tracking/bin:$PATH >> ~/.bashrc
 
 Note on pip
     Make sure that pip is the miniconda one, and not the system version, e.g.::
@@ -23,7 +23,7 @@ Note on pip
         which pip
         >> /home/username/programs/miniconda3/envs/test/bin/pip
 
-    this will ensure that the dependencies are installed into the current conda environment and prevent poluting the system python envoriment.
+    this will ensure that the dependencies are installed into the current conda environment and prevent polluting the system python environment.
 
 
 Documentation
