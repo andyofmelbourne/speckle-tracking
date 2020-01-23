@@ -2,6 +2,9 @@ import numpy as np
 
 def generate_pixel_map(shape, translations, basis, x_pixel_size, y_pixel_size, z, defocus_fs, defocus_ss=None, dss=None, dfs=None, verbose=True): 
     """
+    Generate the pixel mapping based on the imaging geometry.
+    """
+    """
     zx  = x-focus to detector
     z1x = x-focus to sample
     z   = av-focus to detector

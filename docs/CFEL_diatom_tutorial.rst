@@ -1,3 +1,5 @@
+.. _diatom:
+
 Diatom example
 **************
 

@@ -131,8 +131,13 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False,
     overlap = np.zeros(shape, dtype=np.float)
     WW      = (exp*W)**2
     
+    if verbose :
+        it = tqdm.trange(data.shape[0], desc='building object map')
+    else :
+        it = np.arange(data.shape[0])
+
     if subpixel :
-        for n in tqdm.trange(data.shape[0], desc='building object map'):
+        for n in it:
             # define the coordinate mapping
             ss = pixel_map[0] - dij_n[n, 0] + n0
             fs = pixel_map[1] - dij_n[n, 1] + m0
@@ -144,7 +149,7 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False,
                                            overlap, WW, ss, fs, invalid = m_roi)
         
     else :
-        for n in tqdm.trange(data.shape[0], desc='building object map'):
+        for n in it:
             # define the coordinate mapping and round to int
             ss = np.rint((ij[0] - dij_n[n, 0] + n0)).astype(np.int)
             fs = np.rint((ij[1] - dij_n[n, 1] + m0)).astype(np.int)

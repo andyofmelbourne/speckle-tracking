@@ -88,7 +88,7 @@ def write_all(params, filename, output_dict, apply_roi=True):
         # un-roi all datasets 
         for k in output_dict.keys():
             if type(output_dict[k]) is np.ndarray :
-                if (k != 'good_frames') and ('good_frames' in params) and (output_dict[k].shape[0] == len(params['good_frames'])) :
+                if (k != 'good_frames') and ('good_frames' in params) and (params['good_frames'] is not None) and (output_dict[k].shape[0] == len(params['good_frames'])) :
                     print('resizing 0 axis of:', k)
                     temp = np.zeros((N,) + output_dict[k].shape[1:], 
                                     dtype=output_dict[k].dtype)
@@ -331,7 +331,9 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False,
                     val           = config[sec]['good_frames']
                 
                 roi0 = get_val_h5_new(h5_file, val, None, None)
-                roi[0] = roi0
+
+                if roi0 is not None and roi0 is not False :
+                    roi[0] = roi0
 
         else :
             roi, shape = None, None

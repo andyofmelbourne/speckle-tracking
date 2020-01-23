@@ -1,6 +1,6 @@
 import numpy as np
 
-def calculate_sample_thickness( delta, beta, zt, defocus, wav, dss, dfs, reference_image, roi_ref, set_median_to_zero=True, tol_ctf=1e-10, tol_tie=20):
+def calculate_sample_thickness( delta, beta, zt, defocus, wav, dss, dfs, reference_image, roi_ref, set_median_to_zero=True, tol_ctf=2e-1, tol_tie=1e-2):
     """
     deltas and betas from: http://henke.lbl.gov/optical_constants/getdb2.html
     """
@@ -42,7 +42,7 @@ def paganin( delta, beta, z, wav, dss, dfs, Iin, tol=1e-6) :
     N, M = Iin.shape
     fr = np.fft.fftfreq(N, d=dss)
     fc = np.fft.fftfreq(M, d=dfs)
-    fx, fy = np.meshgrid(fc,fr, indexing='ij')
+    fx, fy = np.meshgrid(fr,fc, indexing='ij')
     f2 = (fx**2 + fy**2) # ?
     
     k  = 2*np.pi/wav
@@ -59,7 +59,7 @@ def CTF_inversion( delta, beta, z, wav, dss, dfs, Iin, tol=0.5) :
     N, M   = Iin.shape
     fr     = np.fft.fftfreq(N, d=dss)
     fc     = np.fft.fftfreq(M, d=dfs)
-    fx, fy = np.meshgrid(fc,fr, indexing='ij')
+    fx, fy = np.meshgrid(fr,fc, indexing='ij')
     f2     = np.pi*(fx**2 + fy**2)
     q      = np.pi*np.linspace(0, f2.max(), 1000)
     

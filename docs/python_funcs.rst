@@ -11,9 +11,9 @@ Python Reference
 
 .. autofunction:: speckle_tracking.fit_thon_rings
 
-.. autofunction:: speckle_tracking.make_pixel_map
+.. autofunction:: speckle_tracking.generate_pixel_map
 
-.. autofunction:: speckle_tracking.make_object_map
+.. autofunction:: speckle_tracking.make_reference
 
 .. autofunction:: speckle_tracking.update_pixel_map
 

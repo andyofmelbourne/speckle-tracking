@@ -4,12 +4,8 @@ try :
 except :
     from PyQt4.QtGui import *
 
-from speckle_gui.widgets import show_nd_data_widget
 
-
-import h5py
-import pyqtgraph as pg
-import numpy as np
+import speckle_tracking._widgets
 import signal
 import argparse
 
@@ -21,7 +17,7 @@ class Hdf_display(QMainWindow):
          
         # add the tab widget
         ####################
-        widget = show_nd_data_widget.Show_nd_data_widget()
+        widget = speckle_tracking._widgets.Show_nd_data_widget()
         self.setCentralWidget(widget)
         
         widget.show(fnam, dataset)
@@ -40,6 +36,9 @@ if __name__ == '__main__':
     parser.add_argument('dataset', type=str, \
                         help="file name of the *.cxi followed by the dataset location e.g.: foo.cxi/bar/data")
     
+    parser.add_argument('type', type=str, default='', nargs='?', \
+                        help="the type of image to display e.g.: scatter")
+    
     args = parser.parse_args()
 
     # now split the dataset name into filename and dataset location
@@ -51,6 +50,6 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL) # allow Control-C
     app = QApplication([])
     
-    gui = Hdf_display(fnam, dataset)
+    gui = Hdf_display(fnam, dataset + ' ' + args.type)
     
     app.exec_()
