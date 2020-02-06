@@ -12,6 +12,7 @@ Installation (Linux)
 The easiest way to install speckle_tracking is through `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_::
 
     git clone https://github.com/andyofmelbourne/speckle-tracking.git
+    cd speckle-tracking
     conda create --file requirements.txt -c conda-forge -n test python=3
     conda activate test
     pip install -e .
