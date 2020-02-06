@@ -1,21 +1,20 @@
+A wavefront sensing application for x-ray imaging experiments based on the speckle tracking approach. 
+
+If your experiment looks something like this:
+
+.. image:: docs/images/siemens_overview.png
+   :width: 500
+
+then you have come to the right place.
+
 Installation (Linux)
 ====================
-The easiest way to install speckle_tracking is through `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_. 
-
-To install just download the repo::
+The easiest way to install speckle_tracking is through `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_::
 
     git clone https://github.com/andyofmelbourne/speckle-tracking.git
-
-Then install pocl (to enable OpenCL on CPUs) and pyopencl, followed by the package::
-
-    cd speckle-tracking 
-    conda install -c conda-forge pocl pyopencl pyqt
+    conda create --file requirements.txt -c conda-forge -n test python=3
+    conda activate test
     pip install -e .
-
-This last line will link the installation the current directory, so that changes to the code will take immediate effect. 
-You may also want to add the speckle_tracking functions to your path::
-
-    echo PATH=`pwd`/speckle_tracking/bin:$PATH >> ~/.bashrc
 
 Note on pip
     Make sure that pip is the miniconda one, and not the system version, e.g.::
@@ -23,8 +22,10 @@ Note on pip
         which pip
         >> /home/username/programs/miniconda3/envs/test/bin/pip
 
-    this will ensure that the dependencies are installed into the current conda environment and prevent polluting the system python environment.
+    this will ensure that the dependencies are installed into the current conda environment and prevent poluting the system python envoriment.
 
+Note also
+    There is nothing to "install" for speckle-tracking. The point of the above procedure is to install the dependecies, add the module to the PYTHONPATH and to add the scripts to the PATH.
 
 Documentation
 =============
