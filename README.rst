@@ -2,7 +2,7 @@ A wavefront sensing application for x-ray imaging experiments based on the speck
 
 If your experiment looks something like this:
 
-.. image:: /images/siemens_overview.png
+.. image:: docs/images/siemens_overview.png
    :width: 500
 
 then you have come to the right place.
@@ -37,4 +37,3 @@ Getting Started
 Start with the `Diatom tutorial <https://speckle-tracking.readthedocs.io/en/latest/CFEL_diatom_tutorial.html>`_, then do the `Simens star tutorial <https://speckle-tracking.readthedocs.io/en/latest/siemens_star.html>`_
 
 
-.. include:: docs/todo.rst
