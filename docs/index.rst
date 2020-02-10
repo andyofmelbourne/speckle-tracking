@@ -46,6 +46,4 @@ Developers
     :maxdepth: 2
     
     todo
-    code_structure
-    code_notes
 

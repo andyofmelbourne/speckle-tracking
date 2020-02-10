@@ -31,7 +31,7 @@ The file has the following structure::
     /entry_1/sample_1/geometry/translation Dataset {400, 3}
 
 
-This is the minimal amount of information that the input cxi file can have, see :ref:`cxi-file`. So, as we can see in the :code:`entry_1/data_1/data` the dataset consists of 121 frames, where each frame is an image of 516x1556 pixels.
+This is the minimal amount of information that the input cxi file can have, see `<https://www.cxidb.org/>`_. So, as we can see in the :code:`entry_1/data_1/data` the dataset consists of 121 frames, where each frame is an image of 516x1556 pixels.
 
 
 Now that's out of the way, we should decide if we want to use the `Python Interface`_, `Command-line Interface`_ or the `Gui Interface`_. So... choose. 

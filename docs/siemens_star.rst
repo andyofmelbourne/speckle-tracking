@@ -31,7 +31,7 @@ The file has the following structure::
     /entry_1/sample_1/geometry/translation Dataset {400, 3}
 
 
-This is the minimal amount of information that the input cxi file can have, see :ref:`cxi-file`. So, as we can see in the :code:`entry_1/data_1/data` the dataset consists of 400 frames, where each frame is an image of 480x438 pixels.
+This is the minimal amount of information that the input cxi file can have, see `<https://www.cxidb.org/>`_. So, as we can see in the :code:`entry_1/data_1/data` the dataset consists of 400 frames, where each frame is an image of 480x438 pixels.
 
 For this tutorial, we will show how to reconstruct the wavefield and sample reference image using the `Python Interface`_ and the `Command-line Interface`_. If you are using the GUI interface, then follow the `Command-line Interface`_ with the corresponding widget and input values.
 

@@ -2,7 +2,7 @@ A wavefront sensing application for x-ray imaging experiments based on the speck
 
 If your experiment looks something like this:
 
-.. image:: docs/images/siemens_overview.png
+.. image:: images/siemens_overview.png
    :width: 500
 
 then you have come to the right place.
