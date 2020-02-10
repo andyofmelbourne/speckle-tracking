@@ -4,7 +4,7 @@ import speckle_tracking as st
 from speckle_tracking import cmdline_config_cxi_reader
 from speckle_tracking import cmdline_parser 
 
-if __name__ == '__main__':
+def main():
     # get command line args and config
     sc  = 'make_reference'
  
@@ -32,3 +32,6 @@ if __name__ == '__main__':
     # output display for gui
     with open('.log', 'w') as f:
         print('display: /'+params['h5_group']+'/reference_image', file=f)
+
+if __name__ == '__main__':
+    main()

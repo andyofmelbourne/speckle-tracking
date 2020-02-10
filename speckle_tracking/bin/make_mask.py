@@ -4,10 +4,10 @@ import speckle_tracking as st
 from speckle_tracking import cmdline_config_cxi_reader
 from speckle_tracking import cmdline_parser 
 
-if __name__ == '__main__':
+def main():
     # get command line args and config
     sc  = 'make_mask'
- 
+     
     # search the current directory for *.ini files if not present in cxi directory
     config_dirs = [os.path.split(os.path.abspath(__file__))[0]]
     
@@ -26,3 +26,6 @@ if __name__ == '__main__':
     # output display for gui
     with open('.log', 'w') as f:
         print('display: /'+params['h5_group']+'/mask', file=f)
+
+if __name__ == '__main__':
+    main()

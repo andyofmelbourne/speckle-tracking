@@ -4,7 +4,7 @@ import speckle_tracking as st
 from speckle_tracking import cmdline_config_cxi_reader
 from speckle_tracking import cmdline_parser 
 
-if __name__ == '__main__':
+def main():
     print('Running...')
     # get command line args and config
     sc  = 'calc_error'
@@ -44,3 +44,6 @@ if __name__ == '__main__':
     with open('.log', 'w') as f:
         print('display: /'+params['h5_group']+'/error_pixel', file=f)
 
+
+if __name__ == '__main__':
+    main()

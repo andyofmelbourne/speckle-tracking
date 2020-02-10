@@ -6,7 +6,7 @@ from speckle_tracking import cmdline_parser
 
 import numpy as np
 
-if __name__ == '__main__':
+def main():
     # get command line args and config
     sc  = 'generate_pixel_map'
      
@@ -46,3 +46,6 @@ if __name__ == '__main__':
         print('display: /'+params['h5_group']+'/pixel_map_residual', file=f)
 
 
+
+if __name__ == '__main__':
+    main()

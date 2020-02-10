@@ -6,7 +6,7 @@ from speckle_tracking import cmdline_parser
 
 import numpy as np
 
-if __name__ == '__main__':
+def main():
     # get command line args and config
     sc  = 'update_translations'
      
@@ -45,3 +45,6 @@ if __name__ == '__main__':
     with open('.log', 'w') as f:
         print('display: /'+params['h5_group']+'/pixel_translations_comparison scatter', file=f)
 
+
+if __name__ == '__main__':
+    main()

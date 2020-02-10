@@ -6,7 +6,7 @@ from speckle_tracking import cmdline_parser
 
 import numpy as np
 
-if __name__ == '__main__':
+def main():
     # get command line args and config
     sc  = 'calculate_sample_thickness'
      
@@ -42,3 +42,6 @@ if __name__ == '__main__':
         print('display: /'+params['h5_group']+'/sample_thickness_ctf', file=f)
 
 
+
+if __name__ == '__main__':
+    main()

@@ -5,10 +5,18 @@ import speckle_tracking as st
 from speckle_tracking import cmdline_config_cxi_reader
 from speckle_tracking import cmdline_parser 
 
+# HACK add bin to path
+#---------------------
+# this means that we can call the 'main()' function of each process
+# so that we do not have to spawn additional child processes 
+# that (for some reason) I cannot kill with the GUI
+import sys
+sys.path.append(os.path.join(os.path.dirname(st.__file__), 'bin'))
+
 if __name__ == '__main__':
     # get command line args and config
     sc  = 'pixel_map_from_data'
- 
+    
     # search the current directory for *.ini files if not present in cxi directory
     config_dirs = [os.path.split(os.path.abspath(__file__))[0]]
     
@@ -21,49 +29,65 @@ if __name__ == '__main__':
     
     # Initialisation
     #---------------
+    # this stops the cmd line arguent "-c pixel_map_from_data.ini" from
+    # overiding the default configs of the commands below
+    sys.argv = sys.argv[:2]
+
     # make mask
     if params['mask'] == 'auto':
-        os.system("make_mask.py " + args.filename)
+        import make_mask
+        make_mask.main()
 
     # make whitefield
     if params['whitefield'] == 'auto':
-        os.system("make_whitefield.py " + args.filename)
+        import make_whitefield
+        make_whitefield.main()
                        
     # make ROI
     if params['roi'] == 'auto':
-        os.system("guess_roi.py " + args.filename)
-
+        import guess_roi
+        guess_roi.main()
+    
     # defocus
     if params['defocus'] == 'auto':
-        os.system("fit_thon_rings.py " + args.filename)
+        import fit_thon_rings
+        fit_thon_rings.main()
 
     # pixel map
     if params['pixel_map'] == 'auto':
-        os.system("generate_pixel_map.py " + args.filename)
+        import generate_pixel_map
+        generate_pixel_map.main()
      
     # Main Loop
     #----------
     for i in range(3):
         # make reference
-        os.system("make_reference.py " + args.filename)
+        import make_reference
+        make_reference.main()
         
         # update pixel map
-        os.system("update_pixel_map.py " + args.filename)
+        import update_pixel_map
+        update_pixel_map.main()
         
         # update translations
-        os.system("update_translations.py " + args.filename)
+        import update_translations
+        update_translations.main()
         
         # calculate error
-        os.system("calc_error.py " + args.filename)
+        import calc_error
+        calc_error.main()
     
     # Adiational analysis
     #--------------------
     # calculate sample thickness
-    os.system("calculate_sample_thickness.py " + args.filename)
+    import calculate_sample_thickness
+    calculate_sample_thickness.main()
     
     # calculate phase
-    os.system("calculate_phase.py " + args.filename)
+    import calculate_phase
+    calculate_sample_phase.main()
 
     # calculate focus profile
-    os.system("focus_profile.py " + args.filename)
+    import focus_profile
+    focus_profile.main()
 

@@ -6,7 +6,7 @@ from speckle_tracking import cmdline_parser
 
 import numpy as np
 
-if __name__ == '__main__':
+def main():
     # get command line args and config
     sc  = 'focus_profile'
      
@@ -39,3 +39,5 @@ if __name__ == '__main__':
 
 
 
+if __name__ == '__main__':
+    main()

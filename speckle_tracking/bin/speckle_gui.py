@@ -19,6 +19,7 @@ root = os.path.abspath(os.path.split(st.__file__)[0])
 
 widgets = st._widgets 
 #from . import widgets 
+print(os)
 
 class Tabs_widget(QTabWidget):
     def __init__(self, fnam):
@@ -219,8 +220,8 @@ def main():
     app = QApplication([])
     
     gui = Speckle_gui(args.filename, params['speckle-gui'])
-
+    
     app.exec_()
-
+    
 if __name__ == '__main__':
     main()
