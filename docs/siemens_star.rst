@@ -3,7 +3,7 @@
 Siemens Star
 ============
 
-First get the siemens_star cxi file (link to come). 
+First get the `siemens_star.cxi <https://www.cxidb.org/data/136/siemens_star.cxi>`_ file from the `CXIDB <https://www.cxidb.org/>`_. 
 
 For a more detailed introduction to the speckle-tracking interface, start with the :ref:`diatom` tutorial. 
 

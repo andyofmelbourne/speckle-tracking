@@ -5,7 +5,7 @@ Diatom example
 
 .. contents:: Table of Contents
 
-First download the cxi file (link to come, for now contact morganaj@unimelb.edu.au)
+First download the `diatom.cxi <https://www.cxidb.org/data/134/diatom.cxi>`_ file from the `CXIDB <https://www.cxidb.org/>`_.
 
 The Input CXI File
 ------------------
