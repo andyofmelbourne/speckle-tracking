@@ -20,7 +20,8 @@ sphinx:
 python:
   setup_py_install: true
   install:
-    - requirements: docs/requirements.txt
+    - method: setuptools
+      path: .
 
 conda:
   environment: environment.yml
