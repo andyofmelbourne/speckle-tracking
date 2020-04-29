@@ -4,7 +4,7 @@ import speckle_tracking as st
 from speckle_tracking import cmdline_config_cxi_reader
 from speckle_tracking import cmdline_parser 
 
-if __name__ == '__main__':
+def main(overide={}):
     # get command line args and config
     sc  = 'make_reference'
  
@@ -17,6 +17,9 @@ if __name__ == '__main__':
     # now load the necessary data
     args, params = cmdline_config_cxi_reader.get_all(sc, des, config_dirs=config_dirs, roi=True)
     params = params['make_reference']
+
+    # overide with input params (if any)
+    params.update(overide)
     
     O, n0, m0 = st.make_object_map(
                            params['data'], 
@@ -32,3 +35,6 @@ if __name__ == '__main__':
     # output display for gui
     with open('.log', 'w') as f:
         print('display: /'+params['h5_group']+'/reference_image', file=f)
+
+if __name__ == '__main__':
+    main()

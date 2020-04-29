@@ -147,15 +147,26 @@ def config_write(con_dict, fnam, val_doc_adv=False):
                         if advanced :
                             write_adv_item(f, con_dict, group, key)
 
-def write_h5(h5_file, h5_group, d):
+
+def write_h5(h5_file, h5_group, d, c=0):
     import h5py
-    with h5py.File(h5_file, 'a') as f: 
-        for key, val in d.items(): 
-            key2 = h5_group + '/' + key
-            
-            if key2 in f :
-                del f[key2]
-            
-            print(key2, type(val))
-            f[key2] = val
+    try :
+        with h5py.File(h5_file, 'r+') as f: 
+            for key, val in d.items(): 
+                key2 = h5_group + '/' + key
+                
+                if key2 in f :
+                    del f[key2]
+                
+                print(key2, type(val))
+                f[key2] = val
+    
+    # if the file is being used by someone else then try again
+    except OSError as e :
+        print(str(e))
+        if 'Resource temporarily unavailable' in str(e) and (c < 10):
+            import time 
+            time.sleep(0.1)
+            print('Trying again...')
+            write_h5(h5_file, h5_group, d, c+1)
 

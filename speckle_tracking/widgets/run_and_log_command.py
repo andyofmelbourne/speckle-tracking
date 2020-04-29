@@ -75,7 +75,7 @@ class RunCommandWidget(QWidget):
         # Run button
         self.pushButton = QPushButton('Run')
         self.pushButton.clicked.connect(self.run_cmd)
- 
+         
         # Make a grid layout
         #layout = QGridLayout()
         hbox = QHBoxLayout()
@@ -128,7 +128,7 @@ class RunCommandWidget(QWidget):
         if self.fnam is not None :
             self.watch.stop()
         
-        if int(exitStatus) is 0 :
+        if int(exitStatus) == 0 :
             self.status_label.setText('Finished')
         else :
             self.status_label.setText('Error')

@@ -1,6 +1,8 @@
 To Do (developers)
 ==================
 
-* Write an aspirational tutorial, then make sure the code can do it (or as close as possible). Use real data, even though we will have to wait for publication for the general public to run this...
-* Write an quick start tutorial.
-
+* use docstring instead of config file for descriptions
+* overide default params with command line
+* fix the config reader / writer (too confusing)
+* fix the cxi reader / writer (too confusing)
+* make all arguements keyword, so that params can be passed in bulk

@@ -6,7 +6,7 @@ from speckle_tracking import cmdline_parser
 
 import numpy as np
 
-if __name__ == '__main__':
+def main(overide={}):
     # get command line args and config
     sc  = 'update_pixel_map'
      
@@ -19,6 +19,9 @@ if __name__ == '__main__':
     # now load the necessary data
     args, params = cmdline_config_cxi_reader.get_all(sc, des, config_dirs=config_dirs, roi=True)
     params = params[sc]
+
+    # overide with input parameters (if any)
+    params.update(overide)
     
     u, res = st.update_pixel_map(
             params['data'].astype(np.float32),
@@ -50,3 +53,6 @@ if __name__ == '__main__':
     with open('.log', 'w') as f:
         print('display: /'+params['h5_group']+'/pixel_map_residual', file=f)
 
+
+if __name__ == '__main__':
+    main()
