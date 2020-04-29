@@ -1,0 +1,14 @@
+name: test3
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pyqt
+  - pyqtgraph
+  - h5py
+  - scipy
+  - numpy
+  - tqdm
+  - pocl
+  - pyopencl
+  - pip
