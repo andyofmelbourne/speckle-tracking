@@ -4,7 +4,7 @@ import speckle_tracking as st
 from speckle_tracking import cmdline_config_cxi_reader
 from speckle_tracking import cmdline_parser 
 
-def main():
+def main(overide={}):
     # get command line args and config
     sc  = 'make_whitefield'
  
@@ -17,6 +17,9 @@ def main():
     # now load the necessary data
     args, params = cmdline_config_cxi_reader.get_all(sc, des, config_dirs=config_dirs, roi=False)
     params = params['make_whitefield']
+
+    # overide with input parameters (if any)
+    params.update(overide)
     
     W = st.make_whitefield(params['data'], params['mask'])
     

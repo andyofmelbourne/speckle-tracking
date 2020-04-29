@@ -143,7 +143,6 @@ def integrate(dssin, dfsin, maskin, maxiter=3000, stepin=[1.,1.]):
                              'dfs_residual': dfs_forw-dfs,
                              'cgls_errors': cgls.errors}
 
-
 def integrate_grad2(dssin, dfsin, maskin, maxiter=3000, stepin=[1.,1.], sigma=1.):
     scale = np.mean(np.array([dssin, dfsin]))
     dss = dssin / scale
@@ -275,7 +274,6 @@ def integrate_grad2(dssin, dfsin, maskin, maxiter=3000, stepin=[1.,1.], sigma=1.
                              'dss_residual': dss_forw-dss,
                              'dfs_residual': dfs_forw-dfs,
                              'cgls_errors': cgls.errors}
-
 
 def line_search_newton_raphson(x, d, fd, dfd, iters = 1, tol=1.0e-10):
     """Finds the minimum of the the function f along the direction of d by using a second order Taylor series expansion of f.
@@ -473,7 +471,6 @@ def bilinear_interpolation_array(array, ss, fs, fill = -1, invalid=-1):
     out[~m] = fill
     return out  
 
-
 def write_h5(write, fnam = 'siemens_star.cxi', og = 'speckle_tracking/'):
     with h5py.File(fnam) as f:
         for k in write.keys():
@@ -487,6 +484,3 @@ def read_h5(read, fnam = 'siemens_star.cxi', og = 'speckle_tracking/'):
         for k in read:
             out[k] = f[og+k][()]
     return out
-
-
-

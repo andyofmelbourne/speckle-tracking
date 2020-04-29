@@ -6,7 +6,7 @@ from speckle_tracking import cmdline_parser
 
 import numpy as np
 
-def main():
+def main(overide={}):
     # get command line args and config
     sc  = 'calculate_sample_thickness'
      
@@ -19,6 +19,9 @@ def main():
     # now load the necessary data
     args, params = cmdline_config_cxi_reader.get_all(sc, des, config_dirs=config_dirs, roi=False)
     params = params[sc]
+
+    # overide with input params (if any)
+    params.update(overide)
     
     t_pag, t_ctf = st.calculate_sample_thickness(
             params['delta'],
