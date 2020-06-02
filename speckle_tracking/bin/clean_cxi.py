@@ -35,7 +35,8 @@ if __name__ == '__main__':
     # copy entry_1
     with h5py.File(temp_name, 'w') as temp:
         with h5py.File(args.cxi_file, 'r') as f:
-            f.copy('/', temp['/'])
+            for key in f.keys():
+                f.copy(key, temp['/'])
     
     # now delete orininal file
     shutil.move(temp_name, args.cxi_file)
