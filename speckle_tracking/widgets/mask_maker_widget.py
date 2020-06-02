@@ -160,11 +160,10 @@ class Mask_maker_widget(QWidget):
         mask = self.mask
         
         print('outputing mask as np.int16 (h5py does not support boolean arrays yet)...')
-        f = h5py.File(self.output_file)
-        if self.output_path in f :
-            del f[self.output_path]
-        f[self.output_path] = mask
-        f.close()
+        with h5py.File(self.output_file, 'a') as f:
+            if self.output_path in f :
+                del f[self.output_path]
+            f[self.output_path] = mask
         print('Done!')
         
     def mask_ROI(self, roi):

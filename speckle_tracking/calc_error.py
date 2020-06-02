@@ -2,6 +2,7 @@ import numpy as np
 import tqdm
 
 from .make_object_map import make_object_map
+from . import utils_opencl
 
 def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbose=True):
     r"""
@@ -96,25 +97,28 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
     error_pixel = np.zeros(data.shape[1:])
     norm        = np.zeros(data.shape[1:])
     flux_corr   = np.zeros(data.shape[0])
+
+    # for a 1d dataset add the ptychograph for data vs. forward
+    data_1d = False
+    if 1 in data.shape :
+        data_1d = True
+        forward = -np.ones(data.shape, dtype=np.float32)
     
     #sig = np.std(data, axis=0)
     #sig[sig <= 0] = 1
     for n in tqdm.trange(data.shape[0], desc='calculating errors'):
+        # define the coordinate mapping 
+        ss = pixel_map[0] - dij_n[n, 0] + n0
+        fs = pixel_map[1] - dij_n[n, 1] + m0
+        
         if subpixel: 
-            # define the coordinate mapping and round to int
-            ss = pixel_map[0] - dij_n[n, 0] + n0
-            fs = pixel_map[1] - dij_n[n, 1] + m0
-            #
-            I0 = W * bilinear_interpolation_array(I, ss, fs, fill=-1, invalid=-1)
+            #I0 = W * bilinear_interpolation_array(I, ss, fs, fill=-1, invalid=-1)
             #I0 = I0[mask]
+            I0 = W * utils_opencl.bilinear_interpolation_array(I, ss, fs)
         
         else :
-            # define the coordinate mapping and round to int
-            ss = np.rint((ij[0] - dij_n[n, 0] + n0)).astype(np.int)
-            fs = np.rint((ij[1] - dij_n[n, 1] + m0)).astype(np.int)
-            #
-            #I0 = I[ss, fs] * W[mask]
-            I0 = I[ss, fs] * W
+            # round to int
+            I0 = I[np.rint(ss).astype(np.int), np.rint(ss).astype(np.int)] * W
         
         d  = data[n]
         m  = (I0>0)*(d>0)*mask
@@ -127,6 +131,9 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
         error_map[~m]      = -1
         error_residual[n]  = error_map
         norm              += m*(W - d)**2
+
+        if data_1d:
+            forward[n] = I0
     
     norm /= data.shape[0]
     norm[norm==0]  = 1
@@ -143,7 +150,12 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
     error_pixel = np.sum(error_residual, axis = 0)
     error_total = np.sum(error_frame)
     
-    return error_total, error_frame, error_pixel, error_residual, error_reference, norm, flux_corr
+    if data_1d :
+        res = {'1d_data_vs_forward': np.squeeze(np.array([data, forward]))}
+    else :
+        res = {}
+    
+    return error_total, error_frame, error_pixel, error_residual, error_reference, norm, flux_corr, res
 
 def make_pixel_map_err(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, search_window=20, grid=[20, 20]):
     # demand that the data is float32 to avoid excess mem. usage

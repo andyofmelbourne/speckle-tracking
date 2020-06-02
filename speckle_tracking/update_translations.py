@@ -1,6 +1,7 @@
 import numpy as np
 import tqdm
 from .make_object_map import make_object_map
+from . import utils
 
 def update_translations(
         data, mask, W, O, pixel_map, 
@@ -17,19 +18,42 @@ def update_translations(
     ur = pixel_map[:, roi[0]:roi[1], roi[2]:roi[3]].copy()
 
     out = dij_n.copy()
+    
     # first update O and xy until convergence
+
     it = tqdm.trange(maxiters, desc='updating object map and translations')
     for i in it:
-        O, n0, m0 = make_object_map(dr, mr, Wr, out, ur, subpixel=False, verbose=False)
-        out, res  = update_translations_1(dr, mr, Wr, O, ur, n0, m0, out)
-        err_new   = res['error']
+        O, n0, m0 = make_object_map(dr, mr, Wr, out, ur, subpixel=True, verbose=False)
+        
+        if dr.shape[1] == 1 :
+            err_calc = lambda x : calc_errs(
+                    dr, mr, Wr, O, ur, n0, m0, out, np.zeros_like(out[:, 1]), x)
+            dj, err = utils.quadratic_refine_1d(err_calc, out[:, 1])
+            di = 0
+
+        elif dr.shape[2] == 1 :
+            err_calc = lambda x : calc_errs(
+                    dr, mr, Wr, O, ur, n0, m0, out, x, np.zeros_like(out[:, 0]))
+            di, err = utils.quadratic_refine_1d(err_calc, out[:, 0])
+            dj = 0
+        
+        else :
+            err_calc = lambda x, y : calc_errs(
+                    dr, mr, Wr, O, ur, n0, m0, out, x, y)
+            di, dj, err = utils.quadratic_refine(err_calc, out[:, 0], out[:, 1])
+        
+        #out, res  = update_translations_1(dr, mr, Wr, O, ur, n0, m0, out)
+        out[:, 0] += di
+        out[:, 1] += dj
+        
+        err_new   = np.sum(err)
         
         if i>0 and (err_old - err_new)/err_old < tol :
             it.close()
             break
         err_old = err_new
-        it.set_description("updating object map and translations: {:.2e}".format(res['error']))
-    return out, res
+        it.set_description("updating object map and translations: {:.2e}".format(err_new))
+    return out, err
 
 def update_translations_1(data, mask, W, O, pixel_map, n0, m0, dij_n, search_window=[3,3]):
     N = dij_n.shape[0]
@@ -100,8 +124,8 @@ def update_translations_1(data, mask, W, O, pixel_map, n0, m0, dij_n, search_win
     ss_shift = (-2*C[1] * C[2] +   C[4] * C[3]) / det
     fs_shift = (   C[4] * C[2] - 2*C[0] * C[3]) / det
     
-    A = np.array([ss_shift**2, fs_shift**2, ss_shift, fs_shift, ss_shift*fs_shift, np.ones_like(ss_shift)])
-    err2 = np.sum( np.dot(C.T, A) )
+    #A = np.array([ss_shift**2, fs_shift**2, ss_shift, fs_shift, ss_shift*fs_shift, np.ones_like(ss_shift)])
+    #err2 = np.sum( np.dot(C.T, A) )
     
     #print('input error: {:.3e}'.format(err0))
     #print('min   error: {:.3e}'.format(err1))
@@ -115,8 +139,8 @@ def update_translations_1(data, mask, W, O, pixel_map, n0, m0, dij_n, search_win
 def calc_errs(data, mask, W, O, pixel_map, n0, m0, dij_n, ss, fs):
     # demand that the data is float32 to avoid excess mem. usage
     assert(data.dtype == np.float32)
-    assert(ss.dtype == np.int)
-    assert(fs.dtype == np.int)
+    #assert(ss.dtype == np.int)
+    #assert(fs.dtype == np.int)
     
     import os
     import pyopencl as cl
@@ -141,7 +165,7 @@ def calc_errs(data, mask, W, O, pixel_map, n0, m0, dij_n, ss, fs):
     translations_err_cl = program.translations_err
     
     translations_err_cl.set_scalar_arg_dtypes(
-                        8*[None] + 2*[np.float32] + 6*[np.int32])
+                        10*[None] + 2*[np.float32] + 4*[np.int32])
     
     # Get the max work group size for the kernel test on our device
     max_comp = device.max_compute_units
@@ -160,32 +184,32 @@ def calc_errs(data, mask, W, O, pixel_map, n0, m0, dij_n, ss, fs):
     Oin         = O.astype(np.float32)
     dij_nin     = dij_n.astype(np.float32)
     maskin      = mask.astype(np.int32)
+    ssin        = ss.astype(np.float32)
+    fsin        = fs.astype(np.float32)
     ns          = np.arange(data.shape[0]).astype(np.int32)
     
     # outputs:
     dij_nout     = dij_n.copy()
-    errs         = np.empty((len(ss), data.shape[0]), dtype=np.float32)
+    errs         = -np.ones((len(ss),), dtype=np.float32)
     out          = np.zeros(data.shape[0]).astype(np.float32)
     
     step = max_comp
-    for i in range(len(ss)):
-        #for n in tqdm.tqdm(np.arange(ns.shape[0])[::step], desc='updating sample translations'):
-        for n in np.arange(ns.shape[0])[::step]:
-            nsi = ns[n:n+step:]
-            translations_err_cl( queue, (nsi.shape[0], 1), (1, 1), 
-                  cl.SVM(Win), 
-                  cl.SVM(data), 
-                  cl.SVM(Oin), 
-                  cl.SVM(pixel_mapin), 
-                  cl.SVM(dij_nin), 
-                  cl.SVM(maskin),
-                  cl.SVM(nsi),
-                  cl.SVM(out),
-                  n0, m0, 
-                  data.shape[1], data.shape[2], 
-                  O.shape[0], O.shape[1], ss[i], fs[i])
-            queue.finish()
-                
-            errs[i] = out
+    translations_err_cl( queue, (ns.shape[0], 1), (1, 1), 
+          cl.SVM(Win), 
+          cl.SVM(data), 
+          cl.SVM(Oin), 
+          cl.SVM(pixel_mapin), 
+          cl.SVM(dij_nin), 
+          cl.SVM(maskin),
+          cl.SVM(ns),
+          cl.SVM(out),
+          cl.SVM(ssin), 
+          cl.SVM(fsin),
+          n0, m0, 
+          data.shape[1], data.shape[2], 
+          O.shape[0], O.shape[1])
+    queue.finish()
+            
+    errs = out
     
     return errs

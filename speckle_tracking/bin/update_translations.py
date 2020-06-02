@@ -23,7 +23,7 @@ def main(overide={}):
     # overide with input params (if any)
     params.update(overide)
     
-    xy_pix, res = st.update_translations(
+    xy_pix, err = st.update_translations(
             params['data'].astype(np.float32),
             params['mask'], 
             params['whitefield'], 

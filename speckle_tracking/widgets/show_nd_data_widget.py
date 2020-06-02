@@ -10,6 +10,46 @@ import numpy as np
 # test
 import threading
 
+def squeeze_hdf5_dataset(filename, name, s):
+    """
+    s = (slice(None), 1, slice(None))
+    return np.squeeze(f[name][()])[s] 
+    """
+    with h5py.File(filename, 'r') as f:
+        N = len(f[name].shape)
+        if (N < 2) or (1 not in f[name].shape) :
+            data = f[name][s]
+        else :
+            t     = list(s)
+
+            # append slices to fill out the rest of the dimensions
+            if len(t) < (N-1):
+                t = t + ((N-1)-len(t))*[slice(None)]
+            
+            shape = list(f[name].shape)
+            t.insert(f[name].shape.index(1), 0)
+            data = f[name][tuple(t)] 
+    return data
+
+def squeeze_hdf5_shape(filename, name):
+    """
+    s = (slice(None), 1, slice(None))
+    return np.squeeze(f[name][()])[s] 
+    """
+    with h5py.File(filename, 'r') as f:
+        dtype = f[name].dtype
+        shape0 = f[name].shape
+        if (len(f[name].shape) < 2) or (1 not in f[name].shape) :
+            shape = f[name].shape
+        else :
+            t     = list(f[name].shape)
+            t.pop(t.index(1))
+            shape = tuple(t)
+    return shape, shape0, dtype
+    
+
+
+
 class Show_nd_data_widget(QWidget):
     def __init__(self):
         super(Show_nd_data_widget, self).__init__()
@@ -44,25 +84,25 @@ class Show_nd_data_widget(QWidget):
         else :
             im_type = None
         
+        shape, shape_original, dtype = squeeze_hdf5_shape(filename, name)
+        
         # make plot
-        f = h5py.File(filename, 'r')
-        shape = f[name].shape
-        title = name + ' ' + str(shape) + ' ' + str(f[name].dtype)
-
+        title = name + ' ' + str(shape_original) + ' ' + str(dtype)
+        
         if self.name == name :
             refresh = True
         elif (self.name is not None) and (self.name != name):
             self.close()
-
+        
         #if not refresh :
         #    self.close()
-
+        
         if shape == () :
             if refresh :
-                self.plotW.setText('<b>'+name+'</b>: ' + str(f[name][()]))
+                self.plotW.setText('<b>'+name+'</b>: ' + str(squeeze_hdf5_dataset(filename, name, ())))
             else :
                 self.plotW = self.text_label = QLabel(self)
-                self.plotW.setText('<b>'+title+'</b>: ' + str(f[name][()]))
+                self.plotW.setText('<b>'+title+'</b>: ' + str(squeeze_hdf5_dataset(filename, name, ())))
 
         elif len(shape) == 1 :
             if refresh :
@@ -70,13 +110,13 @@ class Show_nd_data_widget(QWidget):
             else :
                 self.plotW = pg.PlotWidget(title = title)
 
-            self.plotW.plot(f[name][()], pen=(255, 150, 150))
+            self.plotW.plot(squeeze_hdf5_dataset(filename, name, ()).astype(np.float32), pen=(255, 150, 150))
         
-        elif (len(shape) == 1) or (len(shape) == 2 and shape[0]<5) : 
+        elif (len(shape) == 1) or (len(shape) == 2 and shape[0]<5) or (len(shape) == 2 and im_type == 'line'): 
             if len(shape) == 1 :
                 I = [()]
             else :
-                I = range(shape[0])
+                I = [(i,) for i in range(shape[0])]
                 np.random.seed(3)
             
             pen = (255, 150, 150)
@@ -86,11 +126,11 @@ class Show_nd_data_widget(QWidget):
             else :
                 self.plotW = pg.PlotWidget(title = title)
             
-            for i, ii in enumerate(I):
+            for ii, i in enumerate(I):
                 if ii>0:
                     pen = tuple(np.random.randint(0, 255, 3))
                 
-                self.plotW.plot(f[name][i], pen=pen)
+                self.plotW.plot(squeeze_hdf5_dataset(filename, name, i).astype(np.float).real, pen=pen)
                 print('pen', pen)
 
         elif (len(shape) == 2 or len(shape) == 3) and im_type == 'scatter' : 
@@ -102,9 +142,10 @@ class Show_nd_data_widget(QWidget):
             self.ss = []
             # scatter plot
             ##############
+            data = squeeze_hdf5_dataset(filename, name, ())
             if len(shape) == 2 :
-                X = f[name][:, 0]
-                Y = f[name][:, 1]
+                X = data[:, 0]
+                Y = data[:, 1]
                 pen   = pg.mkPen((255, 150, 150))
                 brush = pg.mkBrush(255, 255, 255, 120)
                  
@@ -114,9 +155,9 @@ class Show_nd_data_widget(QWidget):
                 self.ss.append(self.s1)
             else :
                 np.random.seed(3)
-                for n in range(f[name].shape[0]):
-                    X = f[name][n, :, 0]
-                    Y = f[name][n, :, 1]
+                for n in range(shape[0]):
+                    X = data[n, :, 0]
+                    Y = data[n, :, 1]
 
                     if n == 0 :
                         pen   = pg.mkPen((255, 150, 150))
@@ -134,20 +175,22 @@ class Show_nd_data_widget(QWidget):
         
         elif len(shape) == 2 and shape[1] < 4 :
             pens = [(255, 150, 150), (150, 255, 150), (150, 150, 255)]
+            data = squeeze_hdf5_dataset(filename, name, ())
             if refresh :
                 self.plotW.clear()
                 for i in range(shape[1]):
-                    self.plotW.setData(i, f[name][:, i])
+                    self.plotW.setData(i, data[:, i])
             else :
                 self.plotW = pg.PlotWidget(title = name + ' [0, 1, 2] are [r, g, b]')
                 for i in range(shape[1]):
-                    self.plotW.plot(f[name][:, i], pen=pens[i])
+                    self.plotW.plot(data[:, i], pen=pens[i])
 
         elif len(shape) == 2 :
+            data = squeeze_hdf5_dataset(filename, name, ())
             if refresh :
-                self.plotW.setImage(f[name][()].astype(np.float).real.T, autoRange = False, autoLevels = False, autoHistogramRange = False)
+                self.plotW.setImage(data.astype(np.float).real.T, autoRange = False, autoLevels = False, autoHistogramRange = False)
             else :
-                if 'complex' in f[name].dtype.name :
+                if 'complex' in dtype.name :
                     title = title + ' (abs, angle, real, imag)'
                 else :
                     title = title
@@ -156,11 +199,11 @@ class Show_nd_data_widget(QWidget):
                 self.plotW = pg.ImageView(view = frame_plt)
                 self.plotW.ui.menuBtn.hide()
                 self.plotW.ui.roiBtn.hide()
-                if 'complex' in f[name].dtype.name :
-                    im = f[name][()].T.astype(np.float)
+                if 'complex' in dtype.name :
+                    im = data.T.astype(np.float)
                     self.plotW.setImage(np.array([np.abs(im), np.angle(im), im.real, im.imag]))
                 else :
-                    self.plotW.setImage(f[name][()].astype(np.float).T)
+                    self.plotW.setImage(data.astype(np.float).T)
 
         elif len(shape) == 3 :
             if refresh :
@@ -172,10 +215,10 @@ class Show_nd_data_widget(QWidget):
                 self.plotW.ui.menuBtn.hide()
                 self.plotW.ui.roiBtn.hide()
                 
-                i = f[name].shape[0]//2
+                i = shape[0]//2
                 
                 # set min / max to the 10 and 90'th percentile
-                im = f[name][i]
+                im = squeeze_hdf5_dataset(filename, name, (i,))
                 minl = np.percentile(im, 10.)
                 maxl = np.percentile(im, 90.)
 
@@ -188,13 +231,11 @@ class Show_nd_data_widget(QWidget):
                 
                 # add a little 1d plot with a vline
                 self.plotW2 = pg.PlotWidget(title = 'index')
-                self.plotW2.plot(np.arange(f[name].shape[0]), pen=(255, 150, 150))
-                self.vline = self.plotW2.addLine(x = i, movable=True, bounds = [0, f[name].shape[0]-1])
+                self.plotW2.plot(np.arange(shape[0]), pen=(255, 150, 150))
+                self.vline = self.plotW2.addLine(x = i, movable=True, bounds = [0, shape[0]-1])
                 self.plotW2.setMaximumSize(10000000, 100)
                     
                 self.vline.sigPositionChanged.connect(self.replot_frame)
-        
-        f.close()
          
         # add to layout
         if refresh is False :
@@ -209,8 +250,8 @@ class Show_nd_data_widget(QWidget):
 
     def replot_frame(self):
         i = int(self.vline.value())
-        with h5py.File(self.filename, 'r') as f:
-            self.plotW.setImage( f[self.name][i].astype(np.float).real.T, autoRange = False, autoLevels = False, autoHistogramRange = False)
+        im = squeeze_hdf5_dataset(self.filename, self.name, (i,))
+        self.plotW.setImage( im.astype(np.float).real.T, autoRange = False, autoLevels = False, autoHistogramRange = False)
     
     def close(self):
         # remove from layout
