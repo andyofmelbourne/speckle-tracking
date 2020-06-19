@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import tqdm
 import speckle_tracking as st
 from speckle_tracking import cmdline_config_cxi_reader
 from speckle_tracking import cmdline_parser 
@@ -13,8 +14,11 @@ def defocus_sweep(z1_min, z1_max, N, z, roi, data, mask, whitefield, basis,
     """
     z1s = np.linspace(z1_min, z1_max, N)
     Os  = []
+
+    it = tqdm.trange(z1s.shape[0], desc='sweeping defocus')
     
-    for z1 in z1s:
+    for i in it:
+        z1 = z1s[i]
         # generate pixel mapping
         pixel_map, pixel_translations, res = st.generate_pixel_map(
                     mask.shape, 
@@ -32,7 +36,7 @@ def defocus_sweep(z1_min, z1_max, N, z, roi, data, mask, whitefield, basis,
         # generate reference image
         Iref, m0, n0 = st.make_object_map(data, mask, whitefield, pixel_translations, 
                                       pixel_map, roi=None, subpixel=False, 
-                                      verbose=True, minimum_overlap=None, sig=None)
+                                      verbose=False, minimum_overlap=None, sig=None)
 
         Os.append(np.squeeze(Iref).copy()[:10000])
 
