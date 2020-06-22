@@ -158,7 +158,7 @@ def fit_thon_rings(
     # overlay with forward calculation for display
     edge_mask[:thon.shape[0]//2, :thon.shape[1]//2] = False
     
-    thon_dis = np.log(thon)**0.2
+    thon_dis = np.log(np.abs(thon))**0.2
     thon_dis = (thon_dis-thon_dis.min())/(thon_dis-thon_dis.min()).max()
     thon_dis[~edge_mask] = thon_calc[~edge_mask]
     thon_dis = np.fft.fftshift(thon_dis)
