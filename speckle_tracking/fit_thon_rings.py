@@ -118,6 +118,7 @@ def fit_thon_rings(
     if verbose : print('fitting the defocus and astigmatism')
     # generate the thon rings
     # offset centre to avoid panel edges
+    print('W:', np.sum(W==0))
     thon = make_thon(data, mask, W, roi, sig=sig, centre=centre)
     
     # make an edge mask
