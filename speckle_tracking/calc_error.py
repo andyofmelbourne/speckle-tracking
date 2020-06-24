@@ -102,7 +102,7 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
     data_1d = False
     if 1 in data.shape :
         data_1d = True
-        forward = -np.ones(data.shape, dtype=np.float32)
+    forward = -np.ones(data.shape, dtype=np.float32)
     
     #sig = np.std(data, axis=0)
     #sig[sig <= 0] = 1
@@ -132,8 +132,7 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
         error_residual[n]  = error_map
         norm              += m*(W - d)**2
 
-        if data_1d:
-            forward[n] = I0
+        forward[n] = I0
     
     norm /= data.shape[0]
     norm[norm==0]  = 1
@@ -153,7 +152,7 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
     if data_1d :
         res = {'1d_data_vs_forward': np.squeeze(np.array([data, forward]))}
     else :
-        res = {}
+        res = {'forward': forward}
     
     return error_total, error_frame, error_pixel, error_residual, error_reference, norm, flux_corr, res
 

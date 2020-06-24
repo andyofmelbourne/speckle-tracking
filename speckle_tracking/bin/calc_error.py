@@ -40,9 +40,11 @@ def main(overide={}):
            'error_reference': error_reference, 
            'error_norm': norm,
            'flux_correction': flux_correction}
-
+    
     if '1d_data_vs_forward' in res :
         out['1d_data_vs_forward'] = res['1d_data_vs_forward']
+    else :
+        out['forward'] = res['forward']
     
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)
     

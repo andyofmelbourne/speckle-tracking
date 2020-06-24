@@ -40,7 +40,7 @@ def main(overide={}):
     out = {'defocus': z1}
     out.update(res)
     
-    cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)
+    cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=False)
     
     # output display for gui
     with open('.log', 'w') as f:

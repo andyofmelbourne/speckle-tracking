@@ -97,7 +97,7 @@ class Show_nd_data_widget(QWidget):
         #if not refresh :
         #    self.close()
         
-        if shape == () :
+        if shape == () or (len(shape)==1 and shape[0]<10):
             if refresh :
                 self.plotW.setText('<b>'+name+'</b>: ' + str(squeeze_hdf5_dataset(filename, name, ())))
             else :
@@ -131,7 +131,6 @@ class Show_nd_data_widget(QWidget):
                     pen = tuple(np.random.randint(0, 255, 3))
                 
                 self.plotW.plot(squeeze_hdf5_dataset(filename, name, i).astype(np.float).real, pen=pen)
-                print('pen', pen)
 
         elif (len(shape) == 2 or len(shape) == 3) and im_type == 'scatter' : 
             if refresh :

@@ -121,7 +121,8 @@ def make_O_subregion(dzx, dzy, roi, z, x_pixel_size, y_pixel_size,
     WW      = W**2
     minimum_overlap = 2
     
-    for n in tqdm.trange(data.shape[0], desc='building object map'):
+    #for n in tqdm.trange(data.shape[0], desc='building object map'):
+    for n in range(data.shape[0]):
         i = int(round(io + dij_n[n, 0] - n0))
         j = int(round(jo + dij_n[n, 1] - m0))
         i_min = max(i-w, 0)
