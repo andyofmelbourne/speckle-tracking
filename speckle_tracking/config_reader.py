@@ -147,18 +147,51 @@ def config_write(con_dict, fnam, val_doc_adv=False):
                         if advanced :
                             write_adv_item(f, con_dict, group, key)
 
+def get_fnam(h5_file, h5_group):
+    """
+    if h5_group is like:
+        foo
+        /foo/bar
+        foo/bar
+    return h5_file, h5_group
+        
+    if h5_group is like:
+        foo.cxi/bar
+    return foo.cxi, /bar
+
+    if h5_group is like:
+        loc/foo.cxi/bar
+    return loc/foo.cxi, /bar
+    """
+    if '.' not in h5_group :
+        fnam = h5_file
+        group = h5_group
+    else :
+        a       = h5_group.split('.')
+        fnam    = '.'.join(a[:-1]) + '.' + a[-1].split('/')[0]
+        group   = h5_group.split(fnam)[-1]
+
+    if group[0] != '/':
+        group = '/' + group
+    
+    return fnam, group
+
+
 
 def write_h5(h5_file, h5_group, d, c=0):
     import h5py
     try :
-        with h5py.File(h5_file, 'r+') as f: 
+        # if h5_group points to another file 
+        # then use that instead
+        fnam, group = get_fnam(h5_file, h5_group)
+        with h5py.File(fnam, 'a') as f: 
             for key, val in d.items(): 
-                key2 = h5_group + '/' + key
+                key2 = group + '/' + key
                 
                 if key2 in f :
                     del f[key2]
                 
-                print(key2, type(val))
+                print(fnam, key2, type(val))
                 f[key2] = val
     
     # if the file is being used by someone else then try again

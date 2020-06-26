@@ -78,12 +78,12 @@ def write_all(params, filename, output_dict, apply_roi=True):
     # and convert pixel shifts to sample translations
     h5_group = params['h5_group']
     
-    h5_file = h5py.File(filename, 'r')
     if apply_roi :
         roi      = params['roi']
         if roi is not None: 
-            shape = h5_file['/entry_1/data_1/data'].shape[-2:]
-            N     = h5_file['/entry_1/data_1/data'].shape[0]
+            with h5py.File(filename, 'r') as h5_file:
+                shape = h5_file['/entry_1/data_1/data'].shape[-2:]
+                N     = h5_file['/entry_1/data_1/data'].shape[0]
             roi_shape = (roi[1]-roi[0], roi[3]-roi[2])
              
             # un-roi all datasets 
@@ -109,7 +109,6 @@ def write_all(params, filename, output_dict, apply_roi=True):
                             
                             # now overwrite output array
                             output_dict[k] = temp
-    h5_file.close() 
     
     # un-pixel convert positions
     if 'R_ss_fs' in output_dict :
@@ -256,10 +255,10 @@ def get_val_h5_new(fnam, val, roi, shape):
         return val
     
     with h5py.File(fnam3, 'r') as f:
-        if val not in f :
-            raise KeyError(val + ' not found in file')
+        if dataset not in f :
+            raise KeyError(dataset + ' not found in file ' + fnam3)
         
-        return roi_extract(f, roi, val, shape)
+        return roi_extract(f, roi, dataset, shape)
 
 
 
@@ -354,7 +353,12 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False,
             if k in exclude :
                 continue
             
-            valout = get_val_h5_new(h5_file, val, roi, shape)
+            # exclude h5_group to prevent trying to extract
+            # the group or file object 
+            if k == 'h5_group' :
+                valout = val
+            else :
+                valout = get_val_h5_new(h5_file, val, roi, shape)
             
             if val_doc_adv :
                 config[sec][k] = (valout, doc, adv)

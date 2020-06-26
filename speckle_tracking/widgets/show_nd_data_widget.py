@@ -7,8 +7,37 @@ import h5py
 import pyqtgraph as pg
 import numpy as np
 
-# test
-import threading
+
+def get_fnam(h5_file, h5_group):
+    """
+    if h5_group is like:
+        foo
+        /foo/bar
+        foo/bar
+    return h5_file, h5_group
+        
+    if h5_group is like:
+        foo.cxi/bar
+    return foo.cxi, /bar
+
+    if h5_group is like:
+        loc/foo.cxi/bar
+    return loc/foo.cxi, /bar
+    """
+    if '.' not in h5_group :
+        fnam = h5_file
+        group = h5_group
+    else :
+        a       = h5_group.split('.')
+        fnam    = '.'.join(a[:-1]) + '.' + a[-1].split('/')[0]
+        group   = h5_group.split(fnam)[-1]
+
+    if group[0] != '/':
+        group = '/' + group
+    
+    return fnam, group
+
+
 
 def squeeze_hdf5_dataset(filename, name, s):
     """
@@ -83,6 +112,9 @@ class Show_nd_data_widget(QWidget):
             name, im_type = name.split(' ')
         else :
             im_type = None
+
+        # if name contains another filename then use that instead
+        filename, name = get_fnam(filename, name)
         
         shape, shape_original, dtype = squeeze_hdf5_shape(filename, name)
         

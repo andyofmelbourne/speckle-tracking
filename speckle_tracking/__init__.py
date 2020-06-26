@@ -34,6 +34,7 @@ from .calculate_sample_thickness import calculate_sample_thickness
 from . import _widgets 
 from . import optics
 from . import utils_opencl
+from .config_reader import get_fnam
  
 make_reference = make_object_map
 calculate_phase = integrate_pixel_map

@@ -38,7 +38,7 @@ if __name__ == '__main__':
         
         # output display for gui
         with open('.log', 'w') as f:
-            print('display: /'+params['h5_group']+'/mask', file=f)
+            print('display: '+params['h5_group']+'/mask', file=f)
     
     # make whitefield
     if str_compare(params['whitefield'], 'auto'):
@@ -50,7 +50,7 @@ if __name__ == '__main__':
         
         # output display for gui
         with open('.log', 'w') as f:
-            print('display: /'+params['h5_group']+'/whitefield', file=f)
+            print('display: '+params['h5_group']+'/whitefield', file=f)
     
     # make ROI
     if str_compare(params['roi'], 'auto'):
@@ -62,7 +62,7 @@ if __name__ == '__main__':
         
         # output display for gui
         with open('.log', 'w') as f:
-            print('display: /'+params['h5_group']+'/roi', file=f)
+            print('display: '+params['h5_group']+'/roi', file=f)
 
     # apply ROI
     shape = params['data'].shape
@@ -91,7 +91,7 @@ if __name__ == '__main__':
         
         # output display for gui
         with open('.log', 'w') as f:
-            print('display: /'+params['h5_group']+'/thon_display', file=f)
+            print('display: '+params['h5_group']+'/thon_display', file=f)
     
     # pixel map
     if str_compare(params['pixel_map'], 'auto'):
@@ -120,7 +120,7 @@ if __name__ == '__main__':
         
         # output display for gui
         with open('.log', 'w') as f:
-            print('display: /'+params['h5_group']+'/pixel_map_residual', file=f)
+            print('display: '+params['h5_group']+'/pixel_map_residual', file=f)
 
 
     # make reference
@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     # output display for gui
     with open('.log', 'w') as f:
-        print('display: /'+params['h5_group']+'/reference_image', file=f)
+        print('display: '+params['h5_group']+'/reference_image', file=f)
     """
     # make mask
     if params['mask'] == 'auto':
