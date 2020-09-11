@@ -9,9 +9,11 @@ from .guess_roi import guess_roi
 from .make_whitefield import make_whitefield
 from .make_pixel_map import make_pixel_map
 from .make_pixel_translations import make_pixel_translations
+from .make_object_map import bilinear_interpolation_array_inverse
 from .make_object_map import make_object_map
 from .update_translations import update_translations
 from .update_translations import update_translations_1
+from .update_pixel_map import bilinear_interpolation_array
 from .update_pixel_map import update_pixel_map
 from .pixel_map_from_data import pixel_map_from_data
 from .update_pixel_map import update_pixel_map_opencl
@@ -31,6 +33,8 @@ from .remove_offset_tilt_from_pixel_map import remove_offset_tilt_from_pixel_map
 from .calculate_sample_thickness import calculate_sample_thickness
 from . import _widgets 
 from . import optics
+from . import utils_opencl
+from .config_reader import get_fnam
  
 make_reference = make_object_map
 calculate_phase = integrate_pixel_map

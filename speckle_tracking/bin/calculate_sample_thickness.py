@@ -42,7 +42,7 @@ def main(overide={}):
     
     # output display for gui
     with open('.log', 'w') as f:
-        print('display: /'+params['h5_group']+'/sample_thickness_ctf', file=f)
+        print('display: '+params['h5_group']+'/sample_thickness_ctf', file=f)
 
 
 

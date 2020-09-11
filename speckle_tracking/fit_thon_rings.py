@@ -125,6 +125,7 @@ def fit_thon_rings(
 
     # flatten the thon rings with a min max filter
     thon_flat = flatten(thon, edge_mask, w=window, sig=0.)
+    #thon_flat = thon**0.2
 
     # fit the quadratic symmetry to account for astigmatism etc
     theta, scale_fs, res = fit_theta_scale(thon_flat, edge_mask)
@@ -139,7 +140,6 @@ def fit_thon_rings(
     
     # convert to physical units
     ###########################
-    
     # solve for z1 and dz
     a    = (thon.shape[1] * y_pixel_size * scale_fs)**2 * c / (np.pi * wav) 
     b    = (thon.shape[0] * x_pixel_size)**2            * c / (np.pi * wav) 
@@ -156,12 +156,15 @@ def fit_thon_rings(
     thon_calc = calculate_thon(z, z1, dz, x_pixel_size, y_pixel_size, thon.shape, wav, bd)
     
     # overlay with forward calculation for display
-    edge_mask[:thon.shape[0]//2, :thon.shape[1]//2] = False
+    #edge_mask[:thon.shape[0]//2, :thon.shape[1]//2] = False
     
-    thon_dis = np.log(thon)**0.2
+    #thon_dis = np.log(np.abs(thon))**0.2
+    thon_dis = np.abs(thon)**0.2
+    # scale to 0->1
     thon_dis = (thon_dis-thon_dis.min())/(thon_dis-thon_dis.min()).max()
-    thon_dis[~edge_mask] = thon_calc[~edge_mask]
-    thon_dis = np.fft.fftshift(thon_dis)
+    #thon_dis[~edge_mask] = thon_calc[~edge_mask]
+    #thon_dis = np.array([np.fft.fftshift(thon_dis), thon_calc])
+    thon_dis = np.array([np.fft.fftshift(thon_dis)])
     
     out = {'thon_display': thon_dis, 'bd':bd, 'defocus_fs': z1-dz, 'defocus_ss': z1+dz, 'astigmatism': dz}
     out.update(res2)
@@ -319,10 +322,11 @@ def fit_sincos(f, r):
     
     ai, bi  = np.unravel_index(np.argmax(error), error.shape)
     a, b    = a_s[ai], b_s[bi]
-    res = {'error_map': error, 'fit': np.array([forward(a, b), f])}
+    res = {'thon_error_map': error, 'thon_fit': np.array([forward(a, b), f])}
     return a, b, res
 
 def calculate_thon(z, z1, dz, x_pixel_size, y_pixel_size, shape, wav, bd):
+    print(z, z1, dz)
     i = np.sqrt((z-dz)/(z1+dz)) * np.fft.fftfreq(shape[0], x_pixel_size)
     j = np.sqrt((z-dz)/(z1-dz)) * np.fft.fftfreq(shape[1], y_pixel_size)
     i, j = np.meshgrid(i, j, indexing='ij')

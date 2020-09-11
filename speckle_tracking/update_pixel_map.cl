@@ -179,12 +179,6 @@ float bilinear_interpolation(
     const    int    U
     )
 {
-    // check out of bounds
-    if((ss < 0) || (ss > (U-1)) || (fs < 0) || (fs > (V-1)))
-    {
-        return -1;
-    }
-    
     int s0, s1, f0, f1;
     s0 = floor(ss);
     s1 = ceil(ss);
@@ -194,45 +188,31 @@ float bilinear_interpolation(
     // careful with edges
     if(s1==s0)
     {
-        if(s0 == 0)
-        {
-            s1 += 1 ;
-        }
-        else 
-        {
-            s0 -= 1 ;
-        }
+        s1 += 1 ;
     }
     if(f1==f0)
     {
-        if(f0 == 0)
-        {
-            f1 += 1 ;
-        }
-        else 
-        {
-            f0 -= 1 ;
-        }
+        f1 += 1 ;
     }
     
     float n   = 0.;
     float out = 0.;
-    if(O[s0*V + f0] >= 0)
+    if((s0>=0) && (s0<U) && (f0>=0) && (f0<V) && (O[s0*V + f0] >= 0))
     {
         out += (s1-ss)*(f1-fs)*O[s0*V + f0];
         n   += (s1-ss)*(f1-fs);
     }
-    if(O[s0*V + f1] >= 0)
+    if((s0>=0) && (s0<U) && (f1>=0) && (f1<V) && (O[s0*V + f1] >= 0))
     {
         out += (s1-ss)*(fs-f0)*O[s0*V + f1];
         n   += (s1-ss)*(fs-f0);
     }
-    if(O[s1*V + f0] >= 0)
+    if((s1>=0) && (s1<U) && (f0>=0) && (f0<V) && (O[s1*V + f0] >= 0))
     {
         out += (ss-s0)*(f1-fs)*O[s1*V + f0];
         n   += (ss-s0)*(f1-fs);
     }
-    if(O[s1*V + f1] >= 0)
+    if((s1>=0) && (s1<U) && (f1>=0) && (f1<V) && (O[s1*V + f1] >= 0))
     {
         out += (ss-s0)*(fs-f0)*O[s1*V + f1];
         n   += (ss-s0)*(fs-f0);
@@ -248,6 +228,89 @@ float bilinear_interpolation(
     return out / n;
     }
 }
+
+__kernel void bilinear_interpolation_inverse_array(
+    __global float  *array,
+    __global float  *out,
+    __global float  *ss,
+    __global float  *fs,
+    const    int    I,
+    const    int    J,
+    const    int    U,
+    const    int    V
+    )
+{
+    // out[ss[i, j], fs[i, j]] += array[i, j]
+    // shape of ss, fs and array = I, J 
+    // shape of out = U, V
+    //int i = get_group_id(0);
+    //int j = get_group_id(1);
+    int i, j;
+    for (i = 0; i < I; i++){ 
+    for (j = 0; j < J; j++){ 
+    
+    // check for invalid
+    if (array[i*J + j] >= 0)
+    {
+    
+    int s0, s1, f0, f1;
+    s0 = floor(ss[i*J + j]);
+    s1 = ceil(ss[i*J + j]);
+    f0 = floor(fs[i*J + j]);
+    f1 = ceil(fs[i*J + j]);
+    
+    // careful with edges
+    if(s1==s0)
+    {
+        s1 += 1 ;
+    }
+    if(f1==f0)
+    {
+        f1 += 1 ;
+    }
+    
+    //printf("%i %i %f %f\n", s0, s1, ss[i*J+j], fs[i*J+j]);
+    if((s0>=0) && (s0<U) && (f0>=0) && (f0<V))
+    {
+        out[s0*V + f0] += (s1-ss[i*J + j])*(f1-fs[i*J + j])*array[i*J + j];
+        //printf("%i %i %i %i %f\n", i, j, s0, f0, array[i*J + j]);
+    }
+    if((s0>=0) && (s0<U) && (f1>=0) && (f1<V))
+    {
+        out[s0*V + f1] += (s1-ss[i*J + j])*(fs[i*J + j]-f0)*array[i*J + j];
+    }
+    if((s1>=0) && (s1<U) && (f0>=0) && (f0<V))
+    {
+        out[s1*V + f0] += (ss[i*J + j]-s0)*(f1-fs[i*J + j])*array[i*J + j];
+    }
+    if((s1>=0) && (s1<U) && (f1>=0) && (f1<V))
+    {
+        out[s1*V + f1] += (ss[i*J + j]-s0)*(fs[i*J + j]-f0)*array[i*J + j];
+    }
+
+    }
+    }}
+}
+
+
+__kernel void bilinear_interpolation_array(
+    __global float  *array,
+    __global float  *out,
+    __global float  *ss,
+    __global float  *fs,
+    const    int    I,
+    const    int    J,
+    const    int    U,
+    const    int    V
+    )
+{                                                       
+    int i = get_group_id(0);
+    int j = get_group_id(1);
+
+    out[i*J + j] = bilinear_interpolation(array, ss[i*J+j], fs[i*J + j], V, U);
+}
+
+
 
 __kernel void pixel_map_err_split(
     __global float  *W,
@@ -384,6 +447,7 @@ __kernel void update_pixel_map_subpixel(
             {
                 err /= norm;
                 
+                printf("%i %f %f %f %f\n", j, di, dj, err_min, err);
                 if(err < err_min)
                 {
                     err_min = err;
@@ -398,6 +462,7 @@ __kernel void update_pixel_map_subpixel(
             out[i*J + j] = err_min;
             pixel_map[0   + i*J + j] += i_min;
             pixel_map[I*J + i*J + j] += j_min;
+            //printf("%i %i %f %f\n", i, j, i_min, j_min);
         }
     }
 }
@@ -578,14 +643,14 @@ __kernel void translations_err(
     __global int    *mask,
     __global int    *ns,
     __global float  *out,
+    __global float  *di,
+    __global float  *dj,
     const    float    n0,
     const    float    m0,
     const    int    I,
     const    int    J,
     const    int    U,
-    const    int    V,
-    const    int    di,
-    const    int    dj
+    const    int    V
     )
 {                                                       
     int n = get_group_id(0);
@@ -601,8 +666,8 @@ __kernel void translations_err(
     for (i = 0; i < I; i++){ 
     for (j = 0; j < J; j++){ 
     if(mask[i*J + j]==1){
-        ss = pixel_map[0   + i*J + j] - di - dij_n[n*2 + 0] + n0;
-        fs = pixel_map[I*J + i*J + j] - dj - dij_n[n*2 + 1] + m0;
+        ss = pixel_map[0   + i*J + j] - di[n] - dij_n[n*2 + 0] + n0;
+        fs = pixel_map[I*J + i*J + j] - dj[n] - dij_n[n*2 + 1] + m0;
         
         // evaluate O using bilinear interpolation 
         ot = bilinear_interpolation(O, ss, fs, V, U);
@@ -615,5 +680,7 @@ __kernel void translations_err(
             norm += t*t;
         }
     }}}
-    out[n] = err/norm;
+    if(norm>0){
+        out[n] = err/norm;
+    }
 }

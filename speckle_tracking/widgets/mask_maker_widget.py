@@ -18,7 +18,7 @@ class Mask_maker_widget(QWidget):
     cspad_psana_shape = (4, 8, 185, 388)
     cspad_geom_shape  = (1480, 1552)
     
-    def __init__(self, fnam, data_paths, mask_paths=None, output_file = None, out_path='mask_maker/mask', auto_detect_bitmask=True):
+    def __init__(self, fnam, data_paths, mask_paths=None, output_file = None, out_path='/speckle_tracking/mask', auto_detect_bitmask=True):
         super(Mask_maker_widget, self).__init__()
         
         f = h5py.File(fnam, 'r')
@@ -160,11 +160,10 @@ class Mask_maker_widget(QWidget):
         mask = self.mask
         
         print('outputing mask as np.int16 (h5py does not support boolean arrays yet)...')
-        f = h5py.File(self.output_file)
-        if self.output_path in f :
-            del f[self.output_path]
-        f[self.output_path] = mask
-        f.close()
+        with h5py.File(self.output_file, 'a') as f:
+            if self.output_path in f :
+                del f[self.output_path]
+            f[self.output_path] = mask
         print('Done!')
         
     def mask_ROI(self, roi):

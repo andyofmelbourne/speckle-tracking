@@ -59,16 +59,16 @@ def get_all(sn, des, exclude=[], config_dirs=None, roi=False):
     params = config_read_from_h5(params, args.filename, False, True, roi=roi, exclude=exclude)
     
     # now convert from physical to pixel units:
-    if 'translation' in params[sn] :
-        R_ss_fs, dx, defocus = get_Fresnel_pixel_shifts_cxi(**params[sn])
-        params[sn]['defocus']              = defocus
-        params[sn]['R_ss_fs']              = R_ss_fs
-        params[sn]['magnified_pixel_size'] = dx
+    #if 'translation' in params[sn] :
+    #    R_ss_fs, dx, defocus = get_Fresnel_pixel_shifts_cxi(**params[sn])
+    #    params[sn]['defocus']              = defocus
+    #    params[sn]['R_ss_fs']              = R_ss_fs
+    #    params[sn]['magnified_pixel_size'] = dx
     
     # calculate the wavelength if needed
-    if 'wavelength' not in params[sn] and 'energy' in params[sn]:
-        import scipy.constants as sc
-        params[sn]['wavelength'] = sc.h * sc.c / params[sn]['energy']
+    #if 'wavelength' not in params[sn] and 'energy' in params[sn]:
+    #    import scipy.constants as sc
+    #    params[sn]['wavelength'] = sc.h * sc.c / params[sn]['energy']
     return args, params
 
 
@@ -78,37 +78,37 @@ def write_all(params, filename, output_dict, apply_roi=True):
     # and convert pixel shifts to sample translations
     h5_group = params['h5_group']
     
-    h5_file = h5py.File(filename, 'r')
     if apply_roi :
         roi      = params['roi']
-        shape = h5_file['/entry_1/data_1/data'].shape[-2:]
-        N     = h5_file['/entry_1/data_1/data'].shape[0]
-        roi_shape = (roi[1]-roi[0], roi[3]-roi[2])
-         
-        # un-roi all datasets 
-        for k in output_dict.keys():
-            if type(output_dict[k]) is np.ndarray :
-                if (k != 'good_frames') and ('good_frames' in params) and (params['good_frames'] is not None) and (output_dict[k].shape[0] == len(params['good_frames'])) :
-                    print('resizing 0 axis of:', k)
-                    temp = np.zeros((N,) + output_dict[k].shape[1:], 
-                                    dtype=output_dict[k].dtype)
-                    
-                    temp[params['good_frames']] = output_dict[k]
-                    
-                    # now overwrite output array
-                    output_dict[k] = temp
-                
-                if len(output_dict[k].shape) >= 2 :
-                    if output_dict[k].shape[-2:] == roi_shape :
-                        print('resizing detector axis of:', k)
-                        temp = np.zeros(output_dict[k].shape[:-2] + shape, 
+        if roi is not None: 
+            with h5py.File(filename, 'r') as h5_file:
+                shape = h5_file['/entry_1/data_1/data'].shape[-2:]
+                N     = h5_file['/entry_1/data_1/data'].shape[0]
+            roi_shape = (roi[1]-roi[0], roi[3]-roi[2])
+             
+            # un-roi all datasets 
+            for k in output_dict.keys():
+                if type(output_dict[k]) is np.ndarray :
+                    if (k != 'good_frames') and ('good_frames' in params) and (params['good_frames'] is not None) and (output_dict[k].shape[0] == len(params['good_frames'])) :
+                        print('resizing 0 axis of:', k)
+                        temp = np.zeros((N,) + output_dict[k].shape[1:], 
                                         dtype=output_dict[k].dtype)
-
-                        temp[..., roi[0]:roi[1], roi[2]:roi[3]] = output_dict[k]
+                        
+                        temp[params['good_frames']] = output_dict[k]
                         
                         # now overwrite output array
                         output_dict[k] = temp
-    h5_file.close() 
+                    
+                    if len(output_dict[k].shape) >= 2 :
+                        if output_dict[k].shape[-2:] == roi_shape :
+                            print('resizing detector axis of:', k)
+                            temp = np.zeros(output_dict[k].shape[:-2] + shape, 
+                                            dtype=output_dict[k].dtype)
+
+                            temp[..., roi[0]:roi[1], roi[2]:roi[3]] = output_dict[k]
+                            
+                            # now overwrite output array
+                            output_dict[k] = temp
     
     # un-pixel convert positions
     if 'R_ss_fs' in output_dict :
@@ -209,16 +209,22 @@ def roi_extract(f, roi, key, shape):
     # for now any axis within shape will be roi'd
     s = [slice(None) for i in fshape]
     
+    # HACK for square arrays where the shape elements are not unique
+    # this will still fail in some cases...
+    assigned_axes = []
     if roi is not None and roi is not False and shape is not None :
         for i in range(len(fshape)):
             for j in range(len(shape)):
-                if fshape[i] == shape[j]:
+                if fshape[i] == shape[j] and j not in assigned_axes:
                     s[i] = roi[j]
+                    assigned_axes.append(j)
+                    break
      
     # Hack: this doesn't work for 1d arrays
     # I have no idea why...
     if len(s) == 1:
         return f[key][()]
+
     return f[key][tuple(s)]
 
 
@@ -249,10 +255,10 @@ def get_val_h5_new(fnam, val, roi, shape):
         return val
     
     with h5py.File(fnam3, 'r') as f:
-        if val not in f :
-            raise KeyError(val + ' not found in file')
+        if dataset not in f :
+            raise KeyError(dataset + ' not found in file ' + fnam3)
         
-        return roi_extract(f, roi, val, shape)
+        return roi_extract(f, roi, dataset, shape)
 
 
 
@@ -347,7 +353,12 @@ def config_read_from_h5(config, h5_file, val_doc_adv=False,
             if k in exclude :
                 continue
             
-            valout = get_val_h5_new(h5_file, val, roi, shape)
+            # exclude h5_group to prevent trying to extract
+            # the group or file object 
+            if k == 'h5_group' :
+                valout = val
+            else :
+                valout = get_val_h5_new(h5_file, val, roi, shape)
             
             if val_doc_adv :
                 config[sec][k] = (valout, doc, adv)

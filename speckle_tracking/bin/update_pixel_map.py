@@ -51,7 +51,7 @@ def main(overide={}):
     
     # output display for gui
     with open('.log', 'w') as f:
-        print('display: /'+params['h5_group']+'/pixel_map_residual', file=f)
+        print('display: '+params['h5_group']+'/pixel_map_residual', file=f)
 
 
 if __name__ == '__main__':

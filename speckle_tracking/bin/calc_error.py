@@ -22,7 +22,7 @@ def main(overide={}):
     # overide with input params (if any)
     params.update(overide)
     
-    error_total, error_frame, error_pixel, error_residual, error_reference, norm, flux_correction = st.calc_error(
+    error_total, error_frame, error_pixel, error_residual, error_reference, norm, flux_correction, res = st.calc_error(
             params['data'], 
             params['mask'], 
             params['whitefield'], 
@@ -41,11 +41,16 @@ def main(overide={}):
            'error_norm': norm,
            'flux_correction': flux_correction}
     
+    if '1d_data_vs_forward' in res :
+        out['1d_data_vs_forward'] = res['1d_data_vs_forward']
+    else :
+        out['forward'] = res['forward']
+    
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)
     
     # output display for gui
     with open('.log', 'w') as f:
-        print('display: /'+params['h5_group']+'/error_pixel', file=f)
+        print('display: '+params['h5_group']+'/error_pixel', file=f)
 
 
 if __name__ == '__main__':
