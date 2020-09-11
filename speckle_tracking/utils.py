@@ -1,6 +1,101 @@
 import numpy as np
 import h5py
 
+def quadratic_refine_1d(err_func, x_like, lim=3):
+    """
+    error = err_func(x, y), for x,y=-1,0,1
+    return minimum x,y
+    x and y are arrays
+    """
+    x = np.zeros_like(x_like)
+    errs = []
+    A = []
+    for xi in [-1,0,1]:
+        x.fill(xi)
+        A.append([xi**2, xi, 1])
+        errs.append(err_func(x))
+    
+    errs = np.array(errs)
+    
+    # now we have 3 equations and 3 unknowns
+    # a x^2 + b x + c = err_i
+    B = np.linalg.pinv(A)
+    C = np.dot(B, np.swapaxes(errs, 0, -2))
+    print(C.shape, errs.shape, B.shape)
+    
+    # minima is defined by
+    # 2 a x + b = 0
+    # x = -b / 2a
+    # where C = [a, b, c]
+    #           [0, 1, 2]
+    det = 2*C[0]
+    
+    # make sure all sampled shifts have a valid error
+    m    = np.all(errs>0, axis=0)
+    # make sure the determinant is non zero
+    m    = m * (det != 0)
+    
+    print(m.shape, x.shape, C.shape, det.shape)
+    x[m] = -C[1][m] / det[m]
+    
+    # now only update pixels for which x**2 < 3**2
+    m = m * (x**2 < lim**2)
+    
+    return m*x, m*C[2]
+
+def quadratic_refine(err_func, x_like, lim=3):
+    """
+    error = err_func(x, y), for x,y=-1,0,1
+    return minimum x,y
+    x and y are arrays
+    """
+    x = np.zeros_like(x_like)
+    y = np.zeros_like(x_like)
+    errs = []
+    A = []
+    for xi in [-1,0,1]:
+        for yi in [-1,0,1]:
+            x.fill(xi)
+            y.fill(yi)
+            A.append([xi**2, yi**2, xi, yi, xi*yi, 1])
+            errs.append(err_func(x, y))
+    
+    errs = np.array(errs)
+    
+    # now we have 9 equations and 6 unknowns
+    # c_20 x^2 + c_02 y^2 + c_10 x + c_01 y + c_11 x y + c_00 = err_i
+    B = np.linalg.pinv(A)
+    C = np.dot(B, np.swapaxes(errs, 0, -2))
+    
+    # minima is defined by
+    # 2 c_20 x +   c_11 y = -c_10
+    #   c_11 x + 2 c_02 y = -c_01
+    # where C = [c_20, c_02, c_10, c_01, c_11, c_00]
+    #           [   0,    1,    2,    3,    4,    5]
+    # [x y] = [[2c_02 -c_11], [-c_11, 2c_20]] . [-c_10 -c_01] / (2c_20 * 2c_02 - c_11**2)
+    # x     = (-2c_02 c_10 + c_11   c_01) / det
+    # y     = (  c_11 c_10 - 2 c_20 c_01) / det
+    det  = 2*C[0] * 2*C[1] - C[4]**2
+    
+    # make sure all sampled shifts have a valid error
+    m    = np.all(errs>0, axis=0)
+    
+    # make sure the determinant is non zero
+    m    = m * (det != 0)
+    x.fill(0)
+    y.fill(0)
+    x[m] = (-2*C[1] * C[2] +   C[4] * C[3])[m] / det[m]
+    y[m] = (   C[4] * C[2] - 2*C[0] * C[3])[m] / det[m]
+    
+    # now only update pixels for which (x**2 + y**2) < 3**2
+    m = m * ((x**2+y**2) < lim**2)
+    
+    return m*x, m*y, m*C[5]
+
+
+
+
+
 def mk_2dgaus(shape, sig, centre = None):
     if centre is None :
         centre = [shape[0]//2, shape[1]//2]
@@ -472,7 +567,7 @@ def bilinear_interpolation_array(array, ss, fs, fill = -1, invalid=-1):
     return out  
 
 def write_h5(write, fnam = 'siemens_star.cxi', og = 'speckle_tracking/'):
-    with h5py.File(fnam) as f:
+    with h5py.File(fnam, 'r+') as f:
         for k in write.keys():
             if (og+k) in f :
                 del f[og+k]

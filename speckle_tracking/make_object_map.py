@@ -1,5 +1,6 @@
 import numpy as np
 import tqdm
+from . import utils_opencl
 
 def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False, 
                     verbose=True, minimum_overlap=None, sig=None):
@@ -101,8 +102,8 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False,
 
     if (sig is not None) and (sig > 0):
         i, j = np.indices(W.shape)
-        c0 = roi[0] + (roi[1]-roi[0])/2.
-        c1 = roi[2] + (roi[3]-roi[2])/2.
+        c0 = roi[0] + (roi[1]-roi[0]-1)/2.
+        c1 = roi[2] + (roi[3]-roi[2]-1)/2.
         exp = np.exp(- (i-c0)**2/(2.*sig**2) - (j-c1)**2/(2.*sig**2))
     else :
         exp = 1
@@ -122,7 +123,7 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False,
     # choose the offset so that ij - dij_n + n0 > -0.5
     # for all unmasked pixels
     n0, m0 = -np.min(ij[0]) + np.max(dij_n[:, 0]), -np.min(ij[1]) + np.max(dij_n[:, 1])
-    n0, m0 = n0-0.5, m0-0.5
+    #n0, m0 = n0-0.5, m0-0.5
     
     # determine the object-map domain
     shape   = (int(np.rint(np.max(ij[0]) - np.min(dij_n[:, 0]) + n0))+1, \
@@ -142,10 +143,10 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False,
             ss = pixel_map[0] - dij_n[n, 0] + n0
             fs = pixel_map[1] - dij_n[n, 1] + m0
             
-            I = bilinear_interpolation_array_inverse(
+            I = utils_opencl.bilinear_interpolation_inverse_array(
                                            I, exp**2 * W*data[n], ss, fs, invalid = m_roi)
             
-            overlap = bilinear_interpolation_array_inverse(
+            overlap = utils_opencl.bilinear_interpolation_inverse_array(
                                            overlap, WW, ss, fs, invalid = m_roi)
         
     else :
@@ -157,6 +158,8 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False,
             I[      ss, fs] += (exp**2 * W * data[n])[m_roi]
             overlap[ss, fs] += WW[m_roi]
             
+    #print(np.mean(overlap))
+    #overlap.fill(1.)
     overlap[overlap<1e-2] = -1
     m = (overlap > 0)
     
@@ -182,7 +185,7 @@ def bilinear_interpolation_array_inverse(out, array, ss, fs, invalid=-1):
     f0, f1 = np.floor(fs).astype(np.uint32), np.ceil(fs).astype(np.uint32)
     
     # check out of bounds or invalid pixels
-    m = (ss > 0) * (ss <= (out.shape[0]-1)) * (fs > 0) * (fs <= (out.shape[1]-1))
+    m = (ss >= 0) * (ss <= (out.shape[0]-1)) * (fs >= 0) * (fs <= (out.shape[1]-1))
     
     if type(invalid) is np.ndarray :
         m = m * invalid

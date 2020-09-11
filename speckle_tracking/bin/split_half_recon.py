@@ -50,6 +50,6 @@ if __name__ == '__main__':
     
     # output display for gui
     with open('.log', 'w') as f:
-        print('display: /'+params['h5_group']+'/pixel_map_difference', file=f)
+        print('display: '+params['h5_group']+'/pixel_map_difference', file=f)
 
 

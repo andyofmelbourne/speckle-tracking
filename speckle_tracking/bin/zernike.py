@@ -216,9 +216,10 @@ if __name__ == '__main__':
            'phase': phase, 
            'zernike_phase_fit' : phase_zern,
            'zernike_coefficients': z, 
+           'zernike_rms': np.sqrt(np.sum(z**2)), 
            'zernike_basis_vectors': basis_grid}
     cmdline_config_cxi_reader.write_all(params, args.filename, out)
     
     # output display for gui
     with open('.log', 'w') as f:
-        print('display: /'+params['h5_group']+'/zernike_coefficients', file=f)
+        print('display: '+params['h5_group']+'/zernike_coefficients', file=f)

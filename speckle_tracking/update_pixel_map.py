@@ -146,7 +146,10 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
     
     print('quadratic_refinement:', quadratic_refinement)
     if quadratic_refinement :
-        out, res = quadratic_refinement_opencl(data, mask, W, O, out, n0, m0, dij_n)
+        if 1 in data.shape[1:] :
+            out, res = quadratic_refinement_1d_opencl(data, mask, W, O, out, n0, m0, dij_n)
+        else :
+            out, res = quadratic_refinement_opencl(data, mask, W, O, out, n0, m0, dij_n)
     
     if fill_bad_pix :
         out[0] = fill_bad(out[0], mask, 4.)
@@ -393,6 +396,8 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
     ss_min, ss_max = (-(search_window[0]-1)//2, (search_window[0]+1)//2) 
     fs_min, fs_max = (-(search_window[1]-1)//2, (search_window[1]+1)//2) 
     
+    print(ss_min, ss_max)
+    print(fs_min, fs_max)
     # outputs:
     err_map      = np.zeros(W.shape, dtype=np.float32)
     pixel_mapout = pixel_map.astype(np.float32)
@@ -558,15 +563,146 @@ def quadratic_refinement_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n):
     error = np.sum(np.min(err_quad, axis=0))
     return out, {'pixel_shift': pixel_shift, 'error': error, 'err_quad': err_quad}
 
-def bilinear_interpolation_array(array, mask, ss, fs, fill = 0):
+def quadratic_refinement_1d_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n):
+    # demand that the data is float32 to avoid excess mem. usage
+    assert(data.dtype == np.float32)
+    
+    import os
+    import pyopencl as cl
+    ## Step #1. Obtain an OpenCL platform.
+    # with a cpu device
+    for p in cl.get_platforms():
+        devices = p.get_devices(cl.device_type.CPU)
+        if len(devices) > 0:
+            platform = p
+            device   = devices[0]
+            break
+    
+    ## Step #3. Create a context for the selected device.
+    context = cl.Context([device])
+    queue   = cl.CommandQueue(context)
+    
+    # load and compile the update_pixel_map opencl code
+    here = os.path.split(os.path.abspath(__file__))[0]
+    kernelsource = os.path.join(here, 'update_pixel_map.cl')
+    kernelsource = open(kernelsource).read()
+    program     = cl.Program(context, kernelsource).build()
+    update_pixel_map_cl = program.pixel_map_err
+    
+    update_pixel_map_cl.set_scalar_arg_dtypes(
+                        8*[None] + 2*[np.float32] + 7*[np.int32])
+    
+    # Get the max work group size for the kernel test on our device
+    max_comp = device.max_compute_units
+    max_size = update_pixel_map_cl.get_work_group_info(
+                       cl.kernel_work_group_info.WORK_GROUP_SIZE, device)
+    #print('maximum workgroup size:', max_size)
+    #print('maximum compute units :', max_comp)
+    
+    # allocate local memory and dtype conversion
+    ############################################
+    localmem = cl.LocalMemory(np.dtype(np.float32).itemsize * data.shape[0])
+    
+    # inputs:
+    Win         = W.astype(np.float32)
+    pixel_mapin = pixel_map.astype(np.float32)
+    Oin         = O.astype(np.float32)
+    dij_nin     = dij_n.astype(np.float32)
+    maskin      = mask.astype(np.int32)
+    
+    # outputs:
+    err_map      = np.empty(W.shape, dtype=np.float32)
+    pixel_shift  = np.zeros(pixel_map.shape, dtype=np.float32)
+    err_quad     = np.empty((3,) + W.shape, dtype=np.float32)
+    out          = pixel_map.copy()
+    
+    import time
+    d0 = time.time()
+    
+    # qudratic fit refinement
+    pixel_shift.fill(0.)
+    
+    A = []
+    if data.shape[1] == 1:
+        ss_shifts = [0]
+    else :
+        ss_shifts = [-1, 0, 1]
+
+    if data.shape[2] == 1:
+        fs_shifts = [0]
+    else :
+        fs_shifts = [-1, 0, 1]
+    
+    for ss_shift in ss_shifts:
+        for fs_shift in fs_shifts:
+            err_map.fill(9999)
+            update_pixel_map_cl( queue, W.shape, (1, 1), 
+                  cl.SVM(Win), 
+                  cl.SVM(data), 
+                  localmem, 
+                  cl.SVM(err_map), 
+                  cl.SVM(Oin), 
+                  cl.SVM(pixel_mapin), 
+                  cl.SVM(dij_nin), 
+                  cl.SVM(maskin),
+                  n0, m0, 
+                  data.shape[0], data.shape[1], data.shape[2], 
+                  O.shape[0], O.shape[1], ss_shift, fs_shift)
+            queue.finish()
+            
+            if data.shape[1] == 1 :
+                err_quad[fs_shift+1, :, :] = err_map
+                A.append([fs_shift**2, fs_shift, 1])
+            else :
+                err_quad[ss_shift+1, :, :] = err_map
+                A.append([ss_shift**2, ss_shift, 1])
+    
+    # now we have 3 equations and 3 unknowns
+    # a x^2 + b x + c = err_i
+    B = np.linalg.pinv(A)
+    C = np.dot(B, np.transpose(err_quad, (1, 0, 2)))
+    
+    # minima is defined by
+    # 2 a x + b = 0
+    # x = -b / 2a
+    # where C = [a, b, c]
+    #           [0, 1, 2]
+    det = 2*C[0]
+
+    # make sure all sampled shifts have a valid error
+    m    = np.all(err_quad!=9999, axis=0)
+    # make sure the determinant is non zero
+    m    = m * (det != 0)
+
+    if data.shape[1] == 1 :
+        pixel_shift[1][m] = (-C[1])[m] / det[m]
+        #print(pixel_shift[1][m])
+    elif data.shape[2] == 1 :
+        pixel_shift[0][m] = (-C[1])[m] / det[m]
+        #print(pixel_shift[0][m])
+
+    # now only update pixels for which x**2 < 3**2
+    m = m * (np.sum(pixel_shift**2, axis=0) < 9)
+    
+    out[0][m] = out[0][m] + pixel_shift[0][m]
+    out[1][m] = out[1][m] + pixel_shift[1][m]
+      
+    error = np.sum(np.min(err_quad, axis=0))
+    return out, {'pixel_shift': pixel_shift, 'error': error, 'err_quad': err_quad}
+
+def bilinear_interpolation_array(array, mask, ss2, fs2, fill = 0):
     """
     See https://en.wikipedia.org/wiki/Bilinear_interpolation
+    
+    out[i, j] = array[ss[i, j], fs[i, j]]
     """
-    s0, s1 = np.floor(ss).astype(np.uint32), np.ceil(ss).astype(np.uint32)
-    f0, f1 = np.floor(fs).astype(np.uint32), np.ceil(fs).astype(np.uint32)
+    #ss2 = ss - 0.5
+    #fs2 = fs - 0.5
+    s0, s1 = np.floor(ss2).astype(np.uint32), np.ceil(ss2).astype(np.uint32)
+    f0, f1 = np.floor(fs2).astype(np.uint32), np.ceil(fs2).astype(np.uint32)
     
     # check out of bounds
-    m = (ss >= 0) * (ss <= (array.shape[0]-1)) * (fs >= 0) * (fs <= (array.shape[1]-1))
+    m = (ss2 >= 0) * (ss2 <= (array.shape[0]-1)) * (fs2 >= 0) * (fs2 <= (array.shape[1]-1))
     
     s0[~m] = 0
     s1[~m] = 0
@@ -580,10 +716,53 @@ def bilinear_interpolation_array(array, mask, ss, fs, fill = 0):
     f0[(f1==f0)*(f0!=0)] -= 1
     
     # make the weighting function
-    w00 = (s1-ss)*(f1-fs)
-    w01 = (s1-ss)*(fs-f0)
-    w10 = (ss-s0)*(f1-fs)
-    w11 = (ss-s0)*(fs-f0)
+    w00 = (s1-ss2)*(f1-fs2)
+    w01 = (s1-ss2)*(fs2-f0)
+    w10 = (ss2-s0)*(f1-fs2)
+    w11 = (ss2-s0)*(fs2-f0)
+    
+    m = m * (mask[s0, f0]*mask[s1, f0]*mask[s0, f1]*mask[s1, f1])
+    
+    out    = fill * np.ones(ss2.shape)
+    out[m] = w00[m] * array[s0[m],f0[m]] \
+           + w10[m] * array[s1[m],f0[m]] \
+           + w01[m] * array[s0[m],f1[m]] \
+           + w11[m] * array[s1[m],f1[m]]
+    
+    #out[m] /= s[m]
+    out[~m] = fill
+    return out, m  
+
+def bilinear_interpolation_opencl(array, mask, ss2, fs2, fill = 0):
+    """
+    See https://en.wikipedia.org/wiki/Bilinear_interpolation
+    
+    out[i, j] = array[ss[i, j], fs[i, j]]
+    """
+    #ss2 = ss - 0.5
+    #fs2 = fs - 0.5
+    s0, s1 = np.floor(ss2).astype(np.uint32), np.ceil(ss2).astype(np.uint32)
+    f0, f1 = np.floor(fs2).astype(np.uint32), np.ceil(fs2).astype(np.uint32)
+    
+    # check out of bounds
+    m = (ss2 >= 0) * (ss2 <= (array.shape[0]-1)) * (fs2 >= 0) * (fs2 <= (array.shape[1]-1))
+    
+    s0[~m] = 0
+    s1[~m] = 0
+    f0[~m] = 0
+    f1[~m] = 0
+    
+    # careful with edges
+    s1[(s1==s0)*(s0==0)] += 1
+    s0[(s1==s0)*(s0!=0)] -= 1
+    f1[(f1==f0)*(f0==0)] += 1
+    f0[(f1==f0)*(f0!=0)] -= 1
+    
+    # make the weighting function
+    w00 = (s1-ss2)*(f1-fs2)
+    w01 = (s1-ss2)*(fs2-f0)
+    w10 = (ss2-s0)*(f1-fs2)
+    w11 = (ss2-s0)*(fs2-f0)
     
     m = m * (mask[s0, f0]*mask[s1, f0]*mask[s0, f1]*mask[s1, f1])
     

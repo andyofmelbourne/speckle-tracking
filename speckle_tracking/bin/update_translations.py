@@ -23,7 +23,7 @@ def main(overide={}):
     # overide with input params (if any)
     params.update(overide)
     
-    xy_pix, res = st.update_translations(
+    xy_pix, err = st.update_translations(
             params['data'].astype(np.float32),
             params['mask'], 
             params['whitefield'], 
@@ -46,7 +46,7 @@ def main(overide={}):
     
     # output display for gui
     with open('.log', 'w') as f:
-        print('display: /'+params['h5_group']+'/pixel_translations_comparison scatter', file=f)
+        print('display: '+params['h5_group']+'/pixel_translations_comparison scatter', file=f)
 
 
 if __name__ == '__main__':

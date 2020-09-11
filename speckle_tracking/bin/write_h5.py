@@ -52,7 +52,7 @@ if __name__ == '__main__':
     Are you sure you want to evaluate the following expression? """
     + '\n' + args.expression + '\n y/n?: ')
     
-    if con is 'y':
+    if con == 'y':
         v = eval(args.expression)
     
     # write to file
