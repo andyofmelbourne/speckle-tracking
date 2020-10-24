@@ -13,7 +13,7 @@ def fit_thon_rings(
     This is done by generating a filtered power spectrum of the data. Then fitting
     concentric rings to this profile. The fitting parameters are then used to 
     estimate the horizontal and vertical focus to sample distance.
-
+    
     Parameters
     ----------
     data : ndarray
@@ -114,11 +114,12 @@ def fit_thon_rings(
     focal plane and the sample along the slow and fast scan axes respectively
     and :math:`z_2` is the distance between the sample and the detector.
     """
+    print('data.shape', data.shape)
 
     if verbose : print('fitting the defocus and astigmatism')
     # generate the thon rings
     # offset centre to avoid panel edges
-    thon = make_thon(data, mask, W, roi, sig=sig, centre=centre)
+    thon, thon_real = make_thon(data, mask, W, roi, sig=sig, centre=centre)
     
     # make an edge mask
     edge_mask = make_edge_mask(thon.shape, edge_pix)
@@ -166,7 +167,7 @@ def fit_thon_rings(
     #thon_dis = np.array([np.fft.fftshift(thon_dis), thon_calc])
     thon_dis = np.array([np.fft.fftshift(thon_dis)])
     
-    out = {'thon_display': thon_dis, 'bd':bd, 'defocus_fs': z1-dz, 'defocus_ss': z1+dz, 'astigmatism': dz}
+    out = {'thon_display': thon_dis, 'bd':bd, 'defocus_fs': z1-dz, 'defocus_ss': z1+dz, 'astigmatism': dz, 'thon': thon, 'thon_realspace': thon_real}
     out.update(res2)
     return z1, out
 
@@ -181,19 +182,22 @@ def make_thon(data, mask, W, roi=None, sig=None, centre=None):
 
     reg = mk_2dgaus(data.shape[1:], sig, centre)
     
-    thon = np.zeros(data.shape[1:], dtype=np.float)
+    thon      = np.zeros(data.shape[1:], dtype=np.float)
+    thon_real = np.zeros(data.shape[1:], dtype=np.float)
     for i in tqdm.trange(data.shape[0], desc='generating Thon rings from data'):
         # mask data and fill masked pixels
         temp = mask * data[i] / W
         temp[mask==False] = 1.
         temp *= reg
+        thon_real += temp
         thon += np.abs(np.fft.fftn(np.fft.fftshift(temp)))**2  
     
-    return thon
+    return thon, thon_real
 
 def mk_2dgaus(shape, sig, centre = None):
     if centre is None :
         centre = [shape[0]//2, shape[1]//2]
+    print('centre:', centre)
     if sig is not None : 
         x = np.arange(shape[0]) - centre[0]
         x = np.exp( -x**2 / (2. * sig**2))

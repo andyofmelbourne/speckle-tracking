@@ -29,7 +29,7 @@ def main(overide={}):
                              params['wavelength'],
                              params['mask'],
                              params['whitefield'],
-                             params['roi'],
+                             None,
                              None,
                              params['sigma'],
                              params['edge_pix'],
