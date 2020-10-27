@@ -19,7 +19,7 @@ def main(overide={}):
     # now load the necessary data
     args, params = cmdline_config_cxi_reader.get_all(sc, des, config_dirs=config_dirs, roi=True)
     params = params[sc]
-
+    
     # overide with input params (if any)
     params.update(overide)
     

@@ -27,6 +27,7 @@ def main(overide={}):
                            params['whitefield'], 
                            params['pixel_translations'], 
                            params['pixel_map'], 
+                           minimum_overlap=params['minimum_overlap'],
                            subpixel=True)
     
     out = {'reference_image': O, 'n0': n0, 'm0': m0}

@@ -136,7 +136,7 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False,
         it = tqdm.trange(data.shape[0], desc='building object map')
     else :
         it = np.arange(data.shape[0])
-
+    
     if subpixel :
         for n in it:
             # define the coordinate mapping
@@ -167,7 +167,7 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False,
     I[~m] = -1
     
     if minimum_overlap is not None :
-        m = overlap < minimum_overlap
+        m = overlap < (minimum_overlap*np.mean(WW[m_roi]))
         I[m] = -1
     
     if sig is not None :
