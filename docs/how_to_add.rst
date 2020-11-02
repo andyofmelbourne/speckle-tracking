@@ -55,7 +55,7 @@ Now you can open a new terminate, load some data and sum it!::
         result = st.sum_data(data)
 
         # write the result back into the CXI file
-        f['my_result'] = result
+        f['my_result/result'] = result
 
 
 
@@ -108,11 +108,11 @@ If you have many arguments to your routine and you would like to turn this into 
 
 2a. First create the ini file :code:`speckle-tracking/speckle_tracking/bin/sum_data_cmd.ini`::
 
-    [sum_data]
+    [sum_data_cmd]
     # anything after the ; is a comment
     data  = /entry_1/data_1/data   ;str, location of diffraction data
     
-    [sum_data-advanced]
+    [sum_data_cmd-advanced]
     h5_group = my_result ;str, name of h5 group to write the result to
 
 2b. Now modify the file :code:`speckle-tracking/speckle_tracking/bin/sum_data_cmd.py`::
@@ -125,7 +125,7 @@ If you have many arguments to your routine and you would like to turn this into 
 
     if __name__ == '__main__':
         # get command line args and config
-        sc  = 'sum_data'
+        sc  = 'sum_data_cmd'
          
         # search the current directory for *.ini files if not present in cxi directory
         config_dirs = [os.path.split(os.path.abspath(__file__))[0]]
@@ -135,16 +135,18 @@ If you have many arguments to your routine and you would like to turn this into 
         
         # now load the necessary data
         args, params = st.cmdline_config_cxi_reader.get_all(sc, des, config_dirs=config_dirs)
-
+        
+        params = params['sum_data_cmd']
+        
         # your data, along with any other options and arguments, 
-        # is now in the # params dictionary.
+        # is now in the params dictionary.
         
         # call your new function
         result = st.sum_data(params['data'])
-
+        
         # write the output into CXI file
         out = {'result': result}
-        cmdline_config_cxi_reader.write_all(params, args.filename, out)
+        st.cmdline_config_cxi_reader.write_all(params, args.filename, out)
 
 3. Commit this code change to your branch::
 
