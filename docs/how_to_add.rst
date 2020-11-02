@@ -54,6 +54,10 @@ Now you can open a new terminate, load some data and sum it!::
         # call your new function
         result = st.sum_data(data)
 
+        # delete this dataset if it already exists
+        if 'my_result/result' in f:
+            del f['my_result/result']
+
         # write the result back into the CXI file
         f['my_result/result'] = result
 
@@ -85,6 +89,10 @@ For a basic routine that you don't intend to use as a GUI widget.
 
             # call your new function
             result = st.sum_data(data)
+
+            # delete this dataset if it already exists
+            if 'my_result/result' in f:
+                del f['my_result/result']
 
             # write the result back into the CXI file
             f['my_result/result'] = result
