@@ -3,7 +3,7 @@ import glob
 
 setup(
     name                 = "speckle-tracking",
-    version              = "2019.1",
+    version              = "2020.1",
     packages             = find_packages(),
     scripts              = glob.glob('speckle_tracking/bin/*.py')
     )
