@@ -43,7 +43,8 @@ Developers
 ----------
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     
     todo
+    how_to_add
 

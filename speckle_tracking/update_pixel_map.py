@@ -157,13 +157,14 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
 
     u0 = np.array(np.indices(W.shape))
     if (filter is not None) and (filter > 0):
-        out = u0 + filter_pixel_map(out-u0, mask, filter)
+        mpm = np.array([mask, mask])
+        out[mpm] = u0[mpm] + filter_pixel_map(out-u0, mask, filter)[mpm]
     
     if integrate :
         from .utils import integrate_grad2
         phase_pix, res = integrate_grad2(
                          out[0]-u0[0], out[1]-u0[1], 
-                         mask*W**0.5, maxiter=2000)
+                         mask*W**0.5, maxiter=5000)
         
         # prevent crazy numbers before filtering
         if clip is not None :

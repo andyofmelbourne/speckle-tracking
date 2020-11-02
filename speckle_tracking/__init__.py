@@ -15,6 +15,7 @@ from .update_translations import update_translations
 from .update_translations import update_translations_1
 from .update_pixel_map import bilinear_interpolation_array
 from .update_pixel_map import update_pixel_map
+from .update_pixel_map import filter_pixel_map
 from .pixel_map_from_data import pixel_map_from_data
 from .update_pixel_map import update_pixel_map_opencl
 from .update_pixel_map import make_projection_images

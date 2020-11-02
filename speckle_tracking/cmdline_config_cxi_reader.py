@@ -72,7 +72,7 @@ def get_all(sn, des, exclude=[], config_dirs=None, roi=False):
     return args, params
 
 
-def write_all(params, filename, output_dict, apply_roi=True):
+def write_all(params, filename, output_dict, apply_roi=False):
     # write all datasets to the h5 file
     # but undo all roi stuff
     # and convert pixel shifts to sample translations
