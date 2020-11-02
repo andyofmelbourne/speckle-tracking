@@ -64,13 +64,11 @@ How to add your routine to the command line
 
 1. To make the routine :code:`sum_data` accessible as a command line utility, then first add it as a Python routine above. 
 
-2. Now that's done. Write a new file, let's call it :code:`sum_data_cmd.py` and put it in the directory :code:`speckle-tracking/speckle_tracking/bin/`.
-
 Simple usage
 ------------
 For a basic routine that you don't intend to use as a GUI widget.
 
-3. Add the following code to :code:`speckle-tracking/speckle_tracking/bin/sum_data_cmd.py`::
+2. Write a new file, let's call it :code:`speckle-tracking/speckle_tracking/bin/sum_data_cmd.py`::
 
     #!/usr/bin/env python
     import sys
@@ -91,12 +89,12 @@ For a basic routine that you don't intend to use as a GUI widget.
             # write the result back into the CXI file
             f['my_result/result'] = result
 
-4. Commit this code change to your branch::
+3. Commit this code change to your branch::
 
     git add speckle_tracking/bin/sum_data_cmd.py
     git commit -m "my brilliant command line utility"
     
-5. Re-install speckle\_tracking to add :code:`sum_data_cmd.py` to your path. Go to :code:`speckle-tracking` and type::
+4. Re-install speckle\_tracking to add :code:`sum_data_cmd.py` to your path. Go to :code:`speckle-tracking` and type::
 
     pip install -e .
 
@@ -108,7 +106,7 @@ Complex usage
 -------------
 If you have many arguments to your routine and you would like to turn this into a GUI widget then you will need two files: one ini file that contains all of the input arguments, and one python file, which calls that ini file and runs your routine.
 
-3a. First create the ini file :code:`speckle-tracking/speckle_tracking/bin/sum_data_cmd.ini`::
+2a. First create the ini file :code:`speckle-tracking/speckle_tracking/bin/sum_data_cmd.ini`::
 
     [sum_data]
     # anything after the ; is a comment
@@ -117,7 +115,7 @@ If you have many arguments to your routine and you would like to turn this into 
     [sum_data-advanced]
     h5_group = my_result ;str, name of h5 group to write the result to
 
-3b. Now modify the file :code:`speckle-tracking/speckle_tracking/bin/sum_data_cmd.py`::
+2b. Now modify the file :code:`speckle-tracking/speckle_tracking/bin/sum_data_cmd.py`::
 
     #!/usr/bin/env python
     import sys
@@ -148,13 +146,13 @@ If you have many arguments to your routine and you would like to turn this into 
         out = {'result': result}
         cmdline_config_cxi_reader.write_all(params, args.filename, out)
 
-4. Commit this code change to your branch::
+3. Commit this code change to your branch::
 
     git add speckle_tracking/bin/sum_data_cmd.py
     git add speckle_tracking/bin/sum_data_cmd.ini
     git commit -m "my brilliant command line utility"
     
-5. Re-install speckle\_tracking to add :code:`sum_data_cmd.py` to your path. Go to :code:`speckle-tracking` and type::
+4. Re-install speckle\_tracking to add :code:`sum_data_cmd.py` to your path. Go to :code:`speckle-tracking` and type::
 
     pip install -e .
 
