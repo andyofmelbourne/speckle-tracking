@@ -47,7 +47,7 @@ Now you can open a new terminate, load some data and sum it!::
     import speckle_tracking as st
     import h5py
 
-    with h5py.File('some_cxi_file.cxi') as f:
+    with h5py.File('some_cxi_file.cxi', 'r+') as f:
         # read the data from the CXI file
         data = f['/entry_1/data_1/data'][()]
 
@@ -81,7 +81,7 @@ For a basic routine that you don't intend to use as a GUI widget.
         # grab the CXI file name from the first command line argument
         fnam = sys.args[1]
 
-        with h5py.File(fnam) as f:
+        with h5py.File(fnam, 'r+') as f:
             # read the data from the CXI file
             data = f['/entry_1/data_1/data'][()]
 
