@@ -81,7 +81,7 @@ For a basic routine that you don't intend to use as a GUI widget.
 
     if __name__ == '__main__':
         # grab the CXI file name from the first command line argument
-        fnam = sys.args[1]
+        fnam = sys.argv[1]
 
         with h5py.File(fnam, 'r+') as f:
             # read the data from the CXI file
@@ -126,7 +126,6 @@ If you have many arguments to your routine and you would like to turn this into 
 2b. Now modify the file :code:`speckle-tracking/speckle_tracking/bin/sum_data_cmd.py`::
 
     #!/usr/bin/env python
-    import sys
     import os
     import h5py
     import speckle_tracking as st
