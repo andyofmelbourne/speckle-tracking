@@ -18,7 +18,16 @@ Before you do anything to the code, check out a new branch using git at the top 
 
 Now all changes to the code will be associated with a git branch called :code:`sum_data`.
 
-At this point you have three options: first, you could add this routine to the Python module (in which case the user can call it along with the other speckle tracking routines), second, you could add it as a command line utility (in which case the code does not have to be Python), and third, you could add it to the GUI. 
+At this point you have three options: first, you could add this routine to the Python module (in which case the user can call it along with the other speckle tracking routines), second, you could add it as a command line utility (in which case the code does not have to be Python), and third, you could add it to the GUI::
+
+    speckle-tracking/
+    └── speckle_tracking
+        ├── bin
+        │   ├── sum_data_cmd.ini  <-- arguments for cmd line utility
+        │   ├── sum_data_cmd.py   <-- cmd line utility (calls sum_data.py)
+        │   └── speckle_gui.py    <-- automatically adds sum_data_cmd.py to GUI
+        └── sum_data.py           <-- contains Python routine sum_data
+
 
 How to add a routine to the Python module
 =========================================
