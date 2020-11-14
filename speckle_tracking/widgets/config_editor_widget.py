@@ -28,7 +28,7 @@ class QForm_w(pyqt.QWidget):
     """
     """
     def __init__(self, update_config):
-        super(pyqt.QForm_w, self).__init__()
+        super(QForm_w, self).__init__()
         
         self.layout = pyqt.QFormLayout()
         self.setLayout(self.layout)
@@ -95,7 +95,7 @@ class Config_editor_Widget(pyqt.QWidget):
             adv_options = []
             # add the params form widget
             ############################
-            self.forms.append(pyqt.QForm_w(self.update_config))
+            self.forms.append(QForm_w(self.update_config))
             for key in self.config[group].keys():
                 val, doc, adv = self.config[group][key]
                 if adv is False :
@@ -115,7 +115,7 @@ class Config_editor_Widget(pyqt.QWidget):
             # repeat for advanced options 
             #############################
             if len(adv_options) > 0 :
-                self.forms.append(pyqt.QForm_w(self.update_config))
+                self.forms.append(QForm_w(self.update_config))
                 for key, val, doc in adv_options :
                     self.forms[-1].addRow(key, val, doc)
                 
