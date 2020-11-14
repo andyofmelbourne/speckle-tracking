@@ -147,7 +147,7 @@ If you have many arguments to your routine and you would like to turn this into 
         config_dirs = [os.path.split(os.path.abspath(__file__))[0]]
         
         # extract the first paragraph from the doc string
-        des = st.make_whitefield.__doc__.split('\n\n')[0]
+        des = st.sum_data.__doc__.split('\n\n')[0]
         
         # now load the necessary data
         args, params = st.cmdline_config_cxi_reader.get_all(sc, des, config_dirs=config_dirs)
