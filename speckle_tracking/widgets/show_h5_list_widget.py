@@ -1,12 +1,12 @@
 try :
-    from PyQt5.QtWidgets import *
+    import PyQt5.QtWidgets as pyqt
 except :
-    from PyQt4.QtGui import *
+    import PyQt4.QtGui as pyqt
 
 import h5py
 
 
-class Show_h5_list_widget(QWidget):
+class Show_h5_list_widget(pyqt.QWidget):
     def __init__(self, filename, names = None):
         super(Show_h5_list_widget, self).__init__()
 
@@ -14,13 +14,13 @@ class Show_h5_list_widget(QWidget):
         self.names    = names
         
         # add the names to Qlist thing
-        self.listWidget = QListWidget(self)
+        self.listWidget = pyqt.QListWidget(self)
         #self.listWidget.setMinimumWidth(self.listWidget.sizeHintForColumn(0))
         #self.listWidget.setMinimumHeight(500)
         
         # update list button
         ####################
-        self.update_button = QPushButton('update', self)
+        self.update_button = pyqt.QPushButton('update', self)
         self.update_button.clicked.connect(self.update)
 
         # get the list of groups and items
@@ -35,7 +35,7 @@ class Show_h5_list_widget(QWidget):
     
     def initUI(self):
         # set the layout
-        self.layout = QVBoxLayout()
+        self.layout = pyqt.QVBoxLayout()
         self.layout.addWidget(self.listWidget)
         self.layout.addWidget(self.update_button)
         
@@ -49,7 +49,7 @@ class Show_h5_list_widget(QWidget):
             if ((names is None) or (names is not None and name in names)) \
                     and name not in self.dataset_names:
                 self.dataset_names.append(name)
-                self.dataset_items.append(QListWidgetItem(self.listWidget))
+                self.dataset_items.append(pyqt.QListWidgetItem(self.listWidget))
                 self.dataset_items[-1].setText(name)
     
     def update(self):

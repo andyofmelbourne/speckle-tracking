@@ -1,7 +1,7 @@
 try :
-    from PyQt5.QtWidgets import *
+    import PyQt5.QtWidgets as pyqt
 except :
-    from PyQt4.QtGui import *
+    import PyQt4.QtGui as pyqt
 
 import sys, os
 root = os.path.split(os.path.abspath(__file__))[0]
@@ -17,7 +17,7 @@ from show_nd_data_widget  import Show_nd_data_widget
 import multiprocessing
 CPUS = min(multiprocessing.cpu_count() // 2, 8)
 
-class Auto_build_widget(QWidget):
+class Auto_build_widget(pyqt.QWidget):
     """
     ui layout is :
         | config editor |
@@ -44,9 +44,9 @@ class Auto_build_widget(QWidget):
 
     def initUI(self):
         # 
-        vbox = QVBoxLayout()
+        vbox = pyqt.QVBoxLayout()
 
-        vbox1 = QVBoxLayout()
+        vbox1 = pyqt.QVBoxLayout()
         # config widget
         ###############
         config_editor_widget = Config_editor_Widget(self.config_fnams, self.config_output)
@@ -61,7 +61,7 @@ class Auto_build_widget(QWidget):
         ####################
         vbox1.addWidget(self.run_and_log_command.pushButton)
 
-        hbox = QHBoxLayout()
+        hbox = pyqt.QHBoxLayout()
         hbox.addLayout(vbox1)
         
         # display widget

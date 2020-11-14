@@ -1,8 +1,8 @@
 try :
-    from PyQt5.QtWidgets import *
+    import PyQt5.QtWidgets as pyqt
     from PyQt5.QtCore import pyqtSignal, QTimer, QProcess, QFileSystemWatcher
 except :
-    from PyQt4.QtGui import *
+    from PyQt4.QtGui import pyqt
     from PyQt4.QtCore import pyqtSignal, QTimer, QProcess, QFileSystemWatcher
 
 import sys, os, time
@@ -15,7 +15,7 @@ def enqueue_output(out, queue):
     out.close()
 
 
-class WatchFileWidget(QWidget):
+class WatchFileWidget(pyqt.QWidget):
     display_signal = pyqtSignal(str)
     
     def __init__(self, fnam = '.log'):
@@ -52,7 +52,7 @@ class WatchFileWidget(QWidget):
     def stop(self):
         self.w.removePath(self.fnam)
     
-class RunCommandWidget(QWidget):
+class RunCommandWidget(pyqt.QWidget):
     
     finished_signal = pyqtSignal(bool)
     display_signal = pyqtSignal(str)
@@ -73,26 +73,26 @@ class RunCommandWidget(QWidget):
     
     def initUI(self):
         # Run button
-        self.pushButton = QPushButton('Run')
+        self.pushButton = pyqt.QPushButton('Run')
         self.pushButton.clicked.connect(self.run_cmd)
          
         # Make a grid layout
         #layout = QGridLayout()
-        hbox = QHBoxLayout()
+        hbox = pyqt.QHBoxLayout()
         
         # add the layout to the central widget
         self.setLayout(hbox)
         
         # show the command being executed
-        self.command_label0 = QLabel(self)
+        self.command_label0 = pyqt.QLabel(self)
         self.command_label0.setText('<b>Command:</b>')
-        self.command_label  = QLabel(self)
+        self.command_label  = pyqt.QLabel(self)
         #self.command_label.setMaximumSize(50, 250)
          
         # show the status of the command
-        self.status_label0  = QLabel(self)
+        self.status_label0  = pyqt.QLabel(self)
         self.status_label0.setText('<b>Status:</b>')
-        self.status_label   = QLabel(self)
+        self.status_label   = pyqt.QLabel(self)
         
         # add to layout
         hbox.addWidget(self.status_label0)
@@ -138,7 +138,7 @@ class RunCommandWidget(QWidget):
         self.finished_signal.emit(True)
 
 
-class Run_and_log_command(QWidget):
+class Run_and_log_command(pyqt.QWidget):
     """
     run a command and send a signal when it complete, or it has failed.
 
@@ -162,19 +162,19 @@ class Run_and_log_command(QWidget):
         """
         # Make a grid layout
         #layout = QGridLayout()
-        hbox = QHBoxLayout()
+        hbox = pyqt.QHBoxLayout()
         
         # add the layout to the central widget
         self.setLayout(hbox)
         
         # show the command being executed
-        self.command_label0 = QLabel(self)
+        self.command_label0 = pyqt.QLabel(self)
         self.command_label0.setText('<b>Command:</b>')
-        self.command_label  = QLabel(self)
+        self.command_label  = pyqt.QLabel(self)
         #self.command_label.setMaximumSize(50, 250)
          
         # show the status of the command
-        self.status_label0  = QLabel(self)
+        self.status_label0  = pyqt.QLabel(self)
         self.status_label0.setText('<b>Status:</b>')
         self.status_label   = QLabel(self)
         

@@ -1,13 +1,13 @@
 try :
-    from PyQt5.QtWidgets import *
+    import PyQt5.QtWidgets as pyqt
 except :
-    from PyQt4.QtGui import *
+    import PyQt4.QtGui as pyqt
 
 import h5py
 import pyqtgraph as pg
 import numpy as np
 
-class Select_frames_widget(QWidget):
+class Select_frames_widget(pyqt.QWidget):
     """
     Draw a scatter plot of the X-Y coordinates in f[R]
     """
@@ -23,7 +23,7 @@ class Select_frames_widget(QWidget):
     
     def initUI(self, frame):
         # Make a grid layout
-        layout = QGridLayout()
+        layout = pyqt.QGridLayout()
         
         # add the layout to the central widget
         self.setLayout(layout)
@@ -98,10 +98,10 @@ class Select_frames_widget(QWidget):
         courner = [X.min()-1.5*span[0], Y.min()-1.5*span[1]]
         self.roi = pg.RectROI(courner, span)
         self.roi.setZValue(10)                       # make sure ROI is drawn above image
-        ROI_button_good   = QPushButton('good frames')
-        ROI_button_bad    = QPushButton('bad frames')
-        ROI_button_toggle = QPushButton('toggle frames')
-        write_button      = QPushButton('write to file')
+        ROI_button_good   = pyqt.QPushButton('good frames')
+        ROI_button_bad    = pyqt.QPushButton('bad frames')
+        ROI_button_toggle = pyqt.QPushButton('toggle frames')
+        write_button      = pyqt.QPushButton('write to file')
         ROI_button_good.clicked.connect(   lambda : self.mask_ROI(self.roi, 0))
         ROI_button_bad.clicked.connect(    lambda : self.mask_ROI(self.roi, 1))
         ROI_button_toggle.clicked.connect( lambda : self.mask_ROI(self.roi, 2))
@@ -115,7 +115,7 @@ class Select_frames_widget(QWidget):
         if self.s12 is not None :
             scatter_plot.addItem(self.s12)
         
-        hbox = QHBoxLayout()
+        hbox = pyqt.QHBoxLayout()
         hbox.addWidget(ROI_button_good)
         hbox.addWidget(ROI_button_bad)
         hbox.addWidget(ROI_button_toggle)

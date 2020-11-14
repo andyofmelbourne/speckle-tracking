@@ -1,9 +1,9 @@
 import signal
 
 try :
-    from PyQt5.QtWidgets import *
+    import PyQt5.QtWidgets as pyqt
 except :
-    from PyQt4.QtGui import *
+    import PyQt4.QtGui as pyqt
 
 import speckle_tracking as st
 from speckle_tracking import config_reader
@@ -24,13 +24,13 @@ def discover_config(script_name, h5_fnam, config_fnam='', config_dirs = ['proces
         config_fnams.append(os.path.join(os.path.join(root, cd), script_name + '.ini'))
     return config_fnams, config_output
 
-class QForm_w(QWidget):
+class QForm_w(pyqt.QWidget):
     """
     """
     def __init__(self, update_config):
-        super(QForm_w, self).__init__()
+        super(pyqt.QForm_w, self).__init__()
         
-        self.layout = QFormLayout()
+        self.layout = pyqt.QFormLayout()
         self.setLayout(self.layout)
         self.is_vis = True
         self.l_eds  = []
@@ -38,10 +38,10 @@ class QForm_w(QWidget):
         self.update_config = update_config
     
     def addRow(self, key, val, doc=None):
-        label = QLabel(key)
+        label = pyqt.QLabel(key)
         if doc is not None :
             label.setToolTip(doc)
-        self.l_eds.append(QLineEdit(str(val)))
+        self.l_eds.append(pyqt.QLineEdit(str(val)))
         self.l_eds[-1].editingFinished.connect(self.update_config)
         self.keys.append(key)
         self.layout.addRow(label, self.l_eds[-1])
@@ -59,7 +59,7 @@ class QForm_w(QWidget):
             vals.append( (key, str(le.text()).strip()))
         return vals
 
-class Config_editor_Widget(QWidget):
+class Config_editor_Widget(pyqt.QWidget):
     """
     """
     def __init__(self, config_fnam, output_filename = None):
@@ -78,14 +78,14 @@ class Config_editor_Widget(QWidget):
     
     def initUI(self):
         # Make a vertical stack
-        layout = QVBoxLayout()
+        layout = pyqt.QVBoxLayout()
         
         # add the layout to the central widget
         self.setLayout(layout)
         
         # add the output config filename 
         ################################    
-        fnam_label = QLabel(self)
+        fnam_label = pyqt.QLabel(self)
         fnam_label.setText('<b>'+self.output_filename+'</b>')
         layout.addWidget(fnam_label)
         
@@ -95,7 +95,7 @@ class Config_editor_Widget(QWidget):
             adv_options = []
             # add the params form widget
             ############################
-            self.forms.append(QForm_w(self.update_config))
+            self.forms.append(pyqt.QForm_w(self.update_config))
             for key in self.config[group].keys():
                 val, doc, adv = self.config[group][key]
                 if adv is False :
@@ -106,7 +106,7 @@ class Config_editor_Widget(QWidget):
             # add the group collapsible widget
             ##################################  
             self.groups.append(group)
-            group_label = QPushButton(group, self)
+            group_label = pyqt.QPushButton(group, self)
             group_label.clicked.connect(self.forms[-1].toggle_disp)
             
             layout.addWidget(group_label)
@@ -115,7 +115,7 @@ class Config_editor_Widget(QWidget):
             # repeat for advanced options 
             #############################
             if len(adv_options) > 0 :
-                self.forms.append(QForm_w(self.update_config))
+                self.forms.append(pyqt.QForm_w(self.update_config))
                 for key, val, doc in adv_options :
                     self.forms[-1].addRow(key, val, doc)
                 
@@ -124,13 +124,13 @@ class Config_editor_Widget(QWidget):
                 # add the group collapsible widget
                 ##################################  
                 self.groups.append(group)
-                group_label = QPushButton(group+'-advanced', self)
+                group_label = pyqt.QPushButton(group+'-advanced', self)
                 group_label.clicked.connect(self.forms[-1].toggle_disp)
                 
                 layout.addWidget(group_label)
                 layout.addWidget(self.forms[-1])
          
-        verticalSpacer = QSpacerItem(10, 10, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        verticalSpacer = pyqt.QSpacerItem(10, 10, pyqt.QSizePolicy.Minimum, pyqt.QSizePolicy.Expanding)
         layout.addItem(verticalSpacer)
 
     def update_config(self):
@@ -144,10 +144,10 @@ class Config_editor_Widget(QWidget):
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_DFL) # allow Control-C
-    app = QApplication([])
+    app = pyqt.QApplication([])
     
     # Qt main window
-    Mwin = QMainWindow()
+    Mwin = pyqt.QMainWindow()
     Mwin.setWindowTitle('config editor')
     
     config_widget = Config_editor_Widget('example.ini', 'example_output.ini')

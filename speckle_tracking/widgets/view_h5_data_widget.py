@@ -1,14 +1,14 @@
 try :
-    from PyQt5.QtWidgets import *
+    import PyQt5.QtWidgets as pyqt
 except :
-    from PyQt4.QtGui import *
+    import PyQt4.QtGui as pyqt
 
 
 
 from show_h5_list_widget import Show_h5_list_widget
 from show_nd_data_widget import Show_nd_data_widget
 
-class View_h5_data_widget(QWidget):
+class View_h5_data_widget(pyqt.QWidget):
     def __init__(self, filename, names = None):
         super(View_h5_data_widget, self).__init__()
         
@@ -25,7 +25,7 @@ class View_h5_data_widget(QWidget):
         self.initUI()
 
     def initUI(self):
-        layout = QHBoxLayout()
+        layout = pyqt.QHBoxLayout()
         
         # add the layout to the central widget
         self.setLayout(layout)

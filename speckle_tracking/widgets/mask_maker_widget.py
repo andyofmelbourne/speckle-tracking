@@ -3,16 +3,16 @@ import h5py
 
 #import PyQt4.QtGui
 try :
-    from PyQt5.QtWidgets import *
+    import PyQt5.QtWidgets as pyqt
 except :
-    from PyQt4.QtGui import *
+    import PyQt4.QtGui as pyqt
 
 import pyqtgraph as pg
 
 import speckle_tracking 
 from speckle_tracking import config_reader
 
-class Mask_maker_widget(QWidget):
+class Mask_maker_widget(pyqt.QWidget):
     """
     """
     cspad_psana_shape = (4, 8, 185, 388)
@@ -223,7 +223,7 @@ class Mask_maker_widget(QWidget):
 
         ## save mask button
         #################################
-        save_button = QPushButton('save mask')
+        save_button = pyqt.QPushButton('save mask')
         save_button.clicked.connect(self.save_mask)
 
         # rectangular ROI selection
@@ -231,7 +231,7 @@ class Mask_maker_widget(QWidget):
         self.roi = pg.RectROI([-200,-200], [100, 100])
         self.plot.addItem(self.roi)
         self.roi.setZValue(10)                       # make sure ROI is drawn above image
-        ROI_button = QPushButton('mask rectangular ROI')
+        ROI_button = pyqt.QPushButton('mask rectangular ROI')
         ROI_button.clicked.connect(lambda : self.mask_ROI(self.roi))
 
         # circular ROI selection
@@ -239,20 +239,20 @@ class Mask_maker_widget(QWidget):
         self.roi_circle = pg.CircleROI([-200,200], [101, 101])
         self.plot.addItem(self.roi_circle)
         self.roi.setZValue(10)                       # make sure ROI is drawn above image
-        ROI_circle_button = QPushButton('mask circular ROI')
+        ROI_circle_button = pyqt.QPushButton('mask circular ROI')
         ROI_circle_button.clicked.connect(lambda : self.mask_ROI_circle(self.roi_circle))
 
         # histogram mask button
         #################################
-        hist_button = QPushButton('mask outside histogram')
+        hist_button = pyqt.QPushButton('mask outside histogram')
         hist_button.clicked.connect(self.mask_hist)
 
         # prev / next buttons
         #################################
-        hbox = QHBoxLayout()
-        prev_button = QPushButton('prev frame')
+        hbox = pyqt.QHBoxLayout()
+        prev_button = pyqt.QPushButton('prev frame')
         prev_button.clicked.connect(self.prev_frame)
-        next_button = QPushButton('next frame')
+        next_button = pyqt.QPushButton('next frame')
         next_button.clicked.connect(self.next_frame)
         hbox.addWidget(prev_button)
         hbox.addWidget(next_button)
@@ -262,12 +262,12 @@ class Mask_maker_widget(QWidget):
         
         # toggle / mask / unmask checkboxes
         #################################
-        self.toggle_checkbox   = QCheckBox('toggle')
-        self.mask_checkbox     = QCheckBox('mask')
-        self.unmask_checkbox   = QCheckBox('unmask')
+        self.toggle_checkbox   = pyqt.QCheckBox('toggle')
+        self.mask_checkbox     = pyqt.QCheckBox('mask')
+        self.unmask_checkbox   = pyqt.QCheckBox('unmask')
         self.toggle_checkbox.setChecked(True)   
         
-        self.toggle_group      = QButtonGroup()#"masking behaviour")
+        self.toggle_group      = pyqt.QButtonGroup()#"masking behaviour")
         self.toggle_group.addButton(self.toggle_checkbox)   
         self.toggle_group.addButton(self.mask_checkbox)   
         self.toggle_group.addButton(self.unmask_checkbox)   
@@ -275,12 +275,12 @@ class Mask_maker_widget(QWidget):
         
         # toggle / mask / unmask checkboxes
         #################################
-        self.toggle_checkbox   = QCheckBox('toggle')
-        self.mask_checkbox     = QCheckBox('mask')
-        self.unmask_checkbox   = QCheckBox('unmask')
+        self.toggle_checkbox   = pyqt.QCheckBox('toggle')
+        self.mask_checkbox     = pyqt.QCheckBox('mask')
+        self.unmask_checkbox   = pyqt.QCheckBox('unmask')
         self.toggle_checkbox.setChecked(True)   
         
-        self.toggle_group      = QButtonGroup()#"masking behaviour")
+        self.toggle_group      = pyqt.QButtonGroup()#"masking behaviour")
         self.toggle_group.addButton(self.toggle_checkbox)   
         self.toggle_group.addButton(self.mask_checkbox)   
         self.toggle_group.addButton(self.unmask_checkbox)   
@@ -288,21 +288,21 @@ class Mask_maker_widget(QWidget):
 
         # mouse hover ij value label
         #################################
-        ij_label = QLabel()
+        ij_label = pyqt.QLabel()
         disp = 'ss fs {0:5} {1:5}   value {2:2}'.format('-', '-', '-')
         ij_label.setText(disp)
         self.plot.scene.sigMouseMoved.connect( lambda pos: self.mouseMoved(ij_label, pos) )
         
         # unbonded pixels checkbox
         #################################
-        unbonded_checkbox = QCheckBox('unbonded pixels')
+        unbonded_checkbox = pyqt.QCheckBox('unbonded pixels')
         unbonded_checkbox.stateChanged.connect( self.update_mask_unbonded )
         if self.cspad_shape_flag == 'other' :
             unbonded_checkbox.setEnabled(False)
         
         # asic edges checkbox
         #################################
-        edges_checkbox = QCheckBox('asic edges')
+        edges_checkbox = pyqt.QCheckBox('asic edges')
         edges_checkbox.stateChanged.connect( self.update_mask_edges )
         if self.cspad_shape_flag == 'other' :
             edges_checkbox.setEnabled(False)
@@ -313,7 +313,7 @@ class Mask_maker_widget(QWidget):
 
         # Create a grid layout to manage the widgets size and position
         #################################
-        layout = QGridLayout()
+        layout = pyqt.QGridLayout()
         self.setLayout(layout)
 
         ## Add widgets to the layout in their proper positions

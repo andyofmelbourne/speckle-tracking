@@ -1,7 +1,7 @@
 try :
-    from PyQt5.QtWidgets import *
+    import PyQt5.QtWidgets as pyqt
 except :
-    from PyQt4.QtGui import *
+    import PyQt4.QtGui as pyqt
 
 import pyqtgraph as pg
 import h5py
@@ -21,7 +21,7 @@ def white(f, path, i):
     W[W<=0] = 1
     return W
 
-class Show_frames_selection_widget(QWidget):
+class Show_frames_selection_widget(pyqt.QWidget):
     def __init__(self, filename, R_paths=None, W_paths=None, data_paths=None, good_frames_paths=None):
         super(Show_frames_selection_widget, self).__init__()
         
@@ -67,7 +67,7 @@ class Show_frames_selection_widget(QWidget):
         
     def initUI(self):
         # Make a grid layout
-        layout = QGridLayout()
+        layout = pyqt.QGridLayout()
         
         # add the layout to the central widget
         self.setLayout(layout)
@@ -138,7 +138,7 @@ class Show_frames_selection_widget(QWidget):
 
     def initUI_1d(self):
         # Make a grid layout
-        layout = QGridLayout()
+        layout = pyqt.QGridLayout()
         
         # add the layout to the central widget
         self.setLayout(layout)

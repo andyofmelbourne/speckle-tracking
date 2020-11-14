@@ -1,7 +1,7 @@
 try :
-    from PyQt5.QtWidgets import *
+    import PyQt5.QtWidgets as pyqt
 except :
-    from PyQt4.QtGui import *
+    import PyQt4.QtGui as pyqt
 
 import h5py
 import pyqtgraph as pg
@@ -79,7 +79,7 @@ def squeeze_hdf5_shape(filename, name):
 
 
 
-class Show_nd_data_widget(QWidget):
+class Show_nd_data_widget(pyqt.QWidget):
     def __init__(self):
         super(Show_nd_data_widget, self).__init__()
 
@@ -91,7 +91,7 @@ class Show_nd_data_widget(QWidget):
     
     def initUI(self):
         # set the layout
-        self.layout = QVBoxLayout()
+        self.layout = pyqt.QVBoxLayout()
         
         # add the layout to the central widget
         self.setLayout(self.layout)
@@ -133,7 +133,7 @@ class Show_nd_data_widget(QWidget):
             if refresh :
                 self.plotW.setText('<b>'+name+'</b>: ' + str(squeeze_hdf5_dataset(filename, name, ())))
             else :
-                self.plotW = self.text_label = QLabel(self)
+                self.plotW = self.text_label = pyqt.QLabel(self)
                 self.plotW.setText('<b>'+title+'</b>: ' + str(squeeze_hdf5_dataset(filename, name, ())))
 
         elif len(shape) == 1 :
