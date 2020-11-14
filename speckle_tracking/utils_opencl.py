@@ -1,10 +1,11 @@
 import os
 import numpy as np
 import pyopencl as cl
+import sys
 
 # do not setup the opencl stuff if we are just building documentation
 
-if os.environ.get('READTHEDOCS') != 'True':
+if os.environ.get('READTHEDOCS') != 'True' and 'sphinx-build' not in sys.argv[0]:
     ##################################################################
     # OpenCL crap
     ##################################################################
