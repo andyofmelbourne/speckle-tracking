@@ -47,7 +47,11 @@ extensions = [
 ]
 
 # To avoid installing speckle-tracking and all its dependencies when building doc
-autodoc_mock_imports = ['PyQt4', 'tqdm', 'scipy', 'pyqt', 'pyqtgraph', 'h5py', 'pocl', 'pyopencl']
+autodoc_mock_imports = ['PyQt4', 'pyqt', 'pyqtgraph', 'QWidget', 'QHBoxLayout'
+        'QVBoxLayout', 'QForm_w', 'QLabel', 'QFormLayout', 'QLineEdit', 'QPushButton',
+        'QSpacerItem', 'QSizePolicy', 'QApplication', 'QMainWindow', 'QCheckBox', 
+        'QButtonGroup', 'QGridLayout', '
+        tqdm', 'scipy', 'pyqt', 'pyqtgraph', 'h5py', 'pocl', 'pyopencl']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
