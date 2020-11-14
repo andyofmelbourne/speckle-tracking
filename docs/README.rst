@@ -36,4 +36,8 @@ Getting Started
 ===============
 Start with the `Diatom tutorial <https://speckle-tracking.readthedocs.io/en/latest/CFEL_diatom_tutorial.html>`_, then do the `Simens star tutorial <https://speckle-tracking.readthedocs.io/en/latest/siemens_star.html>`_
 
+Citation
+========
+`Morgan, A. J., Murray, K. T., Quiney, H. M., Bajt, S. & Chapman, H. N. (2020). J. Appl. Cryst. 53. <https://doi.org/10.1107/S1600576720011991>`_
+
 
