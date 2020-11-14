@@ -46,6 +46,9 @@ extensions = [
     'sphinx.ext.napoleon',   
 ]
 
+# To avoid installing speckle-tracking and all its dependencies when building doc
+autodoc_mock_imports = ['tqdm', 'scipy', 'pyqt', 'pyqtgraph', 'h5py', 'pocl', 'pyopencl']
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
