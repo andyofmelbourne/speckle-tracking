@@ -47,7 +47,7 @@ extensions = [
 ]
 
 # To avoid installing speckle-tracking and all its dependencies when building doc
-autodoc_mock_imports = ['PyQt4', 'pyqt', 'pyqtgraph', 'QWidget', 'QHBoxLayout'
+autodoc_mock_imports = ['PyQt4', 'pyqt', 'pyqtgraph', 'QWidget', 'QHBoxLayout',
         'QVBoxLayout', 'QForm_w', 'QLabel', 'QFormLayout', 'QLineEdit', 'QPushButton',
         'QSpacerItem', 'QSizePolicy', 'QApplication', 'QMainWindow', 'QCheckBox', 
         'QButtonGroup', 'QGridLayout', '
