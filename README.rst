@@ -13,8 +13,8 @@ The easiest way to install speckle_tracking is through `Miniconda <https://docs.
 
     git clone https://github.com/andyofmelbourne/speckle-tracking.git
     cd speckle-tracking
-    conda create --file requirements.txt -c conda-forge -n test python=3
-    conda activate test
+    conda env create -f environment.yml
+    conda activate speckle-tracking
     pip install -e .
 
 Note on pip
