@@ -23,22 +23,21 @@ def main(overide={}):
     # overide with input params (if any)
     params.update(overide)
     
-    px, py, dx, dy, zstep = st.focus_profile(
+    profile, dx, dy, zstep = st.focus_profile(
             params['phase'],
             params['whitefield'], 
             params['z'], 
             params['wavelength'], 
             params['x_pixel_size'], 
             params['y_pixel_size'], 
-            params['zs'], 
-            params['subsamples'])
+            params['zs'])
     
-    out = {'profile_ss': px, 'profile_fs': py, 'xyz_voxel_size': np.array([dx, dy, zstep])}
+    out = {'profile_ss_fs': profile, 'xyz_voxel_size': np.array([dx, dy, zstep])}
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)
     
     # output display for gui
     with open('.log', 'w') as f:
-        print('display: '+params['h5_group']+'/profile_ss', file=f)
+        print('display: '+params['h5_group']+'/profile_ss_fs', file=f)
 
 
 
