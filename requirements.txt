@@ -1,9 +1,0 @@
-pyqt
-pyqtgraph
-h5py
-scipy
-numpy
-tqdm
-pocl
-pyopencl
-glob
