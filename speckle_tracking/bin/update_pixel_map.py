@@ -23,26 +23,17 @@ def main(overide={}):
     # overide with input parameters (if any)
     params.update(overide)
     
-    u, res = st.update_pixel_map(
-            params['data'].astype(np.float32),
-            params['mask'], 
-            params['whitefield'], 
-            params['reference_image'], 
-            params['pixel_map'], 
-            params['n0'], 
-            params['m0'], 
-            params['pixel_translations'], 
-            params['search_window'],
-            None, None,
-            params['subpixel'], 
-            params['subsample'], 
-            params['interpolate'], 
-            params['fill_bad_pix'],
-            params['quadratic_refinement'],
-            params['integrate'], 
-            params['clip'], 
-            params['filter'], 
-            verbose=True, guess=False)
+    u = st.update_pixel_map(
+            params['data'],
+            params['mask'],
+            params['whitefield'],
+            params['pixel_translations'],
+            params['reference_image'],
+            params['pixel_map'],
+            params['n0'],
+            params['m0'],
+            params['sw_ss'],
+            params['sw_fs'])
     
     u0 = np.array(np.indices(params['data'].shape[1:]))
     du = u-u0

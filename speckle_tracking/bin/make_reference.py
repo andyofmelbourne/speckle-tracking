@@ -16,19 +16,19 @@ def main(overide={}):
     
     # now load the necessary data
     args, params = cmdline_config_cxi_reader.get_all(sc, des, config_dirs=config_dirs, roi=True)
+    print(list(params['make_reference']))
     params = params['make_reference']
 
     # overide with input params (if any)
     params.update(overide)
     
     O, n0, m0 = st.make_object_map(
-                           params['data'], 
-                           params['mask'], 
-                           params['whitefield'], 
-                           params['pixel_translations'], 
-                           params['pixel_map'], 
-                           minimum_overlap=params['minimum_overlap'],
-                           subpixel=True)
+                           params['data'],
+                           params['mask'],
+                           params['whitefield'],
+                           params['pixel_translations'],
+                           params['pixel_map'],
+                           params['ls'])
     
     out = {'reference_image': O, 'n0': n0, 'm0': m0}
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)

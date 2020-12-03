@@ -22,7 +22,7 @@ def main(overide={}):
     # overide with input params (if any)
     params.update(overide)
     
-    error_total, error_frame, error_pixel, error_residual, error_reference, norm, flux_correction, res = st.calc_error(
+    error_total, norm, flux_correction, res = st.calc_error(
             params['data'], 
             params['mask'], 
             params['whitefield'], 
@@ -30,20 +30,16 @@ def main(overide={}):
             params['reference_image'], 
             params['pixel_map'], 
             params['n0'], 
-            params['m0'], 
-            subpixel=True, verbose=True)
+            params['m0'],
+            params['ls'])
     
-    out = {'error_total': error_total, 
-           'error_frame': error_frame, 
-           'error_pixel': error_pixel, 
-           'error_residual': error_residual, 
-           'error_reference': error_reference, 
+    out = {'error_total': error_total,
            'error_norm': norm,
            'flux_correction': flux_correction}
     
-    if '1d_data_vs_forward' in res :
+    if '1d_data_vs_forward' in res:
         out['1d_data_vs_forward'] = res['1d_data_vs_forward']
-    else :
+    else:
         out['forward'] = res['forward']
     
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)
