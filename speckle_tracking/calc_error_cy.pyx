@@ -33,14 +33,14 @@ cdef void mse_bi(float_t* m_ptr, float_t[::1] I, float_t[:, ::1] I0,
         elif ss >= aa - 1:
             dss = 0; ss0 = aa - 1; ss1 = aa - 1
         else:
-            ss = ss; dss = ss - floor(ss)
+            dss = ss - floor(ss)
             ss0 = <int>(floor(ss)); ss1 = ss0 + 1
         if fs <= 0:
             dfs = 0; fs0 = 0; fs1 = 0
         elif fs >= bb - 1:
             dfs = 0; fs0 = bb - 1; fs1 = bb - 1
         else:
-            fs = fs; dfs = fs - floor(fs)
+            dfs = fs - floor(fs)
             fs0 = <int>(floor(fs)); fs1 = fs0 + 1
         I0_bi = (1 - dss) * (1 - dfs) * I0[ss0, fs0] + \
                 (1 - dss) * dfs * I0[ss0, fs1] + \
@@ -48,9 +48,9 @@ cdef void mse_bi(float_t* m_ptr, float_t[::1] I, float_t[:, ::1] I0,
                 dss * dfs * I0[ss1, fs1]
         SS_res += (I[i] - I0_bi)**2
         SS_tot += (I[i] - 1)**2
-    m_ptr[0] = SS_res / SS_tot
-    if m_ptr[1] >= 0:
-        m_ptr[1] = 4 * I[a] * (SS_res / SS_tot**2 + SS_res**2 / SS_tot**3)
+    m_ptr[0] = SS_res; m_ptr[1] = SS_tot
+    if m_ptr[2] >= 0:
+        m_ptr[2] = 4 * I[a] * (SS_res / SS_tot**2 + SS_res**2 / SS_tot**3)
 
 cdef void krig_data_c(float_t[::1] I, float_t[:, :, ::1] I_n, bool_t[:, ::1] M, float_t[:, ::1] W,
                       float_t[:, :, ::1] u, int j, int k, float_t ls) nogil:
@@ -76,23 +76,23 @@ cdef void krig_data_c(float_t[::1] I, float_t[:, :, ::1] I_n, bool_t[:, ::1] M, 
             I[i] /= w0
         I[a] = rss / w0**2
 
-def calc_error_total(float_t[:, :, ::1] data, bool_t[:, ::1] mask, float_t[:, ::1] W, float_t[:, ::1] dij_n,
+def calc_error_frame(float_t[:, :, ::1] data, bool_t[:, ::1] mask, float_t[:, ::1] W, float_t[:, ::1] dij_n,
                      float_t[:, ::1] O, float_t[:, :, ::1] pixel_map, float_t n0, float_t m0, float_t ls, roi=None):
     dtype = np.float64 if float_t is np.float64_t else np.float32
     cdef:
         int a = data.shape[0], b = data.shape[1], c = data.shape[2]
         int aa = O.shape[0], bb = O.shape[1], j, k, t
         int max_threads = openmp.omp_get_max_threads()
-        float_t err = 0
-        float_t[:, ::1] mptr = NO_VAR * np.ones((max_threads, 2), dtype=dtype)
+        float_t[:, ::1] mptr = NO_VAR * np.ones((max_threads, 3), dtype=dtype)
         float_t[:, ::1] I = np.empty((max_threads, a + 1), dtype=dtype)
-    for k in prange(b, schedule='static', nogil=True):
+        float_t[:, ::1] mse_f = np.empty((b, c), dtype=dtype)
+    for k in prange(c, schedule='guided', nogil=True):
         t = openmp.omp_get_thread_num()
-        for j in range(c):
+        for j in range(b):
             krig_data_c(I[t], data, mask, W, pixel_map, j, k, ls)
-            mse_bi(&mptr[t, 0], I[t], O, dij_n, pixel_map[0, j, k], pixel_map[1, j, k])
-            err += mptr[t, 0]
-    return err / b / c
+            mse_bi(&mptr[t, 0], I[t], O, dij_n, pixel_map[0, j, k] + n0, pixel_map[1, j, k] + m0)
+            mse_f[j, k] = mptr[t, 0] / mptr[t, 1]
+    return np.asarray(mse_f)
 
 def calc_error(data, mask, W, dij_n, O, pixel_map, n0, m0, ls,
                subpixel=True, verbose=True):
@@ -207,11 +207,11 @@ def calc_error(data, mask, W, dij_n, O, pixel_map, n0, m0, ls,
     norm /= data.shape[0]
     norm[norm==0] = 1
     
-    error_total = calc_error_total(data, mask, W, dij_n, O, pixel_map, n0, m0, ls)
+    error_frame = calc_error_frame(data, mask, W, dij_n, O, pixel_map, n0, m0, ls)
     
     if data_1d :
         res = {'1d_data_vs_forward': np.squeeze(np.array([data, forward]))}
     else :
         res = {'forward': forward}
     
-    return error_total, norm, flux_corr, res
+    return error_frame, norm, flux_corr, res

@@ -3,12 +3,13 @@ import os
 import tqdm
 import speckle_tracking as st
 from speckle_tracking import cmdline_config_cxi_reader
-from speckle_tracking import cmdline_parser 
+from speckle_tracking import cmdline_parser
+from scipy.ndimage import gaussian_gradient_magnitude
 
 
 import numpy as np
-def defocus_sweep(z1_min, z1_max, N, z, roi, data, mask, whitefield, basis, 
-        x_pixel_size, y_pixel_size, translations):
+def defocus_sweep(z1_min, z1_max, N, z, data, mask, whitefield, basis, 
+        x_pixel_size, y_pixel_size, translations, ls):
     """
     Sweep over possible defocus values
     """
@@ -34,28 +35,12 @@ def defocus_sweep(z1_min, z1_max, N, z, roi, data, mask, whitefield, basis,
                     verbose=False)
         
         # generate reference image
-        Iref, m0, n0 = st.make_object_map(data, mask, whitefield, pixel_translations, 
-                                      pixel_map, roi=None, subpixel=False, 
-                                      verbose=False, minimum_overlap=None, sig=None)
+        I0 = st.make_object_map(data.astype(whitefield.dtype), mask, whitefield, pixel_translations, pixel_map, ls)[0]
 
-        Os.append(np.squeeze(Iref).copy()[:10000])
+        Os.append(np.mean(gaussian_gradient_magnitude(I0, sigma=ls)**2))
 
-    # make an array with all Os
-    s = max([o.shape[0] for o in Os])
-    Os_ar = np.zeros((len(z1s), s), dtype=np.float)
-    for i, o in enumerate(Os) :
-        Os_ar[i, :o.shape[0]] = o
-
-    # find the z1 value with the greatest variance
-    vs = []
-    for o in Os_ar:
-        vs.append(np.var(o[o>0]))
-    
-    i = np.argmax(vs)
-    z1 = z1s[i]
-    print('i, optimum', i, z1)
-
-    return np.squeeze(Os_ar), z1
+    z1 = z1s[np.argmax(Os)]
+    return np.array(Os), z1
 
 
 def main(overide={}):
@@ -79,14 +64,14 @@ def main(overide={}):
                        params['z1_max'], 
                        params['n'], 
                        params['z'], 
-                       params['roi'],
                        params['data'], 
                        params['mask'], 
                        params['whitefield'], 
                        params['basis'], 
                        params['x_pixel_size'], 
                        params['y_pixel_size'], 
-                       params['translations'])
+                       params['translations'],
+                       params['ls'])
     
     out = {'Os': Os, 'defocus': z1}
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)

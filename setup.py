@@ -26,6 +26,9 @@ extensions = [Extension(name='speckle_tracking.make_object_map_cy',
               Extension(name='speckle_tracking.update_pixel_map_cy',
                         sources=['speckle_tracking/update_pixel_map_cy' + ext],
                         **extension_args),
+              Extension(name='speckle_tracking.update_translations_cy',
+                        sources=['speckle_tracking/update_translations_cy' + ext],
+                        **extension_args),
               Extension(name='speckle_tracking.calc_error_cy',
                         sources=['speckle_tracking/calc_error_cy' + ext],
                         **extension_args)]
@@ -51,4 +54,4 @@ setup(name='speckle-tracking',
       package_data={'speckle_tracking': ['*.cl', 'bin/*.ini', '*.pyx', '*.c']},
       install_requires=['Cython', 'numpy'],
       ext_modules=extensions,
-      scripts=glob.glob('speckle_tracking/bin/*.py'))
+      scripts=glob.glob('speckle_tracking/bin/*'))

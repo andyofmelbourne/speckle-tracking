@@ -11,8 +11,7 @@ from .make_pixel_map import make_pixel_map
 from .make_pixel_translations import make_pixel_translations
 from .make_object_map import bilinear_interpolation_array_inverse
 from .make_object_map_cy import make_object_map
-from .update_translations import update_translations
-from .update_translations import update_translations_1
+from .update_translations_cy import update_translations
 from .update_pixel_map import bilinear_interpolation_array
 from .update_pixel_map_cy import update_pixel_map
 from .update_pixel_map import filter_pixel_map
@@ -36,7 +35,7 @@ from . import _widgets
 from . import optics
 from . import utils_opencl
 from .config_reader import get_fnam
- 
+
 make_reference = make_object_map
 calculate_phase = integrate_pixel_map
 focus_profile = propagation_profile

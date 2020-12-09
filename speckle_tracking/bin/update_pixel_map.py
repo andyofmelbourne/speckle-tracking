@@ -23,23 +23,23 @@ def main(overide={}):
     # overide with input parameters (if any)
     params.update(overide)
     
-    u = st.update_pixel_map(
-            params['data'],
-            params['mask'],
-            params['whitefield'],
-            params['pixel_translations'],
-            params['reference_image'],
-            params['pixel_map'],
-            params['n0'],
-            params['m0'],
-            params['sw_ss'],
-            params['sw_fs'])
-    
+    u = st.update_pixel_map(params['data'].astype(params['whitefield'].dtype),
+                            params['mask'],
+                            params['whitefield'],
+                            params['pixel_translations'],
+                            params['reference_image'],
+                            params['pixel_map'],
+                            params['n0'],
+                            params['m0'],
+                            params['sw_ss'],
+                            params['sw_fs'],
+                            params['ls'])
+
     u0 = np.array(np.indices(params['data'].shape[1:]))
     du = u-u0
     out = {'pixel_map': u, 'pixel_map_residual': du}
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)
-    
+
     # output display for gui
     with open('.log', 'w') as f:
         print('display: '+params['h5_group']+'/pixel_map_residual', file=f)
