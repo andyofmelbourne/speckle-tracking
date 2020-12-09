@@ -10,11 +10,10 @@ from .make_whitefield import make_whitefield
 from .make_pixel_map import make_pixel_map
 from .make_pixel_translations import make_pixel_translations
 from .make_object_map import bilinear_interpolation_array_inverse
-from .make_object_map import make_object_map
-from .update_translations import update_translations
-from .update_translations import update_translations_1
+from .make_object_map_cy import make_object_map
+from .update_translations_cy import update_translations
 from .update_pixel_map import bilinear_interpolation_array
-from .update_pixel_map import update_pixel_map
+from .update_pixel_map_cy import update_pixel_map
 from .update_pixel_map import filter_pixel_map
 from .pixel_map_from_data import pixel_map_from_data
 from .update_pixel_map import update_pixel_map_opencl
@@ -23,7 +22,7 @@ from .update_pixel_map import quadratic_refinement_opencl
 from .generate_pixel_map import generate_pixel_map
 from .integrate_pixel_map import integrate_pixel_map
 from .docstring_glossary import docstring_glossary
-from .calc_error import calc_error
+from .calc_error_cy import calc_error
 from .calc_error import make_pixel_map_err
 from .propagation_profile import propagation_profile
 from .angular_resolution import angular_resolution
@@ -36,7 +35,7 @@ from . import _widgets
 from . import optics
 from . import utils_opencl
 from .config_reader import get_fnam
- 
+
 make_reference = make_object_map
 calculate_phase = integrate_pixel_map
 focus_profile = propagation_profile

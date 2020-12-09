@@ -3,6 +3,7 @@ import os
 import speckle_tracking as st
 from speckle_tracking import cmdline_config_cxi_reader
 from speckle_tracking import cmdline_parser 
+import numpy as np
 
 def main(overide={}):
     # get command line args and config
@@ -20,15 +21,14 @@ def main(overide={}):
 
     # overide with input params (if any)
     params.update(overide)
-    
+
     O, n0, m0 = st.make_object_map(
-                           params['data'], 
-                           params['mask'], 
-                           params['whitefield'], 
-                           params['pixel_translations'], 
-                           params['pixel_map'], 
-                           minimum_overlap=params['minimum_overlap'],
-                           subpixel=True)
+                           params['data'].astype(params['whitefield'].dtype),
+                           params['mask'],
+                           params['whitefield'],
+                           params['pixel_translations'],
+                           params['pixel_map'],
+                           params['ls'])
     
     out = {'reference_image': O, 'n0': n0, 'm0': m0}
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)

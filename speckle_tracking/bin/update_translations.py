@@ -23,25 +23,22 @@ def main(overide={}):
     # overide with input params (if any)
     params.update(overide)
     
-    xy_pix, err = st.update_translations(
-            params['data'].astype(np.float32),
-            params['mask'], 
-            params['whitefield'], 
-            params['reference_image'], 
-            params['pixel_map'], 
-            params['n0'], 
-            params['m0'], 
-            params['pixel_translations'], 
-            params['search_window'],
-            False,
-            params['maxiters'],
-            params['tol'],
-            None)
+    dij_n = st.update_translations(params['data'].astype(np.float32),
+                                   params['mask'],
+                                   params['whitefield'],
+                                   params['pixel_translations'],
+                                   params['reference_image'],
+                                   params['pixel_map'],
+                                   params['n0'],
+                                   params['m0'],
+                                   params['sw_ss'],
+                                   params['sw_fs'],
+                                   params['ls'])
     
-    comp = np.array([xy_pix, params['pixel_translations']])
+    comp = np.array([dij_n, params['pixel_translations']])
     
-    out = { 'pixel_translations': xy_pix, 
-            'pixel_translations_comparison': comp}
+    out = {'pixel_translations': dij_n, 
+           'pixel_translations_comparison': comp}
     cmdline_config_cxi_reader.write_all(params, args.filename, out, apply_roi=True)
     
     # output display for gui
