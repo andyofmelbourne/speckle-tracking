@@ -2,7 +2,7 @@ import tqdm
 import numpy as np
 import scipy.signal
 
-def make_mask(data, thresh = 400, mask_gaps=False):
+def make_mask(data, thresh = 400, mask_gaps=False, verbose=False):
     """Make a binary True/False mask from input data
     
     Parameters
@@ -28,7 +28,7 @@ def make_mask(data, thresh = 400, mask_gaps=False):
     #    
     #    y = x^2
     ms = np.zeros(data.shape[1:], dtype=np.float)
-    for i in tqdm.trange(data.shape[0], desc='Making the mask'):
+    for i in tqdm.trange(data.shape[0], desc='Making the mask', disable=not verbose):
         ms += (data[i] - scipy.signal.medfilt(data[i], 3))**2
     
     var = scipy.signal.medfilt(np.var(data, axis=0))
