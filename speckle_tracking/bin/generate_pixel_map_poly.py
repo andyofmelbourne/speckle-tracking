@@ -42,12 +42,12 @@ def main(overide={}):
             dss, dfs)
 
     O, n0, m0 = st.make_object_map(
-                           params['data'], 
+                           params['data'].astype(params['whitefield'].dtype), 
                            params['mask'], 
                            params['whitefield'], 
                            pixel_translations, 
-                           u, 
-                           subpixel=False)
+                           u.astype(params['whitefield'].dtype), 
+                           params['ls'])
     
     u0 = np.array(np.indices(params['mask'].shape))
     du = u-u0
