@@ -24,7 +24,8 @@ def make_whitefield(data, mask, verbose=True):
     W : ndarray
         Float array of shape (M, L) containing the estimated whitefield.
     """
-    if verbose: print('Making the whitefield')
+    if verbose:
+        print('Making the whitefield')
     
     whitefield = np.median(data, axis=0)
     

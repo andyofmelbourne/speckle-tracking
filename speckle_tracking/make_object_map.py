@@ -132,34 +132,18 @@ def make_object_map(data, mask, W, dij_n, pixel_map, roi=None, subpixel=False,
     overlap = np.zeros(shape, dtype=np.float)
     WW      = (exp*W)**2
     
-    if verbose :
-        it = tqdm.trange(data.shape[0], desc='building object map')
-    else :
-        it = np.arange(data.shape[0])
-    
-    if subpixel :
-        for n in it:
-            # define the coordinate mapping
-            ss = pixel_map[0] - dij_n[n, 0] + n0
-            fs = pixel_map[1] - dij_n[n, 1] + m0
-            
-            I = utils_opencl.bilinear_interpolation_inverse_array(
-                                           I, exp**2 * W*data[n], ss, fs, invalid = m_roi)
-            
-            overlap = utils_opencl.bilinear_interpolation_inverse_array(
-                                           overlap, WW, ss, fs, invalid = m_roi)
+    for n in tqdm.trange(data.shape[0], desc='building object map', disable=not verbose):
+        # define the coordinate mapping
+        ss = pixel_map[0] - dij_n[n, 0] + n0
+        fs = pixel_map[1] - dij_n[n, 1] + m0
         
-    else :
-        for n in it:
-            # define the coordinate mapping and round to int
-            ss = np.rint((ij[0] - dij_n[n, 0] + n0)).astype(np.int)
-            fs = np.rint((ij[1] - dij_n[n, 1] + m0)).astype(np.int)
-            #
-            I[      ss, fs] += (exp**2 * W * data[n])[m_roi]
+        if subpixel :
+            I = utils_opencl.bilinear_interpolation_inverse_array(I, exp**2 * W*data[n], ss, fs, invalid = m_roi)
+            overlap = utils_opencl.bilinear_interpolation_inverse_array(overlap, WW, ss, fs, invalid = m_roi)
+        else:
+            I[ss, fs] += (exp**2 * W * data[n])[m_roi]
             overlap[ss, fs] += WW[m_roi]
-            
-    #print(np.mean(overlap))
-    #overlap.fill(1.)
+
     overlap[overlap<1e-2] = -1
     m = (overlap > 0)
     
