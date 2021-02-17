@@ -75,7 +75,8 @@ def make_pixel_translations(translations, basis, dx, dy, x_pixel_size, y_pixel_s
     
     
     """
-    if verbose: print('Converting translations from lab frame to pixel coordinates:\n')
+    if verbose:
+        print('Converting translations from lab frame to pixel coordinates:\n')
     
     # transform the translations onto the ss / fs axes
     # map the translations onto the fs / ss axes

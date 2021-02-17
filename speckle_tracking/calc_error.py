@@ -106,7 +106,7 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
     
     #sig = np.std(data, axis=0)
     #sig[sig <= 0] = 1
-    for n in tqdm.trange(data.shape[0], desc='calculating errors'):
+    for n in tqdm(data.shape[0], desc='calculating errors', disable=not verbose):
         # define the coordinate mapping 
         ss = pixel_map[0] - dij_n[n, 0] + n0
         fs = pixel_map[1] - dij_n[n, 1] + m0
