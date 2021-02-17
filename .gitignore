@@ -1,3 +1,8 @@
+# Diffraction pattern results and temporary development files
+/figures/
+/results/
+/logs/
+
 #jupyter checkpoints
 .ipynb_checkpoints/
 
