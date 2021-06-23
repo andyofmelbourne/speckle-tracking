@@ -31,7 +31,7 @@ def main(overide={}):
             params['pixel_map'], 
             params['n0'], 
             params['m0'], 
-            subpixel=True, verbose=True)
+            subpixel=True, verbose=False)
     
     out = {'error_total': error_total, 
            'error_frame': error_frame, 

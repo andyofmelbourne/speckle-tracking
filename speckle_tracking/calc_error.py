@@ -4,7 +4,7 @@ import tqdm
 from .make_object_map import make_object_map
 from . import utils_opencl
 
-def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbose=True):
+def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbose=False):
     r"""
     Parameters
     ----------
@@ -106,7 +106,7 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
     
     #sig = np.std(data, axis=0)
     #sig[sig <= 0] = 1
-    for n in tqdm.trange(data.shape[0], desc='calculating errors'):
+    for n in tqdm.trange(data.shape[0], desc='calculating errors', disable=not verbose):
         # define the coordinate mapping 
         ss = pixel_map[0] - dij_n[n, 0] + n0
         fs = pixel_map[1] - dij_n[n, 1] + m0
@@ -156,7 +156,7 @@ def calc_error(data, mask, W, dij_n, I, pixel_map, n0, m0, subpixel=False, verbo
     
     return error_total, error_frame, error_pixel, error_residual, error_reference, norm, flux_corr, res
 
-def make_pixel_map_err(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, search_window=20, grid=[20, 20]):
+def make_pixel_map_err(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, search_window=20, grid=[20, 20], verbose=False):
     # demand that the data is float32 to avoid excess mem. usage
     assert(data.dtype == np.float32)
     
@@ -233,7 +233,7 @@ def make_pixel_map_err(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, search_w
                
     ijs = np.array(ijs).astype(np.int32)
     
-    for i in tqdm.trange(1, desc='calculating pixel map shift errors'):
+    for i in tqdm.trange(1, desc='calculating pixel map shift errors', disable=not verbose):
         make_error_map_subpixel(queue, (1, ijs.shape[0]), (1, 1), 
               cl.SVM(Win), 
               cl.SVM(data), 

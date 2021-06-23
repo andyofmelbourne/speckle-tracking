@@ -104,7 +104,7 @@ if __name__ == '__main__':
                 params['y_pixel_size'], 
                 params['z'], 
                 params['defocus'], 
-                verbose=True)
+                verbose=False)
 
         # make the 'residual' pixel map for display
         u0 = np.array(np.indices(params['mask'].shape))

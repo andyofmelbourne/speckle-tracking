@@ -1,6 +1,6 @@
 import numpy as np
 
-def make_pixel_translations(translations, basis, dx, dy, verbose=True):
+def make_pixel_translations(translations, basis, dx, dy, verbose=False):
     """
     Convert sample translations from lab frame to pixel coordinates.
     

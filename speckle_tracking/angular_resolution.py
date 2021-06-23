@@ -9,7 +9,7 @@ def angular_resolution(data, mask, W, O, pixel_map, n0, m0, dij_n, dss, dfs, z,
                      interpolate = False, fill_bad_pix=True,
                      quadratic_refinement = True,
                      integrate = False, clip = None, 
-                     filter=None, verbose=True, guess=False):
+                     filter=None, verbose=False, guess=False):
     """
     """
     
@@ -70,7 +70,7 @@ def update_pixel_map_split(data, mask, split_mask, W, O, pixel_map, n0, m0, dij_
                      interpolate = False, fill_bad_pix=True,
                      quadratic_refinement = True,
                      integrate = False, clip = None, 
-                     filter=None, verbose=True, guess=False):
+                     filter=None, verbose=False, guess=False):
     # any parameter that the user specifies should be enforced
     # We should have "None" mean: please guess it for me
     if roi is None :

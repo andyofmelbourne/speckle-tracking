@@ -42,7 +42,7 @@ def main(overide={}):
             params['integrate'], 
             params['clip'], 
             params['filter'], 
-            verbose=True, guess=False)
+            verbose=False, guess=False)
     
     u0 = np.array(np.indices(params['data'].shape[1:]))
     du = u-u0

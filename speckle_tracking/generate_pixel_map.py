@@ -1,7 +1,7 @@
 import numpy as np
 
 def generate_pixel_map(shape, translations, basis, x_pixel_size, 
-        y_pixel_size, z, defocus_fs, defocus_ss=None, dss=None, dfs=None, verbose=True): 
+        y_pixel_size, z, defocus_fs, defocus_ss=None, dss=None, dfs=None, verbose=False): 
     """
     Generate the pixel mapping based on the imaging geometry.
     """
@@ -69,7 +69,7 @@ def generate_pixel_map(shape, translations, basis, x_pixel_size,
 
 
 
-def make_pixel_translations(translations, basis, dx, dy, x_pixel_size, y_pixel_size, verbose=True):
+def make_pixel_translations(translations, basis, dx, dy, x_pixel_size, y_pixel_size, verbose=False):
     """
     Convert sample translations from lab frame to pixel coordinates.
     

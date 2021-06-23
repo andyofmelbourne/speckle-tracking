@@ -4,7 +4,7 @@ import subprocess
 import os, sys
 
 
-def getlines(verbose=True):
+def getlines(verbose=False):
     lines = 0
 
     # open each file and count the lines

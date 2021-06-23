@@ -7,7 +7,7 @@ def fit_thon_rings(
         data, x_pixel_size, y_pixel_size, 
         z, wav, mask, W, roi, centre=None, 
         sig=10, edge_pix=5, window=30, 
-        rad_range=None, verbose=True, **kwargs):
+        rad_range=None, verbose=False, **kwargs):
     r"""Find the focus to sample distance by fitting Thon rings to power spectrum.
 
     This is done by generating a filtered power spectrum of the data. Then fitting

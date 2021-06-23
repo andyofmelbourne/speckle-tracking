@@ -447,7 +447,7 @@ __kernel void update_pixel_map_subpixel(
             {
                 err /= norm;
                 
-                printf("%i %f %f %f %f\n", j, di, dj, err_min, err);
+                // printf("%i %f %f %f %f\n", j, di, dj, err_min, err);
                 if(err < err_min)
                 {
                     err_min = err;

@@ -1,6 +1,6 @@
 import numpy as np
 
-def make_pixel_map(z, z1, dz, roi, x_pixel_size, y_pixel_size, shape, dx=None, dy=None, verbose=True):
+def make_pixel_map(z, z1, dz, roi, x_pixel_size, y_pixel_size, shape, dx=None, dy=None, verbose=False):
     r"""
 
     Parameters

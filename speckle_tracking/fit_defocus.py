@@ -8,7 +8,7 @@ from .calc_error import calc_error
 from .make_pixel_translations import make_pixel_translations
 
 
-def fit_defocus(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, verbose=True, **kwargs):
+def fit_defocus(data, x_pixel_size, y_pixel_size, z, wav, mask, W, roi, verbose=False, **kwargs):
     """Estimate the focus to sample distance.
     
     This routine uses speckle_tracking.fit_thon_rings to estimate the defocus.

@@ -1,6 +1,6 @@
 import numpy as np
 
-def guess_roi(W, verbose=True):
+def guess_roi(W, verbose=False):
     """Find the rectangular region that contains most of the whitefield.
 
     Parameters

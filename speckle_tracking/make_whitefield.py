@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.signal
 
-def make_whitefield(data, mask, verbose=True):
+def make_whitefield(data, mask, verbose=False):
     """Estimate the image one would obtain without the sample in the beam.
 
     This is done by taking the median value at each pixel along the first 

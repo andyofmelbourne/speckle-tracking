@@ -34,7 +34,7 @@ def main(overide={}):
             params['defocus_ss'], 
             params['dss'],
             params['dfs'],
-            verbose=True)
+            verbose=False)
     
     # make the 'residual' pixel map for display
     u0 = np.array(np.indices(params['mask'].shape))

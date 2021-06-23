@@ -42,7 +42,7 @@ if __name__ == '__main__':
             params['integrate'], 
             params['clip'], 
             params['filter'], 
-            verbose=True, guess=False)
+            verbose=False, guess=False)
     
     out = {'pixel_map_difference': u1-u2}
     out.update(res3)

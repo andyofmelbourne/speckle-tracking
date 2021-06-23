@@ -7,7 +7,7 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
                      interpolate = False, fill_bad_pix=True,
                      quadratic_refinement = True,
                      integrate = False, clip = None, 
-                     filter=None, verbose=True, guess=False):
+                     filter=None, verbose=False, guess=False):
     r"""
     Update the pixel_map by minimising an error metric within the search_window.
     
@@ -131,7 +131,7 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
     u, res = update_pixel_map_opencl(
                data, mask, W, O, pixel_map, n0, m0, 
                dij_n, subpixel, subsample, 
-               search_window, ss_grid.ravel(), fs_grid.ravel())
+               search_window, ss_grid.ravel(), fs_grid.ravel(), verbose=verbose)
     error = res['error']
     
     # if the update is on a sparse grid, then interpolate
@@ -143,8 +143,8 @@ def update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n,
         ss, fs = np.rint(ss_grid).astype(np.int), np.rint(fs_grid).astype(np.int)
         out[0][ss, fs] = u[0].reshape(ss_grid.shape)
         out[1][ss, fs] = u[1].reshape(ss_grid.shape)
-    
-    print('quadratic_refinement:', quadratic_refinement)
+    if verbose:
+        print('quadratic_refinement:', quadratic_refinement)
     if quadratic_refinement :
         if 1 in data.shape[1:] :
             out, res = quadratic_refinement_1d_opencl(data, mask, W, O, out, n0, m0, dij_n)
@@ -211,7 +211,7 @@ def filter_pixel_map(pm, mask, sig):
     out = out / norm
     return out
 
-def guess_update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, roi):
+def guess_update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, roi, verbose=False):
     # then estimate suitable parameters with a large search window
     # where 'large' is obviously = 100
     from .calc_error import make_pixel_map_err
@@ -248,7 +248,7 @@ def guess_update_pixel_map(data, mask, W, O, pixel_map, n0, m0, dij_n, roi):
     out, res = update_pixel_map_opencl(
                         data, mask, W, O, pixel_map,
                         n0, m0, dij_n, False, 1.,
-                        search_window, ss, fs)
+                        search_window, ss, fs, verbose=verbose)
     
     out = out.reshape((2, grid[0], grid[1]))
      
@@ -321,7 +321,6 @@ def update_pixel_map_np(data, mask, W, O, pixel_map, n0, m0, dij_n, search_windo
                 overlaps[index] = gaussian_filter(overlaps[index], window, mode = 'constant')
             
             index += 1
-            print(i, j)
         
     m = (overlaps >= 1)
     errors[m] /= overlaps[m]
@@ -334,7 +333,7 @@ def update_pixel_map_np(data, mask, W, O, pixel_map, n0, m0, dij_n, search_windo
     return ij_out, errors, overlaps
 
 
-def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel, subsample, search_window, ss, fs):
+def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel, subsample, search_window, ss, fs, verbose=False):
     # demand that the data is float32 to avoid excess mem. usage
     assert(data.dtype == np.float32)
     
@@ -396,8 +395,6 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
     ss_min, ss_max = (-(search_window[0]-1)//2, (search_window[0]+1)//2) 
     fs_min, fs_max = (-(search_window[1]-1)//2, (search_window[1]+1)//2) 
     
-    print(ss_min, ss_max)
-    print(fs_min, fs_max)
     # outputs:
     err_map      = np.zeros(W.shape, dtype=np.float32)
     pixel_mapout = pixel_map.astype(np.float32)
@@ -420,7 +417,7 @@ def update_pixel_map_opencl(data, mask, W, O, pixel_map, n0, m0, dij_n, subpixel
     err_map0     = err_map.copy()
     
     step = min(100, ss.shape[0])
-    it = tqdm.tqdm(np.arange(ss.shape[0])[::step], desc='updating pixel map')
+    it = tqdm.tqdm(np.arange(ss.shape[0])[::step], desc='updating pixel map', disable=not verbose)
     for i in it:
         ssi = ss[i:i+step:]
         fsi = fs[i:i+step:]
